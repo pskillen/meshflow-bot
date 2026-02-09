@@ -16,13 +16,27 @@ The easiest way to run Meshtastic Bot is using Docker. This method requires mini
 - Create a `.env` file in your project directory with the required environment variables:
 
 ```
-MESHTASTIC_NODE_IP=your_meshtastic_node_ip
+MESHTASTIC_IP=your_meshtastic_node_ip
 ADMIN_NODES=comma_separated_admin_node_ids
 STORAGE_API_ROOT=https://meshflow.pskillen.xyz
 STORAGE_API_TOKEN=your_storage_api_token from above site
 # Optionally, you can upload to a second API as well
 STORAGE_API_2_ROOT=your_storage_api_2_url
 STORAGE_API_2_TOKEN=your_storage_api_2_token
+
+# Feature Toggles
+ENABLE_TCP_PROXY=true
+
+# Command Toggles (set to false to disable)
+ENABLE_COMMAND_PING=true
+ENABLE_COMMAND_TR=true
+ENABLE_COMMAND_HELLO=true
+ENABLE_COMMAND_HELP=true
+ENABLE_COMMAND_NODES=true
+ENABLE_COMMAND_WHOAMI=true
+ENABLE_COMMAND_PREFS=true
+ENABLE_COMMAND_ADMIN=true
+ENABLE_COMMAND_STATUS=true
 ```
 
 ### 2. Use This `docker-compose.yaml`
