@@ -1,4 +1,5 @@
 import importlib
+from src.helpers import get_env_bool
 
 
 class CommandFactory:
@@ -53,6 +54,12 @@ class CommandFactory:
     def create_command(command_name, bot):
         command_info = CommandFactory.commands.get(command_name)
         if command_info:
+            # Check if command is enabled via environment variable
+            # e.g., !ping -> ENABLE_COMMAND_PING
+            env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
+            if not get_env_bool(env_var_name, True):
+                return None
+
             module_name, class_name = command_info["class"].rsplit('.', 1)
             module = importlib.import_module(module_name)
             command_class = getattr(module, class_name)

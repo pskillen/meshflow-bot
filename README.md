@@ -57,6 +57,44 @@ The bot will now run in the background. Data will be persisted locally in the `m
 
 ---
 
+## Customization
+
+You can enable or disable specific features and commands using environment variables in your `.env` or `meshtastic-bot.env` file. All options default to `true` if not specified.
+
+### Feature Toggles
+- `ENABLE_TCP_PROXY`: Set to `false` to disable the internal TCP proxy. The bot will connect directly to `MESHTASTIC_IP`.
+
+### Command Toggles
+Set any of the following to `false` to disable the command and hide it from the `!help` menu:
+- `ENABLE_COMMAND_PING`
+- `ENABLE_COMMAND_TR`
+- `ENABLE_COMMAND_HELLO`
+- `ENABLE_COMMAND_HELP`
+- `ENABLE_COMMAND_NODES`
+- `ENABLE_COMMAND_WHOAMI`
+- `ENABLE_COMMAND_PREFS`
+- `ENABLE_COMMAND_ADMIN`
+- `ENABLE_COMMAND_STATUS`
+
+---
+
+## Docker Compose Options
+
+There are two primary ways to run the bot using Docker:
+
+### 1. Standard (`docker-compose.yaml`) - **Recommended for local builds**
+- **Purpose**: Stable use with local source control.
+- **How it works**: It builds the bot locally from the source files in the repository.
+- **Includes**: Integrated **Watchtower** service which automatically checks for and applies updates to the `meshtastic-bot` container every hour.
+- **Environment**: Configuration is pulled from your `.env` file.
+
+### 2. Remote/Pre-built (`docker-compose-remote.yaml`)
+- **Purpose**: Quick deployment using the official container.
+- **How it works**: Pulls the pre-built image from the **GitHub Container Registry** (`ghcr.io`). 
+- **Configuration**: Uses `meshtastic-bot.env` for environment variables and a named Docker volume (`mesh_bot_data`) for persistence.
+
+---
+
 ## Native Installation (Advanced/Development)
 
 If you prefer to run the bot natively (e.g., for development or customization):

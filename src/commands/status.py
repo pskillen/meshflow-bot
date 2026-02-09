@@ -17,7 +17,7 @@ class StatusCommand(AbstractCommand):
         uptime_str = f"{days}d {hours}h {minutes}m"
 
         # Get Proxy Status
-        proxy_info = "Unknown"
+        proxy_info = "Disabled"
         if self.bot.proxy:
             status = self.bot.proxy.get_status()
             if isinstance(status, dict):

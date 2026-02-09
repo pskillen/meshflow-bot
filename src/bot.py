@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+import threading
 from datetime import datetime, timezone
 
 import schedule
@@ -55,6 +56,7 @@ class MeshtasticBot:
         self.user_prefs_persistence = None
         self.storage_apis = []
         self.pending_traces = {}
+        self.last_report_zero = False
 
         pub.subscribe(self.on_receive, "meshtastic.receive")
         pub.subscribe(self.on_traceroute, "meshtastic.traceroute")
@@ -117,6 +119,10 @@ class MeshtasticBot:
         self.init_complete = True
         logging.info('Connected to Meshtastic node')
         self.print_nodes()
+        
+        # Send an immediate node count report upon connection
+        # We use a timer to delay slightly to ensure everything settles
+        threading.Timer(10.0, self.report_node_count).start()
 
     def on_receive_text(self, packet: MeshPacket, interface):
         """Callback function triggered when a text message is received."""
@@ -170,22 +176,24 @@ class MeshtasticBot:
 
         logging.info(f"Received group message on channel '{channel_name}' from {sender_name}: {message}")
 
-        # Allow !tr in public channels
+        # Allow certain commands in public channels
         words = message.split()
-        if words and words[0].lower() == "!tr":
-            logging.info(f"Received public !tr from {sender.long_name if sender else from_id}")
-            # Import here to avoid circular imports if any, though factory is better
-            from src.commands.factory import CommandFactory
-            command_instance = CommandFactory.create_command("!tr", self)
-            if command_instance:
-                try:
-                    # By default commands reply in DM (reply_in_dm).
-                    # If we want public reply, we'd need to modify the command or use reply_in_channel.
-                    # But for now, let's just let it run. It will DM the user back (which is cleaner).
-                    command_instance.handle_packet(packet)
-                    return # Stop processing responders
-                except Exception as e:
-                    logging.error(f"Error handling public command: {e}")
+        if words:
+            command_name = words[0].lower()
+            if command_name in ["!tr", "!ping", "!hello", "!nodes", "!status", "!whoami"]:
+                from src.helpers import get_env_bool
+                env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
+                if get_env_bool(env_var_name, True):
+                    logging.info(f"Received public {command_name} from {sender_name}")
+                    from src.commands.factory import CommandFactory
+                    command_instance = CommandFactory.create_command(command_name, self)
+                    if command_instance:
+                        try:
+                            # Commands by default reply via DM (reply_in_dm).
+                            command_instance.handle_packet(packet)
+                            return # Stop processing responders
+                        except Exception as e:
+                            logging.error(f"Error handling public command {command_name}: {e}")
 
         responder = ResponderFactory.match_responder(message, self)
         if responder:
@@ -331,6 +339,47 @@ class MeshtasticBot:
 
         logging.info(f"- Plus {len(offline_nodes)} offline nodes")
 
+    def report_node_count(self, destination=None, channel_index=2):
+        """Report the current node count to a specific channel or destination."""
+        if not self.init_complete or not self.interface:
+            logging.warning("Skipping node count report: interface not ready.")
+            return
+
+        online_nodes = self.node_info.get_online_nodes()
+        count = len(online_nodes)
+
+        if count == 0:
+            message = "Warning MTEK cant see any nodes"
+            self.last_report_zero = True
+        else:
+            message = f"MTEK has a node count of {count}"
+            self.last_report_zero = False
+
+        logging.info(f"Reporting node count: {message}")
+        try:
+            if destination:
+                self.interface.sendText(message, destinationId=destination, wantAck=True)
+            else:
+                # Default to Channel 2 (GregPrivate)
+                self.interface.sendText(message, channelIndex=channel_index, wantAck=True)
+        except Exception as e:
+            logging.error(f"Failed to report node count: {e}")
+
+    def check_for_zero_nodes(self):
+        """Checks if the node count is zero and alerts immediately if it transitioned to zero."""
+        if not self.init_complete or not self.interface:
+            return
+
+        online_nodes = self.node_info.get_online_nodes()
+        count = len(online_nodes)
+
+        if count == 0 and not self.last_report_zero:
+            logging.warning("Immediate alert: Node count dropped to zero!")
+            self.report_node_count()
+        elif count > 0:
+            # Reset flag so we can alert again if it drops to zero later
+            self.last_report_zero = False
+
     def get_global_context(self):
         return {
             'nodes': self.node_db.list_nodes(),
@@ -340,6 +389,8 @@ class MeshtasticBot:
 
     def start_scheduler(self):
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
+        schedule.every(3).hours.do(self.report_node_count)
+        schedule.every(1).minutes.do(self.check_for_zero_nodes)
         while True:
             schedule.run_pending()
             try:

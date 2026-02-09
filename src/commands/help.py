@@ -2,30 +2,54 @@ from meshtastic.protobuf.mesh_pb2 import MeshPacket
 
 from src.bot import MeshtasticBot
 from src.commands.command import AbstractCommandWithSubcommands
+from src.helpers import get_env_bool
 
 
 class HelpCommand(AbstractCommandWithSubcommands):
     def __init__(self, bot: MeshtasticBot):
         super().__init__(bot, 'help')
-        self.sub_commands['hello'] = self.handle_hello
-        self.sub_commands['ping'] = self.handle_ping
-        self.sub_commands['tr'] = self.handle_tr
-        self.sub_commands['nodes'] = self.handle_nodes
-        self.sub_commands['whoami'] = self.handle_whoami
-        self.sub_commands['prefs'] = self.handle_prefs
-        self.sub_commands['status'] = self.handle_status
-        # self.sub_commands['enroll'] = self.handle_enroll
-        # self.sub_commands['leave'] = self.handle_leave
+        if get_env_bool('ENABLE_COMMAND_HELLO', True):
+            self.sub_commands['hello'] = self.handle_hello
+        if get_env_bool('ENABLE_COMMAND_PING', True):
+            self.sub_commands['ping'] = self.handle_ping
+        if get_env_bool('ENABLE_COMMAND_TR', True):
+            self.sub_commands['tr'] = self.handle_tr
+        if get_env_bool('ENABLE_COMMAND_NODES', True):
+            self.sub_commands['nodes'] = self.handle_nodes
+        if get_env_bool('ENABLE_COMMAND_WHOAMI', True):
+            self.sub_commands['whoami'] = self.handle_whoami
+        if get_env_bool('ENABLE_COMMAND_PREFS', True):
+            self.sub_commands['prefs'] = self.handle_prefs
+        if get_env_bool('ENABLE_COMMAND_STATUS', True):
+            self.sub_commands['status'] = self.handle_status
+        # if get_env_bool('ENABLE_COMMAND_ENROLL', True):
+        #     self.sub_commands['enroll'] = self.handle_enroll
+        # if get_env_bool('ENABLE_COMMAND_LEAVE', True):
+        #     self.sub_commands['leave'] = self.handle_leave
 
     def handle_base_command(self, packet: MeshPacket, args: list[str]) -> None:
         subcmds = self.sub_commands.keys()
         subcmds = filter(None, subcmds)  # remove empty strings
         subcmds = [f"!{cmd}" for cmd in subcmds]
 
-        response = (
-            f"Available via Direct Message: {', '.join(subcmds)}.\n"
-            f"Available in Public Channels: !tr (replies via DM)."
-        )
+        public_cmds = []
+        if get_env_bool('ENABLE_COMMAND_TR', True):
+            public_cmds.append("!tr")
+        if get_env_bool('ENABLE_COMMAND_PING', True):
+            public_cmds.append("!ping")
+        if get_env_bool('ENABLE_COMMAND_HELLO', True):
+            public_cmds.append("!hello")
+        if get_env_bool('ENABLE_COMMAND_NODES', True):
+            public_cmds.append("!nodes")
+        if get_env_bool('ENABLE_COMMAND_STATUS', True):
+            public_cmds.append("!status")
+        if get_env_bool('ENABLE_COMMAND_WHOAMI', True):
+            public_cmds.append("!whoami")
+
+        response = f"Available via Direct Message: {', '.join(subcmds)}."
+        if public_cmds:
+            response += f"\nAvailable in Public Channels: {', '.join(public_cmds)} (replies via DM)."
+        
         self.reply(packet, response)
 
     def handle_hello(self, packet: MeshPacket, args: list[str]) -> None:
