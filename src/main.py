@@ -57,6 +57,13 @@ def main():
     node_info_file = data_dir / 'node_info.json'
     failed_packets_dir = data_dir / 'failed_packets'
 
+    logging.info(f"--- Configuration ---")
+    logging.info(f"MESHTASTIC_IP: {MESHTASTIC_IP}")
+    logging.info(f"ENABLE_TCP_PROXY: {ENABLE_TCP_PROXY}")
+    logging.info(f"ENABLE_COMMAND_PING: {get_env_bool('ENABLE_COMMAND_PING', True)}")
+    logging.info(f"ENABLE_COMMAND_TR: {get_env_bool('ENABLE_COMMAND_TR', True)}")
+    logging.info(f"---------------------")
+
     proxy = None
     if ENABLE_TCP_PROXY:
         # Start the TCP Proxy

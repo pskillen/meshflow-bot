@@ -8,7 +8,7 @@ services:
     ports:
       - "4403:4403"
     environment:
-      - MESHTASTIC_IP=${MESHTASTIC_NODE_IP:-192.168.4.210} # Your Meshtastic Node IP here
+      - MESHTASTIC_IP=${MESHTASTIC_IP:-192.168.4.210} # Your Meshtastic Node IP here
       - STORAGE_API_ROOT=${STORAGE_API_ROOT}
       - STORAGE_API_TOKEN=${STORAGE_API_TOKEN}
       - STORAGE_API_VERSION=${STORAGE_API_VERSION}
