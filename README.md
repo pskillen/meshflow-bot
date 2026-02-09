@@ -52,6 +52,27 @@ The bot will now run in the background. Data will be persisted locally in the `m
 
 ---
 
+## Customization
+
+You can enable or disable specific features and commands using environment variables in your `.env` or `meshtastic-bot.env` file. All options default to `true` if not specified.
+
+### Feature Toggles
+- `ENABLE_TCP_PROXY`: Set to `false` to disable the internal TCP proxy. The bot will connect directly to `MESHTASTIC_IP`.
+
+### Command Toggles
+Set any of the following to `false` to disable the command and hide it from the `!help` menu:
+- `ENABLE_COMMAND_PING`
+- `ENABLE_COMMAND_TR`
+- `ENABLE_COMMAND_HELLO`
+- `ENABLE_COMMAND_HELP`
+- `ENABLE_COMMAND_NODES`
+- `ENABLE_COMMAND_WHOAMI`
+- `ENABLE_COMMAND_PREFS`
+- `ENABLE_COMMAND_ADMIN`
+- `ENABLE_COMMAND_STATUS`
+
+---
+
 ## Docker Compose Options
 
 There are two primary ways to run the bot using Docker:

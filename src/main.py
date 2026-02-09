@@ -22,6 +22,7 @@ logging.getLogger('mesh_interface').setLevel(logging.WARNING)
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
 from src.bot import MeshtasticBot
+from src.helpers import get_env_bool
 from src.persistence.commands_logger import SqliteCommandLogger
 from src.persistence.node_info import InMemoryNodeInfoStore
 from src.persistence.node_db import SqliteNodeDB
@@ -33,6 +34,8 @@ MESHTASTIC_IP = os.getenv("MESHTASTIC_IP")
 # Safely handle missing or empty ADMIN_NODES
 admin_nodes_raw = os.getenv("ADMIN_NODES") or ""
 ADMIN_NODES = [node.strip() for node in admin_nodes_raw.split(',') if node.strip()]
+
+ENABLE_TCP_PROXY = get_env_bool("ENABLE_TCP_PROXY", True)
 
 DATA_DIR = os.getenv("DATA_DIR", "data")
 STORAGE_API_ROOT = os.getenv("STORAGE_API_ROOT")
@@ -54,17 +57,27 @@ def main():
     node_info_file = data_dir / 'node_info.json'
     failed_packets_dir = data_dir / 'failed_packets'
 
-    # Start the TCP Proxy
-    # It listens on 0.0.0.0:4403 and forwards to MESHTASTIC_IP:4403
-    proxy = TcpProxy(target_host=MESHTASTIC_IP, target_port=4403, listen_host='0.0.0.0', listen_port=4403)
-    proxy.start()
-    
-    # Give the proxy a moment to bind to the port before the bot tries to connect
-    time.sleep(2)
+    logging.info(f"--- Configuration ---")
+    logging.info(f"MESHTASTIC_IP: {MESHTASTIC_IP}")
+    logging.info(f"ENABLE_TCP_PROXY: {ENABLE_TCP_PROXY}")
+    logging.info(f"ENABLE_COMMAND_PING: {get_env_bool('ENABLE_COMMAND_PING', True)}")
+    logging.info(f"ENABLE_COMMAND_TR: {get_env_bool('ENABLE_COMMAND_TR', True)}")
+    logging.info(f"---------------------")
 
-    # Connect to the Meshtastic node via the LOCAL PROXY
-    # We use 'localhost' because the proxy is running in this same container/process
-    bot = MeshtasticBot('localhost')
+    proxy = None
+    if ENABLE_TCP_PROXY:
+        # Start the TCP Proxy
+        # It listens on 0.0.0.0:4403 and forwards to MESHTASTIC_IP:4403
+        proxy = TcpProxy(target_host=MESHTASTIC_IP, target_port=4403, listen_host='0.0.0.0', listen_port=4403)
+        proxy.start()
+        
+        # Give the proxy a moment to bind to the port before the bot tries to connect
+        time.sleep(2)
+
+    # Connect to the Meshtastic node
+    # Use 'localhost' if proxy is enabled, otherwise connect directly
+    connection_address = 'localhost' if ENABLE_TCP_PROXY else MESHTASTIC_IP
+    bot = MeshtasticBot(connection_address)
     bot.proxy = proxy
     bot.admin_nodes = ADMIN_NODES
     bot.user_prefs_persistence = SqliteUserPrefsPersistence(str(user_prefs_file))

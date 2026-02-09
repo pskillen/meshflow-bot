@@ -1,6 +1,14 @@
+import os
 import string
 import urllib.parse
 from datetime import datetime, timezone
+
+
+def get_env_bool(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in ('true', '1', 't', 'y', 'yes')
 
 
 def pretty_print_last_heard(last_heard_timestamp: int | datetime) -> str:

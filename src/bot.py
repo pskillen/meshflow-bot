@@ -178,18 +178,22 @@ class MeshtasticBot:
 
         # Allow certain commands in public channels
         words = message.split()
-        if words and words[0].lower() in ["!tr", "!ping", "!hello", "!nodes", "!status", "!whoami"]:
+        if words:
             command_name = words[0].lower()
-            logging.info(f"Received public {command_name} from {sender_name}")
-            from src.commands.factory import CommandFactory
-            command_instance = CommandFactory.create_command(command_name, self)
-            if command_instance:
-                try:
-                    # Commands by default reply via DM (reply_in_dm).
-                    command_instance.handle_packet(packet)
-                    return # Stop processing responders
-                except Exception as e:
-                    logging.error(f"Error handling public command {command_name}: {e}")
+            if command_name in ["!tr", "!ping", "!hello", "!nodes", "!status", "!whoami"]:
+                from src.helpers import get_env_bool
+                env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
+                if get_env_bool(env_var_name, True):
+                    logging.info(f"Received public {command_name} from {sender_name}")
+                    from src.commands.factory import CommandFactory
+                    command_instance = CommandFactory.create_command(command_name, self)
+                    if command_instance:
+                        try:
+                            # Commands by default reply via DM (reply_in_dm).
+                            command_instance.handle_packet(packet)
+                            return # Stop processing responders
+                        except Exception as e:
+                            logging.error(f"Error handling public command {command_name}: {e}")
 
         responder = ResponderFactory.match_responder(message, self)
         if responder:

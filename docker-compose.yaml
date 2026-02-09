@@ -8,10 +8,20 @@ services:
     ports:
       - "4403:4403"
     environment:
-      - MESHTASTIC_IP=${MESHTASTIC_IP} # Your Meshtastic Node IP here
+      - MESHTASTIC_IP=${MESHTASTIC_IP:-192.168.4.210} # Your Meshtastic Node IP here
       - STORAGE_API_ROOT=${STORAGE_API_ROOT}
       - STORAGE_API_TOKEN=${STORAGE_API_TOKEN}
       - STORAGE_API_VERSION=${STORAGE_API_VERSION}
+      - ENABLE_TCP_PROXY=${ENABLE_TCP_PROXY:-true}
+      - ENABLE_COMMAND_PING=${ENABLE_COMMAND_PING:-true}
+      - ENABLE_COMMAND_TR=${ENABLE_COMMAND_TR:-true}
+      - ENABLE_COMMAND_HELLO=${ENABLE_COMMAND_HELLO:-true}
+      - ENABLE_COMMAND_HELP=${ENABLE_COMMAND_HELP:-true}
+      - ENABLE_COMMAND_NODES=${ENABLE_COMMAND_NODES:-true}
+      - ENABLE_COMMAND_WHOAMI=${ENABLE_COMMAND_WHOAMI:-true}
+      - ENABLE_COMMAND_PREFS=${ENABLE_COMMAND_PREFS:-true}
+      - ENABLE_COMMAND_ADMIN=${ENABLE_COMMAND_ADMIN:-true}
+      - ENABLE_COMMAND_STATUS=${ENABLE_COMMAND_STATUS:-true}
 
   watchtower:
     image: containrrr/watchtower
@@ -19,6 +29,4 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - DOCKER_API_VERSION=1.44  # Add this line to fix your error
     command: --interval 3600 meshtastic-bot  # Check for updates every hour
