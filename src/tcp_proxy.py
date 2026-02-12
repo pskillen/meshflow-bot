@@ -14,19 +14,17 @@ class TcpProxy:
         self.server_socket = None
         self.target_socket = None
         
-        # List of (socket, is_ready) tuples
-        # is_ready=False means the client is still receiving history replay
         self.clients = []
         self.clients_lock = threading.Lock()
         
         self.running = False
         
-        # We now store full packets instead of raw bytes to ensure stream integrity
+        # Increased handshake cache to ensure full config is captured
         self.handshake_packets = []
-        self.handshake_max_count = 20 # First 20 packets are usually the config sync
+        self.handshake_max_count = 40 
         
-        # Rolling history of last 20 packets (enough for a brief disconnect)
-        self.rolling_packets = deque(maxlen=20)
+        # Rolling history of last 50 packets
+        self.rolling_packets = deque(maxlen=50)
         
         # Buffer for incoming raw bytes from the radio
         self.in_buffer = b''
@@ -64,13 +62,12 @@ class TcpProxy:
         }
 
     def _connect_to_target(self):
-        """Internal helper to connect and reset buffers"""
+        """Internal helper to connect to radio"""
         backoff = 1
         while self.running:
             try:
-                # Reset buffers on new connection to ensure we capture fresh handshake
-                self.handshake_packets = []
-                self.rolling_packets.clear()
+                # We NO LONGER clear handshake/rolling buffers here 
+                # so that a radio reboot doesn't break client history.
                 self.in_buffer = b''
                 
                 self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,7 +88,6 @@ class TcpProxy:
         while len(self.in_buffer) >= 4:
             # Check for magic header
             if self.in_buffer[0:2] != b'\x94\xc3':
-                # Out of sync, find next magic header
                 idx = self.in_buffer.find(b'\x94\xc3')
                 if idx == -1:
                     self.in_buffer = b''
@@ -104,7 +100,6 @@ class TcpProxy:
             total_len = length + 4
             
             if len(self.in_buffer) < total_len:
-                # Need more data for a full packet
                 break
             
             # Extract full packet
@@ -117,11 +112,9 @@ class TcpProxy:
             else:
                 self.rolling_packets.append(packet)
             
-            # Broadcast to all READY clients
+            # Broadcast to all clients immediately
             with self.clients_lock:
-                for client_sock, is_ready in self.clients[:]:
-                    if not is_ready:
-                        continue # Skip clients still receiving history
+                for client_sock in self.clients[:]:
                     try:
                         client_sock.sendall(packet)
                     except:
@@ -129,7 +122,8 @@ class TcpProxy:
 
     def _remove_client(self, sock):
         with self.clients_lock:
-            self.clients = [c for c in self.clients if c[0] is not sock]
+            if sock in self.clients:
+                self.clients.remove(sock)
         try: sock.close()
         except: pass
 
@@ -156,7 +150,7 @@ class TcpProxy:
         while self.running:
             try:
                 with self.clients_lock:
-                    client_socks = [c[0] for c in self.clients if c[0].fileno() != -1]
+                    client_socks = [s for s in self.clients if s.fileno() != -1]
                 
                 inputs = [self.server_socket, self.target_socket] + client_socks
                 readable, _, _ = select.select(inputs, [], [], 1.0)
@@ -184,34 +178,30 @@ class TcpProxy:
                         client_socket, addr = self.server_socket.accept()
                         logging.info(f"New proxy connection from {addr}")
                         
-                        # Add to clients as NOT ready
                         with self.clients_lock:
-                            self.clients.append((client_socket, False))
+                            self.clients.append(client_socket)
                         
-                        # Snapshot packets to replay
-                        history = self.handshake_packets + list(self.rolling_packets)
-                        
-                        # Replay thread
-                        def replay(target_sock, packets_to_send, client_addr):
+                        # Replay full packets with pacing in a thread
+                        def replay(target_sock, handshake, history, client_addr):
                             try:
-                                for i, p in enumerate(packets_to_send):
+                                # Replay handshake first
+                                for p in handshake:
                                     target_sock.sendall(p)
-                                    # Pacing: 50ms for first few handshake packets, 10ms for history
-                                    time.sleep(0.05 if i < 10 else 0.01)
+                                    time.sleep(0.02)
                                 
-                                # Mark as READY for live broadcasts
-                                with self.clients_lock:
-                                    for i, (c_sock, _) in enumerate(self.clients):
-                                        if c_sock is target_sock:
-                                            self.clients[i] = (c_sock, True)
-                                            break
-                                            
-                                logging.info(f"Replayed {len(packets_to_send)} packets to {client_addr}. Now receiving live data.")
+                                # Replay recent history
+                                for p in history:
+                                    target_sock.sendall(p)
+                                    time.sleep(0.01)
+                                    
+                                logging.info(f"Replayed {len(handshake) + len(history)} packets to {client_addr}")
                             except Exception as e:
                                 logging.debug(f"Client {client_addr} disconnected during replay: {e}")
                                 self._remove_client(target_sock)
 
-                        threading.Thread(target=replay, args=(client_socket, history, addr), daemon=True).start()
+                        h_snapshot = list(self.handshake_packets)
+                        r_snapshot = list(self.rolling_packets)
+                        threading.Thread(target=replay, args=(client_socket, h_snapshot, r_snapshot, addr), daemon=True).start()
                                 
                     except Exception as e:
                          logging.error(f"Error accepting connection: {e}")
@@ -258,6 +248,6 @@ class TcpProxy:
             try: self.target_socket.close()
             except: pass
         with self.clients_lock:
-            for c_sock, _ in self.clients: 
+            for c_sock in self.clients: 
                 try: c_sock.close()
                 except: pass
