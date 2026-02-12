@@ -13,15 +13,20 @@ class TcpProxy:
         self.listen_port = int(listen_port)
         self.server_socket = None
         self.target_socket = None
+        
+        # List of (socket, is_ready) tuples
+        # is_ready=False means the client is still receiving history replay
         self.clients = []
+        self.clients_lock = threading.Lock()
+        
         self.running = False
         
         # We now store full packets instead of raw bytes to ensure stream integrity
         self.handshake_packets = []
         self.handshake_max_count = 20 # First 20 packets are usually the config sync
         
-        # Rolling history of last 100 packets
-        self.rolling_packets = deque(maxlen=100)
+        # Rolling history of last 20 packets (enough for a brief disconnect)
+        self.rolling_packets = deque(maxlen=20)
         
         # Buffer for incoming raw bytes from the radio
         self.in_buffer = b''
@@ -48,9 +53,12 @@ class TcpProxy:
             return "Proxy: Offline"
         
         silence = time.time() - self.last_target_activity
+        with self.clients_lock:
+            client_count = len(self.clients)
+            
         return {
             "connected": self.target_socket is not None and self.target_socket.fileno() != -1,
-            "clients": len(self.clients),
+            "clients": client_count,
             "silence_secs": int(silence),
             "cached_packets": len(self.handshake_packets) + len(self.rolling_packets)
         }
@@ -109,14 +117,21 @@ class TcpProxy:
             else:
                 self.rolling_packets.append(packet)
             
-            # Broadcast to all clients
-            for client in self.clients[:]:
-                try:
-                    client.sendall(packet)
-                except:
-                    if client in self.clients: self.clients.remove(client)
-                    try: client.close()
-                    except: pass
+            # Broadcast to all READY clients
+            with self.clients_lock:
+                for client_sock, is_ready in self.clients[:]:
+                    if not is_ready:
+                        continue # Skip clients still receiving history
+                    try:
+                        client_sock.sendall(packet)
+                    except:
+                        self._remove_client(client_sock)
+
+    def _remove_client(self, sock):
+        with self.clients_lock:
+            self.clients = [c for c in self.clients if c[0] is not sock]
+        try: sock.close()
+        except: pass
 
     def _run(self):
         logging.info(f"Starting TCP Proxy on {self.listen_host}:{self.listen_port} -> {self.target_host}:{self.target_port}")
@@ -140,19 +155,21 @@ class TcpProxy:
 
         while self.running:
             try:
-                inputs = [self.server_socket, self.target_socket]
-                current_inputs = [s for s in inputs + self.clients if s and s.fileno() != -1]
-                readable, _, _ = select.select(current_inputs, [], [], 1.0)
+                with self.clients_lock:
+                    client_socks = [c[0] for c in self.clients if c[0].fileno() != -1]
+                
+                inputs = [self.server_socket, self.target_socket] + client_socks
+                readable, _, _ = select.select(inputs, [], [], 1.0)
             except Exception as e:
                 logging.error(f"Select error: {e}")
-                self.clients = [c for c in self.clients if c.fileno() != -1]
                 continue
 
             current_time = time.time()
 
             if current_time - last_heartbeat_log > 60.0:
-                silence_duration = current_time - self.last_target_activity
-                logging.info(f"Proxy Heartbeat: Connected. Last data from radio {silence_duration:.1f}s ago. Clients: {len(self.clients)}")
+                with self.clients_lock:
+                    client_count = len(self.clients)
+                logging.info(f"Proxy Heartbeat: Connected. Last data from radio {current_time - self.last_target_activity:.1f}s ago. Clients: {client_count}")
                 last_heartbeat_log = current_time
             
             if current_time - self.last_target_activity > watchdog_timeout:
@@ -166,22 +183,35 @@ class TcpProxy:
                     try:
                         client_socket, addr = self.server_socket.accept()
                         logging.info(f"New proxy connection from {addr}")
-                        self.clients.append(client_socket)
                         
-                        # Replay full packets with pacing
+                        # Add to clients as NOT ready
+                        with self.clients_lock:
+                            self.clients.append((client_socket, False))
+                        
+                        # Snapshot packets to replay
+                        history = self.handshake_packets + list(self.rolling_packets)
+                        
+                        # Replay thread
                         def replay(target_sock, packets_to_send, client_addr):
                             try:
                                 for i, p in enumerate(packets_to_send):
                                     target_sock.sendall(p)
                                     # Pacing: 50ms for first few handshake packets, 10ms for history
                                     time.sleep(0.05 if i < 10 else 0.01)
-                                logging.info(f"Replayed {len(packets_to_send)} full packets to {client_addr}")
+                                
+                                # Mark as READY for live broadcasts
+                                with self.clients_lock:
+                                    for i, (c_sock, _) in enumerate(self.clients):
+                                        if c_sock is target_sock:
+                                            self.clients[i] = (c_sock, True)
+                                            break
+                                            
+                                logging.info(f"Replayed {len(packets_to_send)} packets to {client_addr}. Now receiving live data.")
                             except Exception as e:
                                 logging.debug(f"Client {client_addr} disconnected during replay: {e}")
+                                self._remove_client(target_sock)
 
-                        all_packets = self.handshake_packets + list(self.rolling_packets)
-                        if all_packets:
-                            threading.Thread(target=replay, args=(client_socket, all_packets, addr), daemon=True).start()
+                        threading.Thread(target=replay, args=(client_socket, history, addr), daemon=True).start()
                                 
                     except Exception as e:
                          logging.error(f"Error accepting connection: {e}")
@@ -209,8 +239,7 @@ class TcpProxy:
                     try:
                         data = sock.recv(16384)
                         if not data:
-                            if sock in self.clients: self.clients.remove(sock)
-                            sock.close()
+                            self._remove_client(sock)
                         else:
                             try:
                                 self.target_socket.sendall(data)
@@ -219,9 +248,7 @@ class TcpProxy:
                                 self.target_socket.close()
                                 self._connect_to_target()
                     except:
-                        if sock in self.clients: self.clients.remove(sock)
-                        try: sock.close()
-                        except: pass
+                        self._remove_client(sock)
 
         # Cleanup
         if self.server_socket: 
@@ -230,6 +257,7 @@ class TcpProxy:
         if self.target_socket: 
             try: self.target_socket.close()
             except: pass
-        for c in self.clients: 
-            try: c.close()
-            except: pass
+        with self.clients_lock:
+            for c_sock, _ in self.clients: 
+                try: c_sock.close()
+                except: pass
