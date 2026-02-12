@@ -16,12 +16,12 @@ class TcpProxy:
         self.clients = []
         self.running = False
         
-        # Buffer for the initial handshake/config (first 64KB of the session)
+        # Buffer for the initial handshake/config (captured at start of radio connection)
         self.handshake_buffer = b''
-        self.handshake_max = 65536
+        self.handshake_max = 16384  # 16KB is plenty for the initial protobuf sync
         
-        # Rolling buffer for recent data (last 512KB)
-        self.rolling_buffer = deque(maxlen=524288)
+        # Rolling buffer for recent data (last 256KB for history)
+        self.rolling_buffer = deque(maxlen=262144)
         
         self.last_target_activity = time.time()
 
@@ -56,6 +56,26 @@ class TcpProxy:
             "cached_kb": (len(self.handshake_buffer) + len(self.rolling_buffer)) // 1024
         }
 
+    def _connect_to_target(self):
+        """Internal helper to connect and reset buffers"""
+        backoff = 1
+        while self.running:
+            try:
+                # Reset buffers on new connection to ensure we capture fresh handshake
+                self.handshake_buffer = b''
+                self.rolling_buffer.clear()
+                
+                self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.target_socket.connect((self.target_host, self.target_port))
+                logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
+                self.last_target_activity = time.time()
+                return True
+            except Exception as e:
+                logging.error(f"Failed to connect to target ({self.target_host}): {e}. Retrying in {backoff}s...")
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 30)
+        return False
+
     def _run(self):
         logging.info(f"Starting TCP Proxy on {self.listen_host}:{self.listen_port} -> {self.target_host}:{self.target_port}")
 
@@ -70,29 +90,14 @@ class TcpProxy:
             
         self.server_socket.listen(5)
 
-        # Connect to target
-        backoff = 1
-        while self.running:
-            try:
-                self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.target_socket.connect((self.target_host, self.target_port))
-                logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
-                self.last_target_activity = time.time()
-                break
-            except Exception as e:
-                logging.error(f"Failed to connect to target ({self.target_host}): {e}. Retrying in {backoff}s...")
-                time.sleep(backoff)
-                backoff = min(backoff * 2, 60)
-
-        if not self.running:
+        if not self._connect_to_target():
             return
 
-        watchdog_timeout = 300.0  # Reconnect if no data from target for 5 minutes
+        watchdog_timeout = 300.0
         last_heartbeat_log = time.time()
 
         while self.running:
             try:
-                # Rebuild the list of inputs every time
                 inputs = [self.server_socket, self.target_socket]
                 current_inputs = [s for s in inputs + self.clients if s and s.fileno() != -1]
                 readable, _, _ = select.select(current_inputs, [], [], 1.0)
@@ -103,34 +108,16 @@ class TcpProxy:
 
             current_time = time.time()
 
-            # Heartbeat Logging & Watchdog Check
             if current_time - last_heartbeat_log > 60.0:
                 silence_duration = current_time - self.last_target_activity
                 logging.info(f"Proxy Heartbeat: Connected. Last data from radio {silence_duration:.1f}s ago. Clients: {len(self.clients)}")
                 last_heartbeat_log = current_time
             
-            # Watchdog: Force reconnect if silence is too long
             if current_time - self.last_target_activity > watchdog_timeout:
                 logging.warning(f"Watchdog: No data from radio for {watchdog_timeout}s. Forcing reconnect...")
-                try:
-                    self.target_socket.close()
-                except:
-                    pass
-                
-                # Reconnect logic
-                reconnected = False
-                backoff = 1
-                while self.running and not reconnected:
-                    try:
-                        self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        self.target_socket.connect((self.target_host, self.target_port))
-                        logging.info("Watchdog: Reconnected to target successfully.")
-                        self.last_target_activity = time.time()
-                        reconnected = True
-                    except Exception as ex:
-                        logging.error(f"Watchdog reconnect failed: {ex}. Retrying in {backoff}s...")
-                        time.sleep(backoff)
-                        backoff = min(backoff * 2, 10)
+                try: self.target_socket.close()
+                except: pass
+                self._connect_to_target()
 
             for sock in readable:
                 if sock is self.server_socket:
@@ -139,23 +126,26 @@ class TcpProxy:
                         logging.info(f"New proxy connection from {addr}")
                         self.clients.append(client_socket)
                         
-                        # Replay buffers to the new client
-                        # 1. Replay handshake buffer
-                        if self.handshake_buffer:
+                        # Replay buffers with pacing
+                        def replay():
                             try:
-                                client_socket.sendall(self.handshake_buffer)
-                            except Exception as e:
-                                logging.error(f"Error sending handshake buffer to client: {e}")
+                                # 1. Handshake (essential config)
+                                if self.handshake_buffer:
+                                    client_socket.sendall(self.handshake_buffer)
+                                    time.sleep(0.1) # Small pause
                                 
-                        # 2. Replay rolling buffer
-                        if self.rolling_buffer:
-                            try:
-                                # Convert deque to bytes
-                                rolling_data = bytes(self.rolling_buffer)
-                                client_socket.sendall(rolling_data)
-                                logging.info(f"Sent {len(self.handshake_buffer)} bytes handshake and {len(rolling_data)} bytes rolling cache to {addr}")
+                                # 2. Rolling history in chunks
+                                if self.rolling_buffer:
+                                    rolling_data = bytes(self.rolling_buffer)
+                                    chunk_size = 4096
+                                    for i in range(0, len(rolling_data), chunk_size):
+                                        client_socket.sendall(rolling_data[i:i+chunk_size])
+                                        time.sleep(0.01) # 10ms pacing between chunks
+                                    logging.info(f"Replayed {len(self.handshake_buffer)}b handshake and {len(rolling_data)}b history to {addr}")
                             except Exception as e:
-                                logging.error(f"Error sending rolling buffer to client: {e}")
+                                logging.debug(f"Client {addr} disconnected during replay: {e}")
+
+                        threading.Thread(target=replay, daemon=True).start()
                                 
                     except Exception as e:
                          logging.error(f"Error accepting connection: {e}")
@@ -165,53 +155,29 @@ class TcpProxy:
                     try:
                         data = self.target_socket.recv(16384)
                         if not data:
-                            logging.warning("Target closed connection. Restarting proxy connection...")
+                            logging.warning("Target closed connection. Reconnecting...")
                             self.target_socket.close()
-                            
-                            reconnected = False
-                            backoff = 1
-                            while self.running and not reconnected:
-                                try:
-                                    self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                    self.target_socket.connect((self.target_host, self.target_port))
-                                    logging.info("Reconnected to target.")
-                                    reconnected = True
-                                except:
-                                    time.sleep(backoff)
-                                    backoff = min(backoff * 2, 30)
-                            
-                            if not reconnected:
-                                self.running = False
+                            self._connect_to_target()
                             break
                         
-                        # Update buffers
                         if len(self.handshake_buffer) < self.handshake_max:
                             to_add = data[:self.handshake_max - len(self.handshake_buffer)]
                             self.handshake_buffer += to_add
                         
                         self.rolling_buffer.extend(data)
 
-                        # Broadcast to all clients
                         for client in self.clients[:]:
                             try:
                                 client.sendall(data)
                             except:
-                                if client in self.clients:
-                                    self.clients.remove(client)
-                                try:
-                                    client.close()
-                                except:
-                                    pass
+                                if client in self.clients: self.clients.remove(client)
+                                try: client.close()
+                                except: pass
                     except Exception as e:
                         logging.error(f"Error reading from target: {e}")
                         self.target_socket.close()
-                        try:
-                            time.sleep(5)
-                            self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            self.target_socket.connect((self.target_host, self.target_port))
-                            logging.info("Reconnected to target after error.")
-                        except:
-                            logging.error("Failed to reconnect immediately.")
+                        time.sleep(2)
+                        self._connect_to_target()
 
                 else:
                     # Data from a client
