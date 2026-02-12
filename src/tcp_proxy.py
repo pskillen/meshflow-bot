@@ -19,11 +19,11 @@ class TcpProxy:
         
         self.running = False
         
-        # Increased handshake cache to ensure full config is captured
+        # Handshake: The first 40 packets from a fresh radio connection
         self.handshake_packets = []
         self.handshake_max_count = 40 
         
-        # Rolling history of last 50 packets
+        # History: The last 50 packets seen
         self.rolling_packets = deque(maxlen=50)
         
         # Buffer for incoming raw bytes from the radio
@@ -66,8 +66,10 @@ class TcpProxy:
         backoff = 1
         while self.running:
             try:
-                # We NO LONGER clear handshake/rolling buffers here 
-                # so that a radio reboot doesn't break client history.
+                # If we are reconnecting to the radio, the handshake MUST be cleared
+                # because the radio will start a new session with new IDs.
+                # We keep rolling_packets (history) to bridge the gap for apps.
+                self.handshake_packets = []
                 self.in_buffer = b''
                 
                 self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -86,7 +88,6 @@ class TcpProxy:
         self.in_buffer += data
         
         while len(self.in_buffer) >= 4:
-            # Check for magic header
             if self.in_buffer[0:2] != b'\x94\xc3':
                 idx = self.in_buffer.find(b'\x94\xc3')
                 if idx == -1:
@@ -95,24 +96,23 @@ class TcpProxy:
                 self.in_buffer = self.in_buffer[idx:]
                 continue
             
-            # Read length (big-endian)
             length = (self.in_buffer[2] << 8) | self.in_buffer[3]
             total_len = length + 4
             
             if len(self.in_buffer) < total_len:
                 break
             
-            # Extract full packet
             packet = self.in_buffer[:total_len]
             self.in_buffer = self.in_buffer[total_len:]
             
-            # Update cache
+            # Update handshake cache if we're still in the start of the session
             if len(self.handshake_packets) < self.handshake_max_count:
                 self.handshake_packets.append(packet)
-            else:
-                self.rolling_packets.append(packet)
             
-            # Broadcast to all clients immediately
+            # Always update rolling history
+            self.rolling_packets.append(packet)
+            
+            # Broadcast to all clients
             with self.clients_lock:
                 for client_sock in self.clients[:]:
                     try:
@@ -181,18 +181,22 @@ class TcpProxy:
                         with self.clients_lock:
                             self.clients.append(client_socket)
                         
-                        # Replay full packets with pacing in a thread
+                        # Replay thread with DELAY and PACING
                         def replay(target_sock, handshake, history, client_addr):
                             try:
-                                # Replay handshake first
+                                # DELAY: Give the client library 2 seconds to initialize its internal 
+                                # structures before we flood it with data. Fixes NoneType errors.
+                                time.sleep(2.0)
+                                
+                                # PACING: Send handshake packets slowly
                                 for p in handshake:
                                     target_sock.sendall(p)
-                                    time.sleep(0.02)
+                                    time.sleep(0.1) # 100ms pacing for handshake
                                 
-                                # Replay recent history
+                                # Send history
                                 for p in history:
                                     target_sock.sendall(p)
-                                    time.sleep(0.01)
+                                    time.sleep(0.02) # 20ms pacing for history
                                     
                                 logging.info(f"Replayed {len(handshake) + len(history)} packets to {client_addr}")
                             except Exception as e:
