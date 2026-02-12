@@ -5,13 +5,6 @@ import logging
 import time
 from collections import deque
 
-import socket
-import select
-import threading
-import logging
-import time
-from collections import deque
-
 class TcpProxy:
     def __init__(self, target_host, target_port=4403, listen_host='0.0.0.0', listen_port=4403):
         self.target_host = target_host
@@ -229,49 +222,6 @@ class TcpProxy:
                         if sock in self.clients: self.clients.remove(sock)
                         try: sock.close()
                         except: pass
-
-                else:
-                    # Data from a client
-                    try:
-                        data = sock.recv(16384)
-                        if not data:
-                            if sock in self.clients:
-                                self.clients.remove(sock)
-                            sock.close()
-                        else:
-                            # Forward to target
-                            try:
-                                self.target_socket.sendall(data)
-                            except Exception as e:
-                                logging.error(f"Error sending to target: {e}. Attempting to reconnect...")
-                                try:
-                                    self.target_socket.close()
-                                except:
-                                    pass
-                                
-                                reconnected = False
-                                backoff = 1
-                                while self.running and not reconnected:
-                                    try:
-                                        self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                        self.target_socket.connect((self.target_host, self.target_port))
-                                        logging.info("Reconnected to target successfully.")
-                                        self.target_socket.sendall(data)
-                                        reconnected = True
-                                    except Exception as ex:
-                                        logging.error(f"Reconnect failed: {ex}. Retrying in {backoff}s...")
-                                        time.sleep(backoff)
-                                        backoff = min(backoff * 2, 10)
-                                
-                                if not reconnected:
-                                    self.running = False
-                    except:
-                        if sock in self.clients:
-                            self.clients.remove(sock)
-                        try:
-                            sock.close()
-                        except:
-                            pass
 
         # Cleanup
         if self.server_socket: 
