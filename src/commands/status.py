@@ -22,7 +22,7 @@ class StatusCommand(AbstractCommand):
             status = self.bot.proxy.get_status()
             if isinstance(status, dict):
                 state = "Online" if status['connected'] else "Reconnecting"
-                proxy_info = f"{state}, {status['clients']} clients, last radio data {status['silence_secs']}s ago"
+                proxy_info = f"{state}, {status['clients']} clients, {status['cached_kb']}KB cache, last radio {status['silence_secs']}s ago"
             else:
                 proxy_info = status
 

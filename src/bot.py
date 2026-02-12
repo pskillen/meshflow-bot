@@ -12,7 +12,7 @@ from requests import HTTPError
 from src.api.StorageAPI import StorageAPIWrapper
 from src.commands.factory import CommandFactory
 from src.data_classes import MeshNode
-from src.helpers import pretty_print_last_heard, safe_encode_node_name
+from src.helpers import pretty_print_last_heard, safe_encode_node_name, get_env_bool, get_env_int
 from src.persistence.commands_logger import AbstractCommandLogger
 from src.persistence.node_db import AbstractNodeDB
 from src.persistence.node_info import AbstractNodeInfoStore
@@ -181,7 +181,6 @@ class MeshtasticBot:
         if words:
             command_name = words[0].lower()
             if command_name in ["!tr", "!ping", "!hello", "!nodes", "!status", "!whoami"]:
-                from src.helpers import get_env_bool
                 env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
                 if get_env_bool(env_var_name, True):
                     logging.info(f"Received public {command_name} from {sender_name}")
@@ -339,11 +338,14 @@ class MeshtasticBot:
 
         logging.info(f"- Plus {len(offline_nodes)} offline nodes")
 
-    def report_node_count(self, destination=None, channel_index=2):
+    def report_node_count(self, destination=None, channel_index=None):
         """Report the current node count to a specific channel or destination."""
         if not self.init_complete or not self.interface:
             logging.warning("Skipping node count report: interface not ready.")
             return
+
+        if channel_index is None:
+            channel_index = get_env_int('CHANNEL_FOR_NODE_TOTAL_BROADCAST', 2)
 
         online_nodes = self.node_info.get_online_nodes()
         count = len(online_nodes)
@@ -360,7 +362,6 @@ class MeshtasticBot:
             if destination:
                 self.interface.sendText(message, destinationId=destination, wantAck=True)
             else:
-                # Default to Channel 2 (GregPrivate)
                 self.interface.sendText(message, channelIndex=channel_index, wantAck=True)
         except Exception as e:
             logging.error(f"Failed to report node count: {e}")
@@ -389,8 +390,9 @@ class MeshtasticBot:
 
     def start_scheduler(self):
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
-        schedule.every(3).hours.do(self.report_node_count)
-        schedule.every(1).minutes.do(self.check_for_zero_nodes)
+        if get_env_bool('ENABLE_FEATURE_NODE_TOTALS', True):
+            schedule.every(3).hours.do(self.report_node_count)
+            schedule.every(1).minutes.do(self.check_for_zero_nodes)
         while True:
             schedule.run_pending()
             try:
