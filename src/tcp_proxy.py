@@ -5,6 +5,13 @@ import logging
 import time
 from collections import deque
 
+import socket
+import select
+import threading
+import logging
+import time
+from collections import deque
+
 class TcpProxy:
     def __init__(self, target_host, target_port=4403, listen_host='0.0.0.0', listen_port=4403):
         self.target_host = target_host
@@ -16,12 +23,15 @@ class TcpProxy:
         self.clients = []
         self.running = False
         
-        # Buffer for the initial handshake/config (captured at start of radio connection)
-        self.handshake_buffer = b''
-        self.handshake_max = 16384  # 16KB is plenty for the initial protobuf sync
+        # We now store full packets instead of raw bytes to ensure stream integrity
+        self.handshake_packets = []
+        self.handshake_max_count = 20 # First 20 packets are usually the config sync
         
-        # Rolling buffer for recent data (last 256KB for history)
-        self.rolling_buffer = deque(maxlen=262144)
+        # Rolling history of last 100 packets
+        self.rolling_packets = deque(maxlen=100)
+        
+        # Buffer for incoming raw bytes from the radio
+        self.in_buffer = b''
         
         self.last_target_activity = time.time()
 
@@ -34,15 +44,11 @@ class TcpProxy:
     def stop(self):
         self.running = False
         if self.server_socket:
-            try:
-                self.server_socket.close()
-            except:
-                pass
+            try: self.server_socket.close()
+            except: pass
         if self.target_socket:
-            try:
-                self.target_socket.close()
-            except:
-                pass
+            try: self.target_socket.close()
+            except: pass
 
     def get_status(self):
         if not self.running:
@@ -53,7 +59,7 @@ class TcpProxy:
             "connected": self.target_socket is not None and self.target_socket.fileno() != -1,
             "clients": len(self.clients),
             "silence_secs": int(silence),
-            "cached_kb": (len(self.handshake_buffer) + len(self.rolling_buffer)) // 1024
+            "cached_packets": len(self.handshake_packets) + len(self.rolling_packets)
         }
 
     def _connect_to_target(self):
@@ -62,8 +68,9 @@ class TcpProxy:
         while self.running:
             try:
                 # Reset buffers on new connection to ensure we capture fresh handshake
-                self.handshake_buffer = b''
-                self.rolling_buffer.clear()
+                self.handshake_packets = []
+                self.rolling_packets.clear()
+                self.in_buffer = b''
                 
                 self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.target_socket.connect((self.target_host, self.target_port))
@@ -75,6 +82,48 @@ class TcpProxy:
                 time.sleep(backoff)
                 backoff = min(backoff * 2, 30)
         return False
+
+    def _process_radio_data(self, data):
+        """Frames raw bytes into Meshtastic packets and caches them"""
+        self.in_buffer += data
+        
+        while len(self.in_buffer) >= 4:
+            # Check for magic header
+            if self.in_buffer[0:2] != b'\x94\xc3':
+                # Out of sync, find next magic header
+                idx = self.in_buffer.find(b'\x94\xc3')
+                if idx == -1:
+                    self.in_buffer = b''
+                    break
+                self.in_buffer = self.in_buffer[idx:]
+                continue
+            
+            # Read length (big-endian)
+            length = (self.in_buffer[2] << 8) | self.in_buffer[3]
+            total_len = length + 4
+            
+            if len(self.in_buffer) < total_len:
+                # Need more data for a full packet
+                break
+            
+            # Extract full packet
+            packet = self.in_buffer[:total_len]
+            self.in_buffer = self.in_buffer[total_len:]
+            
+            # Update cache
+            if len(self.handshake_packets) < self.handshake_max_count:
+                self.handshake_packets.append(packet)
+            else:
+                self.rolling_packets.append(packet)
+            
+            # Broadcast to all clients
+            for client in self.clients[:]:
+                try:
+                    client.sendall(packet)
+                except:
+                    if client in self.clients: self.clients.remove(client)
+                    try: client.close()
+                    except: pass
 
     def _run(self):
         logging.info(f"Starting TCP Proxy on {self.listen_host}:{self.listen_port} -> {self.target_host}:{self.target_port}")
@@ -126,26 +175,20 @@ class TcpProxy:
                         logging.info(f"New proxy connection from {addr}")
                         self.clients.append(client_socket)
                         
-                        # Replay buffers with pacing
-                        def replay():
+                        # Replay full packets with pacing
+                        def replay(target_sock, packets_to_send, client_addr):
                             try:
-                                # 1. Handshake (essential config)
-                                if self.handshake_buffer:
-                                    client_socket.sendall(self.handshake_buffer)
-                                    time.sleep(0.1) # Small pause
-                                
-                                # 2. Rolling history in chunks
-                                if self.rolling_buffer:
-                                    rolling_data = bytes(self.rolling_buffer)
-                                    chunk_size = 4096
-                                    for i in range(0, len(rolling_data), chunk_size):
-                                        client_socket.sendall(rolling_data[i:i+chunk_size])
-                                        time.sleep(0.01) # 10ms pacing between chunks
-                                    logging.info(f"Replayed {len(self.handshake_buffer)}b handshake and {len(rolling_data)}b history to {addr}")
+                                for i, p in enumerate(packets_to_send):
+                                    target_sock.sendall(p)
+                                    # Pacing: 50ms for first few handshake packets, 10ms for history
+                                    time.sleep(0.05 if i < 10 else 0.01)
+                                logging.info(f"Replayed {len(packets_to_send)} full packets to {client_addr}")
                             except Exception as e:
-                                logging.debug(f"Client {addr} disconnected during replay: {e}")
+                                logging.debug(f"Client {client_addr} disconnected during replay: {e}")
 
-                        threading.Thread(target=replay, daemon=True).start()
+                        all_packets = self.handshake_packets + list(self.rolling_packets)
+                        if all_packets:
+                            threading.Thread(target=replay, args=(client_socket, all_packets, addr), daemon=True).start()
                                 
                     except Exception as e:
                          logging.error(f"Error accepting connection: {e}")
@@ -160,24 +203,32 @@ class TcpProxy:
                             self._connect_to_target()
                             break
                         
-                        if len(self.handshake_buffer) < self.handshake_max:
-                            to_add = data[:self.handshake_max - len(self.handshake_buffer)]
-                            self.handshake_buffer += to_add
+                        self._process_radio_data(data)
                         
-                        self.rolling_buffer.extend(data)
-
-                        for client in self.clients[:]:
-                            try:
-                                client.sendall(data)
-                            except:
-                                if client in self.clients: self.clients.remove(client)
-                                try: client.close()
-                                except: pass
                     except Exception as e:
                         logging.error(f"Error reading from target: {e}")
                         self.target_socket.close()
                         time.sleep(2)
                         self._connect_to_target()
+
+                else:
+                    # Data from a client forwarded to target
+                    try:
+                        data = sock.recv(16384)
+                        if not data:
+                            if sock in self.clients: self.clients.remove(sock)
+                            sock.close()
+                        else:
+                            try:
+                                self.target_socket.sendall(data)
+                            except Exception as e:
+                                logging.error(f"Error sending to target: {e}")
+                                self.target_socket.close()
+                                self._connect_to_target()
+                    except:
+                        if sock in self.clients: self.clients.remove(sock)
+                        try: sock.close()
+                        except: pass
 
                 else:
                     # Data from a client
