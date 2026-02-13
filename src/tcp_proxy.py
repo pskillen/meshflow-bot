@@ -19,9 +19,9 @@ class TcpProxy:
         
         self.running = False
         
-        # Handshake: The first 40 packets from a fresh radio connection
+        # Handshake: The first 50 packets from a fresh radio connection
         self.handshake_packets = []
-        self.handshake_max_count = 40 
+        self.handshake_max_count = 50 
         
         # History: The last 50 packets seen
         self.rolling_packets = deque(maxlen=50)
@@ -62,18 +62,26 @@ class TcpProxy:
         }
 
     def _connect_to_target(self):
-        """Internal helper to connect to radio"""
+        """Internal helper to connect to radio with Keep-Alives"""
         backoff = 1
         while self.running:
             try:
-                # If we are reconnecting to the radio, the handshake MUST be cleared
-                # because the radio will start a new session with new IDs.
-                # We keep rolling_packets (history) to bridge the gap for apps.
-                self.handshake_packets = []
+                self.handshake_packets = [] 
                 self.in_buffer = b''
                 
-                self.target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.target_socket.connect((self.target_host, self.target_port))
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                
+                # Enable TCP Keep-Alives to prevent the 60s timeout
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                # Linux-specific keepalive settings (if available)
+                try:
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+                except: pass
+
+                sock.connect((self.target_host, self.target_port))
+                self.target_socket = sock
                 logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
                 self.last_target_activity = time.time()
                 return True
@@ -105,14 +113,10 @@ class TcpProxy:
             packet = self.in_buffer[:total_len]
             self.in_buffer = self.in_buffer[total_len:]
             
-            # Update handshake cache if we're still in the start of the session
             if len(self.handshake_packets) < self.handshake_max_count:
                 self.handshake_packets.append(packet)
-            
-            # Always update rolling history
             self.rolling_packets.append(packet)
             
-            # Broadcast to all clients
             with self.clients_lock:
                 for client_sock in self.clients[:]:
                     try:
@@ -181,23 +185,15 @@ class TcpProxy:
                         with self.clients_lock:
                             self.clients.append(client_socket)
                         
-                        # Replay thread with DELAY and PACING
                         def replay(target_sock, handshake, history, client_addr):
                             try:
-                                # DELAY: Give the client library 2 seconds to initialize its internal 
-                                # structures before we flood it with data. Fixes NoneType errors.
                                 time.sleep(2.0)
-                                
-                                # PACING: Send handshake packets slowly
                                 for p in handshake:
                                     target_sock.sendall(p)
-                                    time.sleep(0.1) # 100ms pacing for handshake
-                                
-                                # Send history
+                                    time.sleep(0.1) 
                                 for p in history:
                                     target_sock.sendall(p)
-                                    time.sleep(0.02) # 20ms pacing for history
-                                    
+                                    time.sleep(0.02)
                                 logging.info(f"Replayed {len(handshake) + len(history)} packets to {client_addr}")
                             except Exception as e:
                                 logging.debug(f"Client {client_addr} disconnected during replay: {e}")
@@ -219,9 +215,7 @@ class TcpProxy:
                             self.target_socket.close()
                             self._connect_to_target()
                             break
-                        
                         self._process_radio_data(data)
-                        
                     except Exception as e:
                         logging.error(f"Error reading from target: {e}")
                         self.target_socket.close()
@@ -229,14 +223,18 @@ class TcpProxy:
                         self._connect_to_target()
 
                 else:
-                    # Data from a client forwarded to target
+                    # Data from a client forwarded to radio with PACING
                     try:
                         data = sock.recv(16384)
                         if not data:
                             self._remove_client(sock)
                         else:
                             try:
-                                self.target_socket.sendall(data)
+                                # Chunk data to the radio (Meshtastic buffers are small)
+                                chunk_size = 512
+                                for i in range(0, len(data), chunk_size):
+                                    self.target_socket.sendall(data[i:i+chunk_size])
+                                    time.sleep(0.01) # 10ms delay between chunks
                             except Exception as e:
                                 logging.error(f"Error sending to target: {e}")
                                 self.target_socket.close()
