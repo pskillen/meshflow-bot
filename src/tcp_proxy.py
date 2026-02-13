@@ -39,6 +39,7 @@ class TcpProxy:
 
     def stop(self):
         self.running = False
+        self._disconnect_all_clients()
         if self.server_socket:
             try: self.server_socket.close()
             except: pass
@@ -61,19 +62,28 @@ class TcpProxy:
             "cached_packets": len(self.handshake_packets) + len(self.rolling_packets)
         }
 
+    def _disconnect_all_clients(self):
+        """Force all clients to disconnect so they can re-sync with a new radio session"""
+        with self.clients_lock:
+            for sock in self.clients:
+                try: sock.close()
+                except: pass
+            self.clients = []
+        logging.info("Disconnected all proxy clients to force re-sync.")
+
     def _connect_to_target(self):
         """Internal helper to connect to radio with Keep-Alives"""
+        # If we are reconnecting, we MUST clear handshake and drop clients
+        # because the new session will have different internal IDs.
+        self.handshake_packets = [] 
+        self.in_buffer = b''
+        self._disconnect_all_clients()
+
         backoff = 1
         while self.running:
             try:
-                self.handshake_packets = [] 
-                self.in_buffer = b''
-                
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                
-                # Enable TCP Keep-Alives to prevent the 60s timeout
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                # Linux-specific keepalive settings (if available)
                 try:
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
@@ -185,15 +195,22 @@ class TcpProxy:
                         with self.clients_lock:
                             self.clients.append(client_socket)
                         
+                        # Replay logic
                         def replay(target_sock, handshake, history, client_addr):
+                            # Don't replay history to the Bot itself (localhost)
+                            # The bot handles its own sync and history can cause crashes
+                            if client_addr[0] in ('127.0.0.1', 'localhost'):
+                                logging.info(f"Skipping history replay for local bot client {client_addr}")
+                                return
+
                             try:
-                                time.sleep(2.0)
+                                time.sleep(1.0)
                                 for p in handshake:
                                     target_sock.sendall(p)
-                                    time.sleep(0.1) 
+                                    time.sleep(0.05) 
                                 for p in history:
                                     target_sock.sendall(p)
-                                    time.sleep(0.02)
+                                    time.sleep(0.01)
                                 logging.info(f"Replayed {len(handshake) + len(history)} packets to {client_addr}")
                             except Exception as e:
                                 logging.debug(f"Client {client_addr} disconnected during replay: {e}")
@@ -211,7 +228,7 @@ class TcpProxy:
                     try:
                         data = self.target_socket.recv(16384)
                         if not data:
-                            logging.warning("Target closed connection. Reconnecting...")
+                            logging.warning("Target closed connection. Reconnecting radio and clients...")
                             self.target_socket.close()
                             self._connect_to_target()
                             break
@@ -230,11 +247,10 @@ class TcpProxy:
                             self._remove_client(sock)
                         else:
                             try:
-                                # Chunk data to the radio (Meshtastic buffers are small)
                                 chunk_size = 512
                                 for i in range(0, len(data), chunk_size):
                                     self.target_socket.sendall(data[i:i+chunk_size])
-                                    time.sleep(0.01) # 10ms delay between chunks
+                                    time.sleep(0.01) 
                             except Exception as e:
                                 logging.error(f"Error sending to target: {e}")
                                 self.target_socket.close()
@@ -243,13 +259,4 @@ class TcpProxy:
                         self._remove_client(sock)
 
         # Cleanup
-        if self.server_socket: 
-            try: self.server_socket.close()
-            except: pass
-        if self.target_socket: 
-            try: self.target_socket.close()
-            except: pass
-        with self.clients_lock:
-            for c_sock in self.clients: 
-                try: c_sock.close()
-                except: pass
+        self.stop()
