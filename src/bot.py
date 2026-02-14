@@ -122,7 +122,8 @@ class MeshtasticBot:
         
         # Send an immediate node count report upon connection
         # We use a timer to delay slightly to ensure everything settles
-        threading.Timer(10.0, self.report_node_count).start()
+        if get_env_bool('ENABLE_FEATURE_NODE_TOTALS', True):
+            threading.Timer(10.0, self.report_node_count).start()
 
     def on_receive_text(self, packet: MeshPacket, interface):
         """Callback function triggered when a text message is received."""
