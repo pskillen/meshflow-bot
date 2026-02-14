@@ -301,9 +301,16 @@ class MeshtasticBot:
         if node['user'] is not None:
             mesh_node = MeshNode.from_dict(node)
             last_heard_int = node.get('lastHeard', 0)
-            last_heard = datetime.fromtimestamp(last_heard_int, tz=timezone.utc)
+            
+            # Fix: Don't update if timestamp is 0 or older than what we have
+            if last_heard_int > 0:
+                last_heard = datetime.fromtimestamp(last_heard_int, tz=timezone.utc)
+                existing_last_heard = self.node_info.get_last_heard(mesh_node.user.id)
+                
+                if not existing_last_heard or last_heard > existing_last_heard:
+                    self.node_info.update_last_heard(mesh_node.user.id, last_heard)
+            
             self.node_db.store_node(mesh_node)
-            self.node_info.update_last_heard(mesh_node.user.id, last_heard)
 
             for storage_api in self.storage_apis:
                 try:
@@ -316,7 +323,8 @@ class MeshtasticBot:
                     pass
 
             if self.init_complete:
-                last_heard_str = pretty_print_last_heard(last_heard)
+                current_last_heard = self.node_info.get_last_heard(mesh_node.user.id)
+                last_heard_str = pretty_print_last_heard(current_last_heard) if current_last_heard else "unknown"
                 logging.info(f"New user: {mesh_node.user.long_name} (last heard {last_heard_str})")
 
     def print_nodes(self):
