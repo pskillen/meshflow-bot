@@ -400,7 +400,8 @@ class MeshtasticBot:
     def start_scheduler(self):
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
         if get_env_bool('ENABLE_FEATURE_NODE_TOTALS', True):
-            schedule.every(3).hours.do(self.report_node_count)
+            report_frequency = get_env_int('FREQUENCY_OF_NODE_REPORTS', 3)
+            schedule.every(report_frequency).hours.do(self.report_node_count)
             schedule.every(1).minutes.do(self.check_for_zero_nodes)
         while True:
             schedule.run_pending()
