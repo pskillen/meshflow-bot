@@ -29,6 +29,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         if args is None:
             args = {}
             
+        my_nodenum = self.bot.my_nodenum
         if self.api_version == 1:
             api_paths = {
                 'raw_packet': '/api/raw-packet/',
@@ -36,7 +37,6 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 'node_by_id': f'/api/nodes/{args.get("node_id", "")}',
             }
         else:
-            my_nodenum = self.bot.my_nodenum
             api_paths = {
                 'raw_packet': f'/api/packets/{my_nodenum}/ingest/',
                 'nodes': f'/api/packets/{my_nodenum}/nodes/',
@@ -65,6 +65,10 @@ class StorageAPIWrapper(BaseAPIWrapper):
         """
         Store a raw packet in the storage API
         """
+        if self.api_version == 2 and (self.bot.my_nodenum is None or self.bot.my_nodenum <= 0):
+            logging.debug("Skipping store_raw_packet: Bot node number not yet initialized.")
+            return
+
         logging.info(f"store_raw_packet called for portnum: {packet.get('decoded', {}).get('portnum')}")
         # Filter out packet types that the API doesn't support or we don't want to store
         ignored_ports = [345, 'ROUTING_APP', 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP']
@@ -114,6 +118,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
         """
         Get a list of all nodes stored in the storage API. This list generally does not include position or metrics data.
         """
+        if self.api_version == 2 and (self.bot.my_nodenum is None or self.bot.my_nodenum <= 0):
+            return []
+
         response = self._get(self._get_url('nodes'))
         response_json = response.json()
 
@@ -125,6 +132,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         If the node contains position or metrics data, it will be stored as well
         """
+        if self.api_version == 2 and (self.bot.my_nodenum is None or self.bot.my_nodenum <= 0):
+            logging.debug("Skipping store_node: Bot node number not yet initialized.")
+            return
 
         node_data = MeshNodeSerializer.to_api_dict(node)
 
