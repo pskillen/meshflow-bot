@@ -104,10 +104,10 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         try:
             response_json = response.json()
-            logging.debug(f"Response: {response_json}")
+            logging.info(f"API Response ({response.status_code}): {response_json}")
             return response_json
         except JSONDecodeError:
-            logging.debug(f"Response (not JSON): {response.text}")
+            logging.info(f"API Response ({response.status_code}, not JSON): {response.text}")
             return {'text': response.text}
 
     def list_nodes(self) -> list[MeshNode]:
