@@ -254,6 +254,7 @@ class MeshtasticBot:
             self.interface.sendText(response_in, destinationId=requester_id)
 
     def on_receive(self, packet: MeshPacket, interface):
+        logging.info(f"on_receive: Incoming packet from {packet.get('fromId')}")
         if packet.get('fromId') == '!69828b98':
             logging.debug(f"Received ANY packet from mte4: {packet}")
 

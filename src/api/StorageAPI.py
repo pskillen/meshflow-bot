@@ -65,6 +65,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         """
         Store a raw packet in the storage API
         """
+        logging.info(f"store_raw_packet called for portnum: {packet.get('decoded', {}).get('portnum')}")
         # Filter out packet types that the API doesn't support or we don't want to store
         ignored_ports = [345, 'ROUTING_APP', 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP']
         portnum = packet.get('decoded', {}).get('portnum')
@@ -89,7 +90,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
             if 'channel' not in packet:
                 packet['channel'] = raw_packet.channel
 
-        logging.debug(f"Storing packet: {packet}")
+        logging.info(f"Storing packet: {packet}")
         try:
             response = self._post(self._get_url('raw_packet'), json=packet)
         except HTTPError as ex:
