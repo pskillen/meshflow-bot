@@ -21,7 +21,10 @@ def get_env_int(name: str, default: int) -> int:
         return default
 
 
-def pretty_print_last_heard(last_heard_timestamp: int | datetime) -> str:
+def pretty_print_last_heard(last_heard_timestamp: int | datetime | None) -> str:
+    if not last_heard_timestamp:
+        return "never"
+
     if not isinstance(last_heard_timestamp, datetime):
         last_heard = datetime.fromtimestamp(last_heard_timestamp, timezone.utc)
     else:

@@ -93,6 +93,10 @@ class StorageAPIWrapper(BaseAPIWrapper):
         if raw_packet:
             if 'channel' not in packet:
                 packet['channel'] = raw_packet.channel
+            if 'id' not in packet:
+                packet['id'] = raw_packet.id
+            if 'from' not in packet:
+                packet['from'] = raw_packet.from_node
 
         logging.info(f"Storing packet: {packet}")
         try:

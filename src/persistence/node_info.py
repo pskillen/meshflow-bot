@@ -100,11 +100,11 @@ class InMemoryNodeInfoStore(AbstractNodeInfoStore):
 
     def get_online_nodes(self) -> dict[str, datetime]:
         return {node_id: last_heard for node_id, last_heard in self.nodes_last_heard.items()
-                if last_heard > datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
+                if last_heard and last_heard > datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
 
     def get_offline_nodes(self) -> dict[str, datetime]:
         return {node_id: last_heard for node_id, last_heard in self.nodes_last_heard.items()
-                if last_heard <= datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
+                if not last_heard or last_heard <= datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
 
     def get_all_nodes(self) -> dict[str, datetime]:
         return self.nodes_last_heard
@@ -115,7 +115,7 @@ class InMemoryNodeInfoStore(AbstractNodeInfoStore):
 
         with open(node_info_file, 'r') as file:
             data = json.load(file)
-            self.nodes_last_heard = {k: datetime.fromisoformat(v) for k, v in data['nodes_last_heard'].items()}
+            self.nodes_last_heard = {k: (datetime.fromisoformat(v) if v else None) for k, v in data['nodes_last_heard'].items()}
             self.node_packets_today = data['node_packets_today']
             self.node_packets_today_breakdown = data['node_packets_today_breakdown']
 
