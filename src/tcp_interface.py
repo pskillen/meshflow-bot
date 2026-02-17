@@ -66,11 +66,12 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
         """
         Callback for when a traceroute response is received.
         """
-        # In newer versions of the library, the route is part of the packet.decoded.routing
-        # We pass the packet and extract the route discovery object if present
+        # In newer versions of the library, the route is part of the packet['decoded']['routing']
         route_discovery = None
-        if hasattr(packet, 'decoded') and hasattr(packet.decoded, 'routing'):
-            route_discovery = packet.decoded.routing
+        if isinstance(packet, dict):
+            route_discovery = packet.get('decoded', {}).get('routing')
+        elif hasattr(packet, 'decoded'):
+            route_discovery = getattr(packet.decoded, 'routing', None)
 
         super().onResponseTraceRoute(packet)
         pub.sendMessage("meshtastic.traceroute", packet=packet, route=route_discovery)
