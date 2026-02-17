@@ -194,9 +194,17 @@ class TcpProxy:
             if current_time - last_heartbeat_log > 60.0:
                 with self.clients_lock:
                     client_count = len(self.clients)
+                    client_info = []
+                    for s in self.clients:
+                        try:
+                            peer = s.getpeername()
+                            client_info.append(f"{peer[0]}:{peer[1]}")
+                        except:
+                            client_info.append("unknown")
+                
                 status = "Connected" if self.target_socket and not self.reconnecting else "RECONNECTING"
                 silence = current_time - self.last_target_activity
-                logging.info(f"Proxy Heartbeat: {status}. Last radio data {silence:.1f}s ago. Clients: {client_count}")
+                logging.info(f"Proxy Heartbeat: {status}. Last radio data {silence:.1f}s ago. Clients: {client_count} ({', '.join(client_info)})")
                 last_heartbeat_log = current_time
             
             # Watchdog: Force reconnect if silence is too long on an "active" connection
