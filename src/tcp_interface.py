@@ -62,12 +62,18 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
         # Store packets in a queue and resend them after reconnecting
         # This will involve exposing the queue, and reloading the queue in bot.py since we create a new interface object
 
-    def onResponseTraceRoute(self, packet, routeDiscovery):
+    def onResponseTraceRoute(self, packet):
         """
         Callback for when a traceroute response is received.
         """
-        super().onResponseTraceRoute(packet, routeDiscovery)
-        pub.sendMessage("meshtastic.traceroute", packet=packet, route=routeDiscovery)
+        # In newer versions of the library, the route is part of the packet.decoded.routing
+        # We pass the packet and extract the route discovery object if present
+        route_discovery = None
+        if hasattr(packet, 'decoded') and hasattr(packet.decoded, 'routing'):
+            route_discovery = packet.decoded.routing
+
+        super().onResponseTraceRoute(packet)
+        pub.sendMessage("meshtastic.traceroute", packet=packet, route=route_discovery)
 
     def sendHeartbeat(self):
         try:
