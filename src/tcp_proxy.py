@@ -139,11 +139,20 @@ class TcpProxy:
                         self._remove_client(client_sock)
 
     def _remove_client(self, sock):
+        try:
+            addr = sock.getpeername()
+            logging.info(f"--- PROXY: Removing client {addr}")
+        except:
+            logging.info("--- PROXY: Removing unknown client")
+
         with self.clients_lock:
             if sock in self.clients:
                 self.clients.remove(sock)
         try: sock.close()
         except: pass
+        
+        with self.clients_lock:
+            logging.info(f"--- PROXY: Remaining clients: {len(self.clients)}")
 
     def _run(self):
         logging.info(f"Starting TCP Proxy on {self.listen_host}:{self.listen_port} -> {self.target_host}:{self.target_port}")
@@ -219,10 +228,11 @@ class TcpProxy:
                 if sock is self.server_socket:
                     try:
                         client_socket, addr = self.server_socket.accept()
-                        logging.info(f"New proxy connection from {addr}")
+                        logging.info(f"+++ PROXY: New connection accepted from {addr}")
                         
                         with self.clients_lock:
                             self.clients.append(client_socket)
+                            logging.info(f"--- PROXY: Total active clients now: {len(self.clients)}")
                         
                         def replay(target_sock, handshake, history, client_addr):
                             if client_addr[0] in ('127.0.0.1', 'localhost'):
