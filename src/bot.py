@@ -194,7 +194,6 @@ class MeshtasticBot:
                 env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
                 if get_env_bool(env_var_name, True):
                     logging.info(f"Received public {command_name} from {sender_name}")
-                    from src.commands.factory import CommandFactory
                     command_instance = CommandFactory.create_command(command_name, self)
                     if command_instance:
                         def run_command():
