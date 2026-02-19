@@ -114,10 +114,10 @@ class MeshtasticBot:
 
     def on_connection(self, interface, topic=pub.AUTO_TOPIC):
         self.my_nodenum = interface.localNode.nodeNum  # in dec
-        self.my_id = f"!{hex(self.my_nodenum)[2:]}"
+        self.my_id = f"!{self.my_nodenum:08x}"
 
         self.init_complete = True
-        logging.info('Connected to Meshtastic node')
+        logging.info(f'Connected to Meshtastic node as {self.my_id}')
         self.print_nodes()
         
         # Send an immediate node count report upon connection
@@ -292,6 +292,9 @@ class MeshtasticBot:
 
     def on_receive(self, packet: MeshPacket, interface):
         from_id = packet.get('fromId')
+        if from_id is None and 'from' in packet:
+            from_id = f"!{packet['from']:08x}"
+
         portnum = packet.get('decoded', {}).get('portnum', 'unknown')
         logging.info(f"on_receive: Incoming packet from {from_id} (Port: {portnum})")
         

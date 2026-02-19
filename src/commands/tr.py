@@ -65,9 +65,9 @@ class TracerouteCommand(AbstractCommand):
         if requester_id not in self.bot.pending_traces[target_id]:
             self.bot.pending_traces[target_id].append(requester_id)
         
-        # Start a timeout timer (90 seconds)
+        # Start a timeout timer (120 seconds)
         def check_timeout():
-            time.sleep(90)
+            time.sleep(120)
             if target_id in self.bot.pending_traces and requester_id in self.bot.pending_traces[target_id]:
                 # Remove this specific requester from the pending list
                 self.bot.pending_traces[target_id].remove(requester_id)
