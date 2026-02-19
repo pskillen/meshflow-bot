@@ -340,7 +340,7 @@ class MeshtasticBot:
     def on_node_updated(self, node, interface):
         if interface.localNode and self.my_nodenum is None:
             self.my_nodenum = interface.localNode.nodeNum
-            self.my_id = f"!{hex(self.my_nodenum)[2:]}"
+            self.my_id = f"!{self.my_nodenum:08x}"
 
         # Check if the node is a new user
         if node['user'] is not None:
