@@ -212,51 +212,62 @@ class MeshtasticBot:
 
     def on_traceroute(self, packet, route):
         """Callback for when a traceroute response is received."""
-        target_id = packet.get('fromId')
-        
-        if target_id not in self.pending_traces:
-            logging.debug(f"Received traceroute from {target_id} but no pending request found.")
-            return
+        try:
+            target_id = packet.get('fromId')
+            logging.debug(f"on_traceroute: Received response from {target_id}. Route data: {route}")
+            
+            if target_id not in self.pending_traces:
+                logging.debug(f"Received traceroute from {target_id} but no pending request found.")
+                return
 
-        requesters = self.pending_traces.pop(target_id)
-        if not isinstance(requesters, list):
-            requesters = [requesters]
-        
-        # Format the OUTBOUND route
-        route_ids = route.route
-        hops = []
-        for node_id_int in route_ids:
-            # Convert int to !hex string
-            node_id_str = f"!{node_id_int:08x}"
-            node = self.node_db.get_by_id(node_id_str)
-            if node:
-                 hops.append(f"{node.short_name}")
-            else:
-                 hops.append(f"{node_id_str}")
+            requesters = self.pending_traces.pop(target_id)
+            if not isinstance(requesters, list):
+                requesters = [requesters]
+            
+            if route is None:
+                logging.warning(f"Traceroute response from {target_id} contained no route data.")
+                for requester_id in requesters:
+                    self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
+                return
 
-        route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
-        response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
+            # Format the OUTBOUND route
+            route_ids = getattr(route, 'route', [])
+            hops = []
+            for node_id_int in route_ids:
+                # Convert int to !hex string
+                node_id_str = f"!{node_id_int:08x}"
+                node = self.node_db.get_by_id(node_id_str)
+                if node:
+                     hops.append(f"{node.short_name}")
+                else:
+                     hops.append(f"{node_id_str}")
 
-        # Format the INBOUND route (if available)
-        response_in = None
-        if hasattr(route, 'route_back') and route.route_back:
-            hops_back = []
-            for node_id_int in route.route_back:
-                 node_id_str = f"!{node_id_int:08x}"
-                 node = self.node_db.get_by_id(node_id_str)
-                 if node:
-                     hops_back.append(f"{node.short_name}")
-                 else:
-                     hops_back.append(f"{node_id_str}")
-            back_str = " -> ".join(hops_back)
-            response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+            route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
+            response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
 
-        for requester_id in requesters:
-            logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
-            self.interface.sendText(response_out, destinationId=requester_id)
-            if response_in:
-                time.sleep(1) 
-                self.interface.sendText(response_in, destinationId=requester_id)
+            # Format the INBOUND route (if available)
+            response_in = None
+            route_back_ids = getattr(route, 'route_back', [])
+            if route_back_ids:
+                hops_back = []
+                for node_id_int in route_back_ids:
+                     node_id_str = f"!{node_id_int:08x}"
+                     node = self.node_db.get_by_id(node_id_str)
+                     if node:
+                         hops_back.append(f"{node.short_name}")
+                     else:
+                         hops_back.append(f"{node_id_str}")
+                back_str = " -> ".join(hops_back)
+                response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+
+            for requester_id in requesters:
+                logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
+                self.interface.sendText(response_out, destinationId=requester_id)
+                if response_in:
+                    time.sleep(1) 
+                    self.interface.sendText(response_in, destinationId=requester_id)
+        except Exception as e:
+            logging.error(f"Error in on_traceroute callback: {e}", exc_info=True)
 
     def on_receive(self, packet: MeshPacket, interface):
         from_id = packet.get('fromId')
