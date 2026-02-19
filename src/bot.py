@@ -225,7 +225,8 @@ class MeshtasticBot:
                 requesters = [requesters]
             
             if route is None:
-                logging.warning(f"Traceroute response from {target_id} contained no route data.")
+                decoded_keys = packet.get('decoded', {}).keys()
+                logging.warning(f"Traceroute response from {target_id} contained no route data. Decoded keys: {list(decoded_keys)}")
                 for requester_id in requesters:
                     self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
                 return
