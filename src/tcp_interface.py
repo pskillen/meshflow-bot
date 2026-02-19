@@ -66,25 +66,29 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
         """
         Callback for when a traceroute response is received.
         """
-        route_discovery = None
-        if isinstance(packet, dict):
-            decoded = packet.get('decoded', {})
-            # Try multiple common locations for the route data
-            # It might be in 'routing', 'routing_app', or 'traceroute'
-            route_discovery = decoded.get('routing') or decoded.get('routing_app') or decoded.get('traceroute')
-            
-            if not route_discovery and 'payload' in decoded:
-                # Some versions might not have parsed the payload yet
-                logging.debug(f"onResponseTraceRoute: Route not found in decoded, full packet: {packet}")
-        elif hasattr(packet, 'decoded'):
-            route_discovery = getattr(packet.decoded, 'routing', 
-                                      getattr(packet.decoded, 'routing_app', 
-                                              getattr(packet.decoded, 'traceroute', None)))
+        try:
+            route_discovery = None
+            if isinstance(packet, dict):
+                decoded = packet.get('decoded', {})
+                # It might be in 'routing', 'routing_app', or 'traceroute'
+                route_discovery = decoded.get('routing') or decoded.get('routing_app') or decoded.get('traceroute')
+                
+                if not route_discovery and 'payload' in decoded:
+                    logging.debug(f"onResponseTraceRoute: Route not found in decoded, full packet: {packet}")
+            elif hasattr(packet, 'decoded'):
+                route_discovery = getattr(packet.decoded, 'routing', 
+                                          getattr(packet.decoded, 'routing_app', 
+                                                  getattr(packet.decoded, 'traceroute', None)))
 
-        logging.debug(f"onResponseTraceRoute: Extracted route_discovery: {route_discovery}")
-        
-        super().onResponseTraceRoute(packet)
-        pub.sendMessage("meshtastic.traceroute", packet=packet, route=route_discovery)
+            logging.info(f"onResponseTraceRoute: Received traceroute response. Route data present: {route_discovery is not None}")
+            
+            # Always call super to allow library internal processing (printing to stdout etc)
+            super().onResponseTraceRoute(packet)
+            
+            # Notify bot logic
+            pub.sendMessage("meshtastic.traceroute", packet=packet, route=route_discovery)
+        except Exception as e:
+            logging.error(f"Error in onResponseTraceRoute: {e}", exc_info=True)
 
     def sendHeartbeat(self):
         try:

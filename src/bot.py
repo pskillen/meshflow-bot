@@ -214,10 +214,10 @@ class MeshtasticBot:
         """Callback for when a traceroute response is received."""
         try:
             target_id = packet.get('fromId')
-            logging.debug(f"on_traceroute: Received response from {target_id}. Route data: {route}")
+            logging.info(f"on_traceroute: Processing response from {target_id}. Route data type: {type(route)}")
             
             if target_id not in self.pending_traces:
-                logging.debug(f"Received traceroute from {target_id} but no pending request found.")
+                logging.info(f"Received traceroute from {target_id} but no pending request found.")
                 return
 
             requesters = self.pending_traces.pop(target_id)
@@ -231,8 +231,13 @@ class MeshtasticBot:
                     self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
                 return
 
+            def get_route_hops(r, key='route'):
+                if isinstance(r, dict):
+                    return r.get(key, [])
+                return getattr(r, key, [])
+
             # Format the OUTBOUND route
-            route_ids = getattr(route, 'route', [])
+            route_ids = get_route_hops(route, 'route')
             hops = []
             for node_id_int in route_ids:
                 # Convert int to !hex string
@@ -248,7 +253,7 @@ class MeshtasticBot:
 
             # Format the INBOUND route (if available)
             response_in = None
-            route_back_ids = getattr(route, 'route_back', [])
+            route_back_ids = get_route_hops(route, 'route_back')
             if route_back_ids:
                 hops_back = []
                 for node_id_int in route_back_ids:
@@ -272,8 +277,8 @@ class MeshtasticBot:
 
     def on_receive(self, packet: MeshPacket, interface):
         from_id = packet.get('fromId')
-        portnum = packet['decoded']['portnum'] if 'decoded' in packet else 'unknown'
-        logging.debug(f"on_receive: Incoming packet from {from_id} (Port: {portnum})")
+        portnum = packet.get('decoded', {}).get('portnum', 'unknown')
+        logging.info(f"on_receive: Incoming packet from {from_id} (Port: {portnum})")
         
         if from_id == '!69828b98':
             logging.debug(f"Received ANY packet from mte4: {packet}")
