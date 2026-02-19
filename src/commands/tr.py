@@ -14,6 +14,9 @@ class TracerouteCommand(AbstractCommand):
         message = packet['decoded']['text']
         words = message.split()
         
+        # Add a reaction to show we are working on it
+        self.bot.interface.sendReaction("⌛", messageId=packet['id'], destinationId=packet['fromId'])
+
         requester_id = packet['fromId']
         requester = self.bot.node_db.get_by_id(requester_id)
         requester_name = requester.long_name if requester else requester_id
@@ -74,7 +77,12 @@ class TracerouteCommand(AbstractCommand):
                 
                 logging.info(f"Traceroute to {target_id} (requested by {requester_id}) timed out.")
                 timeout_msg = f"Traceroute to {target_long_name} ({target_id}) timed out (no response from mesh)."
-                self.message_in_dm(requester_id, timeout_msg)
+                
+                # Send the timeout message in a separate thread to avoid blocking the timer/interface
+                def send_timeout():
+                    self.message_in_dm(requester_id, timeout_msg)
+                
+                threading.Thread(target=send_timeout, daemon=True).start()
 
         threading.Thread(target=check_timeout, daemon=True).start()
 
