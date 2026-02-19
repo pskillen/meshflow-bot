@@ -127,6 +127,9 @@ class MeshtasticBot:
 
     def on_receive_text(self, packet: MeshPacket, interface):
         """Callback function triggered when a text message is received."""
+        from_id = packet.get('fromId')
+        text = packet.get('decoded', {}).get('text', '')
+        logging.info(f"on_receive_text: Incoming text from {from_id}: {text}")
 
         to_id = packet['toId']
 
@@ -256,8 +259,11 @@ class MeshtasticBot:
                 self.interface.sendText(response_in, destinationId=requester_id)
 
     def on_receive(self, packet: MeshPacket, interface):
-        logging.info(f"on_receive: Incoming packet from {packet.get('fromId')}")
-        if packet.get('fromId') == '!69828b98':
+        from_id = packet.get('fromId')
+        portnum = packet['decoded']['portnum'] if 'decoded' in packet else 'unknown'
+        logging.debug(f"on_receive: Incoming packet from {from_id} (Port: {portnum})")
+        
+        if from_id == '!69828b98':
             logging.debug(f"Received ANY packet from mte4: {packet}")
 
         # dump the packet to disk (if enabled)
