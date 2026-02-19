@@ -55,15 +55,23 @@ class TracerouteCommand(AbstractCommand):
             self.reply_in_dm(packet, response)
         
         # Initiate actual traceroute
-        # Map target_id -> requester_id so bot.on_traceroute knows who to reply to
-        self.bot.pending_traces[target_id] = requester_id
+        # Map target_id -> list of requester_ids
+        if target_id not in self.bot.pending_traces:
+            self.bot.pending_traces[target_id] = []
+        
+        if requester_id not in self.bot.pending_traces[target_id]:
+            self.bot.pending_traces[target_id].append(requester_id)
         
         # Start a timeout timer (90 seconds)
         def check_timeout():
             time.sleep(90)
-            if target_id in self.bot.pending_traces and self.bot.pending_traces[target_id] == requester_id:
-                # If still in pending_traces, we never got a response
-                del self.bot.pending_traces[target_id]
+            if target_id in self.bot.pending_traces and requester_id in self.bot.pending_traces[target_id]:
+                # Remove this specific requester from the pending list
+                self.bot.pending_traces[target_id].remove(requester_id)
+                # If no more requesters for this target, clean up the key
+                if not self.bot.pending_traces[target_id]:
+                    del self.bot.pending_traces[target_id]
+                
                 logging.info(f"Traceroute to {target_id} (requested by {requester_id}) timed out.")
                 timeout_msg = f"Traceroute to {target_long_name} ({target_id}) timed out (no response from mesh)."
                 self.message_in_dm(requester_id, timeout_msg)
@@ -76,8 +84,10 @@ class TracerouteCommand(AbstractCommand):
             self.bot.interface.sendTraceRoute(target_id, hopLimit=7)
         except Exception as e:
             logging.error(f"Failed to send traceroute to {target_id}: {e}")
-            if target_id in self.bot.pending_traces:
-                del self.bot.pending_traces[target_id]
+            if target_id in self.bot.pending_traces and requester_id in self.bot.pending_traces[target_id]:
+                self.bot.pending_traces[target_id].remove(requester_id)
+                if not self.bot.pending_traces[target_id]:
+                    del self.bot.pending_traces[target_id]
             self.reply_in_dm(packet, f"Error starting traceroute: {e}")
 
     def get_command_for_logging(self, message: str) -> (str, list[str] | None, str | None):

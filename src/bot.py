@@ -215,7 +215,9 @@ class MeshtasticBot:
             logging.debug(f"Received traceroute from {target_id} but no pending request found.")
             return
 
-        requester_id = self.pending_traces.pop(target_id)
+        requesters = self.pending_traces.pop(target_id)
+        if not isinstance(requesters, list):
+            requesters = [requesters]
         
         # Format the OUTBOUND route
         route_ids = route.route
@@ -230,12 +232,10 @@ class MeshtasticBot:
                  hops.append(f"{node_id_str}")
 
         route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
-        
         response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
-        logging.info(f"Sending traceroute OUT result to {requester_id}: {response_out}")
-        self.interface.sendText(response_out, destinationId=requester_id)
-        
+
         # Format the INBOUND route (if available)
+        response_in = None
         if hasattr(route, 'route_back') and route.route_back:
             hops_back = []
             for node_id_int in route.route_back:
@@ -246,12 +246,14 @@ class MeshtasticBot:
                  else:
                      hops_back.append(f"{node_id_str}")
             back_str = " -> ".join(hops_back)
-            
             response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
-            logging.info(f"Sending traceroute IN result to {requester_id}: {response_in}")
-            # Small delay to ensure order
-            time.sleep(1) 
-            self.interface.sendText(response_in, destinationId=requester_id)
+
+        for requester_id in requesters:
+            logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
+            self.interface.sendText(response_out, destinationId=requester_id)
+            if response_in:
+                time.sleep(1) 
+                self.interface.sendText(response_in, destinationId=requester_id)
 
     def on_receive(self, packet: MeshPacket, interface):
         logging.info(f"on_receive: Incoming packet from {packet.get('fromId')}")

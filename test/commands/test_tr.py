@@ -32,7 +32,7 @@ class TestTracerouteCommand(CommandTestCase):
         self.bot.interface.sendTraceRoute.assert_called_once_with(sender_id, hopLimit=7)
         
         # Check pending_traces entry
-        self.assertEqual(self.bot.pending_traces[sender_id], sender_id)
+        self.assertEqual(self.bot.pending_traces[sender_id], [sender_id])
 
     def test_handle_packet_zero_hops(self):
         sender_id = self.test_nodes[1].user.id
@@ -61,7 +61,7 @@ class TestTracerouteCommand(CommandTestCase):
         self.mock_interface.sendText.assert_any_call(expected_msg, destinationId=requester_id, wantAck=True)
         
         self.bot.interface.sendTraceRoute.assert_called_once_with(target_node.user.id, hopLimit=7)
-        self.assertEqual(self.bot.pending_traces[target_node.user.id], requester_id)
+        self.assertEqual(self.bot.pending_traces[target_node.user.id], [requester_id])
 
     def test_handle_packet_unknown_shortname(self):
         requester_id = self.test_nodes[1].user.id
