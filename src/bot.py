@@ -151,10 +151,16 @@ class MeshtasticBot:
         command_instance = CommandFactory.create_command(command_name, self)
         if command_instance:
             self.command_logger.log_command(from_id, command_instance, message)
-            try:
-                command_instance.handle_packet(packet)
-            except Exception as e:
-                logging.error(f"Error handling message: {e}")
+            
+            def run_command():
+                try:
+                    logging.info(f"Running command {command_name} in thread for {from_id}")
+                    command_instance.handle_packet(packet)
+                    logging.info(f"Finished command {command_name} for {from_id}")
+                except Exception as e:
+                    logging.error(f"Error handling private command {command_name}: {e}", exc_info=True)
+            
+            threading.Thread(target=run_command, daemon=True).start()
         else:
             self.command_logger.log_unknown_request(from_id, message)
 
@@ -191,12 +197,17 @@ class MeshtasticBot:
                     from src.commands.factory import CommandFactory
                     command_instance = CommandFactory.create_command(command_name, self)
                     if command_instance:
-                        try:
-                            # Commands by default reply via DM (reply_in_dm).
-                            command_instance.handle_packet(packet)
-                            return # Stop processing responders
-                        except Exception as e:
-                            logging.error(f"Error handling public command {command_name}: {e}")
+                        def run_command():
+                            try:
+                                logging.info(f"Running public command {command_name} in thread for {from_id}")
+                                # Commands by default reply via DM (reply_in_dm).
+                                command_instance.handle_packet(packet)
+                                logging.info(f"Finished public command {command_name} for {from_id}")
+                            except Exception as e:
+                                logging.error(f"Error handling public command {command_name}: {e}", exc_info=True)
+                        
+                        threading.Thread(target=run_command, daemon=True).start()
+                        return # Stop processing responders
 
         responder = ResponderFactory.match_responder(message, self)
         if responder:
@@ -212,68 +223,73 @@ class MeshtasticBot:
 
     def on_traceroute(self, packet, route):
         """Callback for when a traceroute response is received."""
-        try:
-            target_id = packet.get('fromId')
-            logging.info(f"on_traceroute: Processing response from {target_id}. Route data type: {type(route)}")
-            
-            if target_id not in self.pending_traces:
-                logging.info(f"Received traceroute from {target_id} but no pending request found.")
-                return
+        def process_traceroute():
+            try:
+                target_id = packet.get('fromId')
+                logging.info(f"on_traceroute: Processing response from {target_id} in thread. Route data type: {type(route)}")
+                
+                if target_id not in self.pending_traces:
+                    logging.info(f"Received traceroute from {target_id} but no pending request found.")
+                    return
 
-            requesters = self.pending_traces.pop(target_id)
-            if not isinstance(requesters, list):
-                requesters = [requesters]
-            
-            if route is None:
-                decoded_keys = packet.get('decoded', {}).keys()
-                logging.warning(f"Traceroute response from {target_id} contained no route data. Decoded keys: {list(decoded_keys)}")
+                requesters = self.pending_traces.pop(target_id)
+                if not isinstance(requesters, list):
+                    requesters = [requesters]
+                
+                if route is None:
+                    decoded_keys = packet.get('decoded', {}).keys()
+                    logging.warning(f"Traceroute response from {target_id} contained no route data. Decoded keys: {list(decoded_keys)}")
+                    for requester_id in requesters:
+                        self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
+                    return
+
+                def get_route_hops(r, key='route'):
+                    if isinstance(r, dict):
+                        return r.get(key, [])
+                    return getattr(r, key, [])
+
+                # Format the OUTBOUND route
+                route_ids = get_route_hops(route, 'route')
+                hops = []
+                for node_id_int in route_ids:
+                    # Convert int to !hex string
+                    node_id_str = f"!{node_id_int:08x}"
+                    node = self.node_db.get_by_id(node_id_str)
+                    if node:
+                         hops.append(f"{node.short_name}")
+                    else:
+                         hops.append(f"{node_id_str}")
+
+                route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
+                response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
+
+                # Format the INBOUND route (if available)
+                response_in = None
+                route_back_ids = get_route_hops(route, 'route_back')
+                if route_back_ids:
+                    hops_back = []
+                    for node_id_int in route_back_ids:
+                         node_id_str = f"!{node_id_int:08x}"
+                         node = self.node_db.get_by_id(node_id_str)
+                         if node:
+                             hops_back.append(f"{node.short_name}")
+                         else:
+                             hops_back.append(f"{node_id_str}")
+                    back_str = " -> ".join(hops_back)
+                    response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+
                 for requester_id in requesters:
-                    self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
-                return
+                    logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
+                    self.interface.sendText(response_out, destinationId=requester_id)
+                    if response_in:
+                        time.sleep(1) 
+                        self.interface.sendText(response_in, destinationId=requester_id)
+                
+                logging.info(f"Finished processing traceroute for {target_id}")
+            except Exception as e:
+                logging.error(f"Error in on_traceroute thread: {e}", exc_info=True)
 
-            def get_route_hops(r, key='route'):
-                if isinstance(r, dict):
-                    return r.get(key, [])
-                return getattr(r, key, [])
-
-            # Format the OUTBOUND route
-            route_ids = get_route_hops(route, 'route')
-            hops = []
-            for node_id_int in route_ids:
-                # Convert int to !hex string
-                node_id_str = f"!{node_id_int:08x}"
-                node = self.node_db.get_by_id(node_id_str)
-                if node:
-                     hops.append(f"{node.short_name}")
-                else:
-                     hops.append(f"{node_id_str}")
-
-            route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
-            response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
-
-            # Format the INBOUND route (if available)
-            response_in = None
-            route_back_ids = get_route_hops(route, 'route_back')
-            if route_back_ids:
-                hops_back = []
-                for node_id_int in route_back_ids:
-                     node_id_str = f"!{node_id_int:08x}"
-                     node = self.node_db.get_by_id(node_id_str)
-                     if node:
-                         hops_back.append(f"{node.short_name}")
-                     else:
-                         hops_back.append(f"{node_id_str}")
-                back_str = " -> ".join(hops_back)
-                response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
-
-            for requester_id in requesters:
-                logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
-                self.interface.sendText(response_out, destinationId=requester_id)
-                if response_in:
-                    time.sleep(1) 
-                    self.interface.sendText(response_in, destinationId=requester_id)
-        except Exception as e:
-            logging.error(f"Error in on_traceroute callback: {e}", exc_info=True)
+        threading.Thread(target=process_traceroute, daemon=True).start()
 
     def on_receive(self, packet: MeshPacket, interface):
         from_id = packet.get('fromId')
