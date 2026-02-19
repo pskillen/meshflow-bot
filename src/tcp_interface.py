@@ -70,13 +70,16 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
         if isinstance(packet, dict):
             decoded = packet.get('decoded', {})
             # Try multiple common locations for the route data
-            route_discovery = decoded.get('routing') or decoded.get('routing_app')
+            # It might be in 'routing', 'routing_app', or 'traceroute'
+            route_discovery = decoded.get('routing') or decoded.get('routing_app') or decoded.get('traceroute')
             
             if not route_discovery and 'payload' in decoded:
                 # Some versions might not have parsed the payload yet
                 logging.debug(f"onResponseTraceRoute: Route not found in decoded, full packet: {packet}")
         elif hasattr(packet, 'decoded'):
-            route_discovery = getattr(packet.decoded, 'routing', getattr(packet.decoded, 'routing_app', None))
+            route_discovery = getattr(packet.decoded, 'routing', 
+                                      getattr(packet.decoded, 'routing_app', 
+                                              getattr(packet.decoded, 'traceroute', None)))
 
         logging.debug(f"onResponseTraceRoute: Extracted route_discovery: {route_discovery}")
         
