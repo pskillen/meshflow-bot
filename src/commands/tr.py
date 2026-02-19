@@ -11,48 +11,74 @@ class TracerouteCommand(AbstractCommand):
         super().__init__(bot, 'tr')
 
     def handle_packet(self, packet: MeshPacket) -> None:
-        hop_start = packet.get('hopStart', 0)
-        hop_limit = packet.get('hopLimit', 0)
-        hops_away = hop_start - hop_limit
+        message = packet['decoded']['text']
+        words = message.split()
         
-        snr = packet.get('rxSnr', 0.0)
-        
-        sender_id = packet['fromId']
-        sender = self.bot.node_db.get_by_id(sender_id)
-        sender_name = sender.long_name if sender else sender_id
+        requester_id = packet['fromId']
+        requester = self.bot.node_db.get_by_id(requester_id)
+        requester_name = requester.long_name if requester else requester_id
 
-        if hops_away == 0:
-            response = f"{sender_name} you are Zero Hops from me. No traceroute required!"
-            self.reply_in_dm(packet, response)
+        target_node = None
+        if len(words) > 1:
+            target_short = words[1]
+            target_node = self.bot.get_node_by_short_name(target_short)
+            if not target_node:
+                self.reply_in_dm(packet, f"Could not find node with short name '{target_short}'")
+                return
+            target_id = target_node.id
+            target_long_name = target_node.long_name
+        else:
+            target_id = requester_id
+            target_long_name = requester_name
+
+        if target_id == self.bot.my_id:
+            self.reply_in_dm(packet, "I am already here! No traceroute required.")
             return
 
-        response = f"{sender_name} you are {hops_away} hops away (Signal: {snr} dB). Starting full traceroute..."
-        self.reply_in_dm(packet, response)
+        # If tracing back to requester, we can show hops_away/SNR from the incoming packet
+        if target_id == requester_id:
+            hop_start = packet.get('hopStart', 0)
+            hop_limit = packet.get('hopLimit', 0)
+            hops_away = hop_start - hop_limit
+            snr = packet.get('rxSnr', 0.0)
+
+            if hops_away == 0:
+                response = f"{requester_name} you are Zero Hops from me. No traceroute required!"
+                self.reply_in_dm(packet, response)
+                return
+
+            response = f"{requester_name} you are {hops_away} hops away (Signal: {snr} dB). Starting full traceroute..."
+            self.reply_in_dm(packet, response)
+        else:
+            # Tracing to a different node
+            response = f"Starting traceroute to {target_long_name} ({target_id}) for you..."
+            self.reply_in_dm(packet, response)
         
         # Initiate actual traceroute
-        self.bot.pending_traces[sender_id] = sender_id
+        # Map target_id -> requester_id so bot.on_traceroute knows who to reply to
+        self.bot.pending_traces[target_id] = requester_id
         
         # Start a timeout timer (90 seconds)
         def check_timeout():
             time.sleep(90)
-            if sender_id in self.bot.pending_traces:
+            if target_id in self.bot.pending_traces and self.bot.pending_traces[target_id] == requester_id:
                 # If still in pending_traces, we never got a response
-                del self.bot.pending_traces[sender_id]
-                logging.info(f"Traceroute to {sender_id} timed out.")
-                timeout_msg = f"Traceroute to {sender_id} timed out (no response from mesh)."
-                self.message_in_dm(sender_id, timeout_msg)
+                del self.bot.pending_traces[target_id]
+                logging.info(f"Traceroute to {target_id} (requested by {requester_id}) timed out.")
+                timeout_msg = f"Traceroute to {target_long_name} ({target_id}) timed out (no response from mesh)."
+                self.message_in_dm(requester_id, timeout_msg)
 
         threading.Thread(target=check_timeout, daemon=True).start()
 
         try:
-            logging.info(f"Initiating traceroute to {sender_id}")
+            logging.info(f"Initiating traceroute to {target_id} requested by {requester_id}")
             # hopLimit=7 is standard max
-            self.bot.interface.sendTraceRoute(sender_id, hopLimit=7)
+            self.bot.interface.sendTraceRoute(target_id, hopLimit=7)
         except Exception as e:
-            logging.error(f"Failed to send traceroute to {sender_id}: {e}")
-            if sender_id in self.bot.pending_traces:
-                del self.bot.pending_traces[sender_id]
+            logging.error(f"Failed to send traceroute to {target_id}: {e}")
+            if target_id in self.bot.pending_traces:
+                del self.bot.pending_traces[target_id]
             self.reply_in_dm(packet, f"Error starting traceroute: {e}")
 
     def get_command_for_logging(self, message: str) -> (str, list[str] | None, str | None):
-        return self._gcfl_just_base_command(message)
+        return self._gcfl_base_command_and_args(message)
