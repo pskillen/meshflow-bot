@@ -136,6 +136,7 @@ The bot listens for messages and responds to commands. You can interact with it 
 | `!nodes totals` | Manually triggers a node count report                        |
 | `!whoami` | Displays information about the sender                         |
 | `!tr`     | Performs a traceroute to the sender (outbound & inbound)      |
+| `!tr <shortname>` | Performs a traceroute to a specific node by its short name  |
 | `!status` | Displays bot status and radio connection details              |
 
 ## Features
@@ -153,9 +154,11 @@ The bot now includes a built-in TCP proxy to manage the connection to the Meshta
 Messages received on named Group Channels (e.g., 'LongRange', 'PrivateChat') are now logged with their specific channel name, making it easier to track conversations across different mesh networks.
 
 ### Advanced Traceroute
-The `!tr` command has been upgraded to show the full path:
-- **Outbound:** The route from the bot to your node.
-- **Inbound:** The route back from your node to the bot (if available).
+The `!tr` command provides visibility into the mesh topology:
+- **Full Path visibility:** Shows the complete route including the target node.
+- **Targeted Trace:** Use `!tr <shortname>` (e.g., `!tr NUMC`) to trace the route to a specific node. The results will be sent back to you.
+- **Outbound:** The route from the bot to the destination.
+- **Inbound:** The route back from the destination to the bot (if available).
 
 ---
 
