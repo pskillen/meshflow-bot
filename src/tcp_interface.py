@@ -108,7 +108,8 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
             pkiEncrypted: Optional[bool] = False,
             publicKey: Optional[bytes] = None,
     ):
-        logging.info(f"Sending packet to {destinationId} (Port: {meshPacket.decoded.portnum})")
+        port_val = meshPacket.decoded.portnum
+        logging.info(f"_sendPacket: Attempting to send Port {port_val} to {destinationId} (wantAck={wantAck})")
         try:
             super()._sendPacket(
                 meshPacket=meshPacket,
@@ -118,11 +119,15 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
                 pkiEncrypted=pkiEncrypted,
                 publicKey=publicKey
             )
+            logging.info(f"_sendPacket: Successfully handed Port {port_val} to {destinationId} to meshtastic library")
         except (OSError, BrokenPipeError) as e:
-            logging.error(f"sendPacket failed: {e}")
+            logging.error(f"_sendPacket failed (connection error): {e}")
             self.packet_queue.put((meshPacket, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey))
-            # self._reconnect_with_backoff()
             self._shutdown_and_call_error_handler(e)
+        except Exception as e:
+            logging.error(f"_sendPacket failed (unexpected error): {e}", exc_info=True)
+            # We still queue it just in case it's recoverable
+            self.packet_queue.put((meshPacket, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey))
 
     def _shutdown_and_call_error_handler(self, conn_error: Optional[Exception] = None):
         try:

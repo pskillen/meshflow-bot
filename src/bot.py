@@ -279,10 +279,11 @@ class MeshtasticBot:
 
                 for requester_id in requesters:
                     logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
-                    self.interface.sendText(response_out, destinationId=requester_id)
+                    # Use wantAck=False for result delivery to reduce congestion
+                    self.interface.sendText(response_out, destinationId=requester_id, wantAck=False)
                     if response_in:
-                        time.sleep(1) 
-                        self.interface.sendText(response_in, destinationId=requester_id)
+                        time.sleep(2) # Increased delay for radio to settle
+                        self.interface.sendText(response_in, destinationId=requester_id, wantAck=False)
                 
                 logging.info(f"Finished processing traceroute for {target_id}")
             except Exception as e:
