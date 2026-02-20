@@ -259,17 +259,27 @@ class MeshtasticBot:
                     else:
                          hops.append(f"{node_id_str}")
 
-                route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
-                response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
-
-                # Format the INBOUND route (if available)
+                            route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
+                            
+                            # Append target to the end of the TO route
+                            target_node = self.node_db.get_by_id(target_id)
+                            target_name = target_node.short_name if target_node else target_id
+                            route_str += f" -> {target_name}"
+                            
+                            response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
+                                # Format the INBOUND route (if available)
                 response_in = None
                 route_back_ids = get_route_hops(route, 'route_back')
                 if response_in:
-                    back_str = " -> ".join(hops_back)
-                    response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
-
-                # Wait for radio to settle after receiving the traceroute response
+                                    back_str = " -> ".join(hops_back)
+                                    
+                                    # Append bot to the end of the FROM route
+                                    my_node = self.node_db.get_by_id(self.my_id)
+                                    my_name = my_node.short_name if my_node else self.my_id
+                                    back_str += f" -> {my_name}"
+                                    
+                                    response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+                                    # Wait for radio to settle after receiving the traceroute response
                 time.sleep(5)
 
                 for requester_id in requesters:
