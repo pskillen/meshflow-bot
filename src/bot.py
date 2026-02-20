@@ -247,10 +247,11 @@ class MeshtasticBot:
                         return r.get(key, [])
                     return getattr(r, key, [])
 
-                # Format the OUTBOUND route
+                # 1. Format the OUTBOUND route (TO target)
                 route_ids = get_route_hops(route, 'route')
                 hops = []
                 for node_id_int in route_ids:
+                    # Convert int to !hex string
                     node_id_str = f"!{node_id_int:08x}"
                     node = self.node_db.get_by_id(node_id_str)
                     if node:
@@ -258,7 +259,7 @@ class MeshtasticBot:
                     else:
                          hops.append(f"{node_id_str}")
 
-                route_str = " -> ".join(hops) if hops else "Direct (or unknown)"
+                route_str = " -> ".join(hops) if hops else "Direct"
                 
                 # Append target to the end of the TO route
                 target_node = self.node_db.get_by_id(target_id)
@@ -267,26 +268,25 @@ class MeshtasticBot:
                 
                 response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
 
-                # Format the INBOUND route (if available)
-                response_in = None
+                # 2. Format the INBOUND route (FROM target)
                 route_back_ids = get_route_hops(route, 'route_back')
-                if route_back_ids:
-                    hops_back = []
-                    for node_id_int in route_back_ids:
-                         node_id_str = f"!{node_id_int:08x}"
-                         node = self.node_db.get_by_id(node_id_str)
-                         if node:
-                             hops_back.append(f"{node.short_name}")
-                         else:
-                             hops_back.append(f"{node_id_str}")
-                    back_str = " -> ".join(hops_back)
-                    
-                    # Append bot to the end of the FROM route
-                    my_node = self.node_db.get_by_id(self.my_id)
-                    my_name = my_node.short_name if my_node else self.my_id
-                    back_str += f" -> {my_name}"
-                    
-                    response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+                hops_back = []
+                for node_id_int in route_back_ids:
+                     node_id_str = f"!{node_id_int:08x}"
+                     node = self.node_db.get_by_id(node_id_str)
+                     if node:
+                         hops_back.append(f"{node.short_name}")
+                     else:
+                         hops_back.append(f"{node_id_str}")
+                
+                back_str = " -> ".join(hops_back) if hops_back else "Direct"
+                
+                # Append bot to the end of the FROM route
+                my_node = self.node_db.get_by_id(self.my_id)
+                my_name = my_node.short_name if my_node else self.my_id
+                back_str += f" -> {my_name}"
+                
+                response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
 
                 # Wait for radio to settle after receiving the traceroute response
                 time.sleep(5)
@@ -295,9 +295,11 @@ class MeshtasticBot:
                     logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
                     # Use wantAck=False for result delivery to reduce congestion
                     self.interface.sendText(response_out, destinationId=requester_id, wantAck=False)
-                    if response_in:
-                        time.sleep(2) # Increased delay for radio to settle
-                        self.interface.sendText(response_in, destinationId=requester_id, wantAck=False)
+                    
+                    # Always send the return path message for consistency
+                    time.sleep(2) 
+                    logging.info(f"Sending traceroute result to {requester_id}: {response_in}")
+                    self.interface.sendText(response_in, destinationId=requester_id, wantAck=False)
                 
                 logging.info(f"Finished processing traceroute for {target_id}")
             except Exception as e:
