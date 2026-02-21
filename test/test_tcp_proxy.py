@@ -56,5 +56,34 @@ class TestTcpProxy(unittest.TestCase):
             status = self.proxy.get_status()
             self.assertEqual(status["state"], "Online")
 
+    @patch('socket.socket')
+    def test_client_socket_has_timeout(self, mock_socket_class):
+        # Mock the server socket instance
+        mock_server_sock = MagicMock()
+        mock_socket_class.return_value = mock_server_sock
+        
+        # Mock accept() to return a mock client socket
+        mock_client = MagicMock()
+        mock_server_sock.accept.return_value = (mock_client, ("1.2.3.4", 5555))
+        
+        # We need to mock select.select to return the server_socket as readable
+        with patch('select.select') as mock_select:
+            # First call: return server socket as readable
+            # Second call: flip self.running to False to exit loop
+            def select_side_effect(*args, **kwargs):
+                if self.proxy.running:
+                    self.proxy.running = False
+                    return ([mock_server_sock], [], [])
+                return ([], [], [])
+            
+            mock_select.side_effect = select_side_effect
+            
+            self.proxy.running = True
+            self.proxy.target_socket = MagicMock() # Avoid reconnect logic
+            self.proxy._run()
+            
+        # Verify timeout was set on the client socket
+        mock_client.settimeout.assert_called_with(10.0)
+
 if __name__ == "__main__":
     unittest.main()

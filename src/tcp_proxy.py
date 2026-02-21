@@ -95,7 +95,7 @@ class TcpProxy:
             except: pass
 
             sock.connect((self.target_host, self.target_port))
-            sock.settimeout(None) # Reset to blocking for select()
+            sock.settimeout(10.0) # 10s timeout for all operations
             self.target_socket = sock
             self.last_target_activity = time.time()
             self.reconnecting = False
@@ -136,8 +136,10 @@ class TcpProxy:
             
             for client_sock in targets:
                 try:
+                    # logging.debug(f"Forwarding packet to {client_sock.getpeername()}")
                     client_sock.sendall(packet)
-                except:
+                except Exception as e:
+                    logging.debug(f"Failed to forward packet to client: {e}")
                     self._remove_client(client_sock)
 
     def _remove_client(self, sock):
@@ -230,6 +232,7 @@ class TcpProxy:
                 if sock is self.server_socket:
                     try:
                         client_socket, addr = self.server_socket.accept()
+                        client_socket.settimeout(10.0) # 10s timeout for client sends
                         logging.info(f"+++ PROXY: New connection accepted from {addr}")
                         
                         with self.lock:
@@ -287,9 +290,11 @@ class TcpProxy:
                                     time.sleep(0.01) 
                             except Exception as e:
                                 logging.error(f"Error sending to radio: {e}")
-                                self.target_socket.close()
+                                try: self.target_socket.close()
+                                except: pass
                                 self.target_socket = None
-                    except:
+                    except Exception as e:
+                        logging.debug(f"Error receiving from client: {e}")
                         self._remove_client(sock)
 
         self.stop()
