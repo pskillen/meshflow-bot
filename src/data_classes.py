@@ -19,6 +19,16 @@ class MeshNode:
             self.hw_model = hw_model
             self.public_key = public_key
 
+        def __eq__(self, other):
+            if not isinstance(other, MeshNode.User):
+                return False
+            return (self.id == other.id and
+                    self.long_name == other.long_name and
+                    self.short_name == other.short_name and
+                    self.macaddr == other.macaddr and
+                    self.hw_model == other.hw_model and
+                    self.public_key == other.public_key)
+
         id: str
         long_name: str
         short_name: str

@@ -372,19 +372,26 @@ class MeshtasticBot:
                 if not existing_last_heard or last_heard > existing_last_heard:
                     self.node_info.update_last_heard(mesh_node.user.id, last_heard)
             
-            self.node_db.store_node(mesh_node)
+            # Optimization: Only store and notify if the node has actually changed
+            # or if it's the first time we've seen it.
+            existing_user = self.node_db.get_by_id(mesh_node.user.id)
+            is_new = existing_user is None
+            has_changed = is_new or existing_user != mesh_node.user
 
-            for storage_api in self.storage_apis:
-                try:
-                    storage_api.store_node(mesh_node)
-                except HTTPError as ex:
-                    logging.warning(f"Error storing node: {ex.response.text}")
-                    pass
-                except Exception as ex:
-                    logging.warning(f"Error storing node: {ex}")
-                    pass
+            if has_changed:
+                self.node_db.store_node(mesh_node)
 
-            if self.init_complete:
+                for storage_api in self.storage_apis:
+                    try:
+                        storage_api.store_node(mesh_node)
+                    except HTTPError as ex:
+                        logging.warning(f"Error storing node: {ex.response.text}")
+                        pass
+                    except Exception as ex:
+                        logging.warning(f"Error storing node: {ex}")
+                        pass
+
+            if self.init_complete and is_new:
                 current_last_heard = self.node_info.get_last_heard(mesh_node.user.id)
                 last_heard_str = pretty_print_last_heard(current_last_heard) if current_last_heard else "unknown"
                 logging.info(f"New user: {mesh_node.user.long_name} (last heard {last_heard_str})")
