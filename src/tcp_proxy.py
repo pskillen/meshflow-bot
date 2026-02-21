@@ -15,7 +15,7 @@ class TcpProxy:
         self.target_socket = None
         
         self.clients = []
-        self.clients_lock = threading.Lock()
+        self.lock = threading.RLock()
         
         self.running = False
         
@@ -53,8 +53,9 @@ class TcpProxy:
             return "Proxy: Offline"
         
         silence = time.time() - self.last_target_activity
-        with self.clients_lock:
+        with self.lock:
             client_count = len(self.clients)
+            cached_count = len(self.handshake_packets) + len(self.rolling_packets)
             
         state = "Reconnecting" if self.reconnecting else ("Online" if self.target_socket else "Offline")
         
@@ -63,12 +64,12 @@ class TcpProxy:
             "connected": self.target_socket is not None and not self.reconnecting,
             "clients": client_count,
             "silence_secs": int(silence),
-            "cached_packets": len(self.handshake_packets) + len(self.rolling_packets)
+            "cached_packets": cached_count
         }
 
     def _disconnect_all_clients(self):
         """Force all clients to disconnect so they can re-sync with a new radio session"""
-        with self.clients_lock:
+        with self.lock:
             for sock in self.clients:
                 try: sock.close()
                 except: pass
@@ -127,16 +128,17 @@ class TcpProxy:
             packet = self.in_buffer[:total_len]
             self.in_buffer = self.in_buffer[total_len:]
             
-            if len(self.handshake_packets) < self.handshake_max_count:
-                self.handshake_packets.append(packet)
-            self.rolling_packets.append(packet)
+            with self.lock:
+                if len(self.handshake_packets) < self.handshake_max_count:
+                    self.handshake_packets.append(packet)
+                self.rolling_packets.append(packet)
+                targets = self.clients[:]
             
-            with self.clients_lock:
-                for client_sock in self.clients[:]:
-                    try:
-                        client_sock.sendall(packet)
-                    except:
-                        self._remove_client(client_sock)
+            for client_sock in targets:
+                try:
+                    client_sock.sendall(packet)
+                except:
+                    self._remove_client(client_sock)
 
     def _remove_client(self, sock):
         try:
@@ -145,13 +147,13 @@ class TcpProxy:
         except:
             logging.info("--- PROXY: Removing unknown client")
 
-        with self.clients_lock:
+        with self.lock:
             if sock in self.clients:
                 self.clients.remove(sock)
         try: sock.close()
         except: pass
         
-        with self.clients_lock:
+        with self.lock:
             logging.info(f"--- PROXY: Remaining clients: {len(self.clients)}")
 
     def _run(self):
@@ -186,7 +188,7 @@ class TcpProxy:
                     time.sleep(1.0)
 
             try:
-                with self.clients_lock:
+                with self.lock:
                     client_socks = [s for s in self.clients if s.fileno() != -1]
                 
                 inputs = [self.server_socket] + client_socks
@@ -201,7 +203,7 @@ class TcpProxy:
 
             # Heartbeat Logging
             if current_time - last_heartbeat_log > 60.0:
-                with self.clients_lock:
+                with self.lock:
                     client_count = len(self.clients)
                     client_info = []
                     for s in self.clients:
@@ -230,9 +232,11 @@ class TcpProxy:
                         client_socket, addr = self.server_socket.accept()
                         logging.info(f"+++ PROXY: New connection accepted from {addr}")
                         
-                        with self.clients_lock:
+                        with self.lock:
                             self.clients.append(client_socket)
                             logging.info(f"--- PROXY: Total active clients now: {len(self.clients)}")
+                            h_snapshot = list(self.handshake_packets)
+                            r_snapshot = list(self.rolling_packets)
                         
                         def replay(target_sock, handshake, history, client_addr):
                             if client_addr[0] in ('127.0.0.1', 'localhost'):
@@ -249,8 +253,6 @@ class TcpProxy:
                             except Exception as e:
                                 self._remove_client(target_sock)
 
-                        h_snapshot = list(self.handshake_packets)
-                        r_snapshot = list(self.rolling_packets)
                         threading.Thread(target=replay, args=(client_socket, h_snapshot, r_snapshot, addr), daemon=True).start()
                                 
                     except Exception as e:
