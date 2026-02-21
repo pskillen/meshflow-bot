@@ -11,6 +11,7 @@ class TestNodesCommand(CommandWSCTestCase):
 
     def setUp(self):
         super().setUp()
+        self.bot.init_complete = True
         self.command = NodesCommand(self.bot)
 
         self.online_count = len(self.bot.node_info.get_online_nodes())
@@ -32,7 +33,7 @@ class TestNodesCommand(CommandWSCTestCase):
             friendly_time = pretty_print_last_heard(last_heard)
             expected_response += f"- {node.user.short_name} ({friendly_time})\n"
 
-        self.assert_message_sent(expected_response, self.test_nodes[1])
+        self.assert_message_sent(expected_response, self.test_nodes[1], want_ack=True)
 
     def test_handle_busy_command(self):
         packet = build_test_text_packet('!nodes busy', self.test_nodes[1].user.id, self.bot.my_id)
@@ -52,7 +53,7 @@ class TestNodesCommand(CommandWSCTestCase):
 
         expected_response += f"(last reset at {last_reset_time})"
 
-        self.assert_message_sent(expected_response, self.test_nodes[1])
+        self.assert_message_sent(expected_response, self.test_nodes[1], want_ack=True)
 
     def test_handle_busy_detailed_command(self):
         packet = build_test_text_packet('!nodes busy detailed', self.test_nodes[1].user.id, self.bot.my_id)
@@ -81,7 +82,19 @@ class TestNodesCommand(CommandWSCTestCase):
         for packet_type, count in sorted_breakdown:
             expected_response += f"- {packet_type}: {count}\n"
 
-        self.assert_message_sent(expected_response, self.test_nodes[1])
+        self.assert_message_sent(expected_response, self.test_nodes[1], want_ack=True)
+
+    def test_handle_totals_command(self):
+        packet = build_test_text_packet('!nodes totals', self.test_nodes[1].user.id, self.bot.my_id)
+        self.command.handle_packet(packet)
+
+        # report_node_count is called on the bot
+        # In this test environment, we expect it to send a message via the interface
+        online_nodes = self.bot.node_info.get_online_nodes()
+        count = len(online_nodes)
+        expected_message = f"MTEK has a node count of {count}"
+        
+        self.assert_message_sent(expected_message, self.test_nodes[1], want_ack=True)
 
 
 if __name__ == '__main__':
