@@ -14,6 +14,14 @@ class TracerouteCommand(AbstractCommand):
         message = packet['decoded']['text']
         words = message.split()
         
+        is_public = packet.get('toId') == '^all' or 'channel' in packet
+        
+        def send_reply(msg):
+            if is_public:
+                self.reply_in_channel(packet, msg, want_ack=False)
+            else:
+                self.reply_in_dm(packet, msg, want_ack=False)
+
         # Add a reaction to show we are working on it
         self.bot.interface.sendReaction("⌛", messageId=packet['id'], destinationId=packet['fromId'])
 
@@ -26,7 +34,7 @@ class TracerouteCommand(AbstractCommand):
             target_short = words[1]
             target_node = self.bot.get_node_by_short_name(target_short)
             if not target_node:
-                self.reply_in_dm(packet, f"Could not find node with short name '{target_short}'")
+                send_reply(f"Could not find node with short name '{target_short}'")
                 return
             target_id = target_node.id
             target_long_name = target_node.long_name
@@ -35,7 +43,7 @@ class TracerouteCommand(AbstractCommand):
             target_long_name = requester_name
 
         if target_id == self.bot.my_id:
-            self.reply_in_dm(packet, "I am already here! No traceroute required.")
+            send_reply("I am already here! No traceroute required.")
             return
 
         # If tracing back to requester, we can show hops_away/SNR from the incoming packet
@@ -47,15 +55,15 @@ class TracerouteCommand(AbstractCommand):
 
             if hops_away == 0:
                 response = f"{requester_name} you are Zero Hops from me. No traceroute required!"
-                self.reply_in_dm(packet, response)
+                send_reply(response)
                 return
 
             response = f"{requester_name} you are {hops_away} hops away (Signal: {snr} dB). Starting full traceroute..."
-            self.reply_in_dm(packet, response)
+            send_reply(response)
         else:
             # Tracing to a different node
             response = f"Starting traceroute to {target_long_name} ({target_id}) for you..."
-            self.reply_in_dm(packet, response)
+            send_reply(response)
         
         # Initiate actual traceroute
         # Map target_id -> list of requester_ids
@@ -80,7 +88,10 @@ class TracerouteCommand(AbstractCommand):
                 
                 # Send the timeout message in a separate thread to avoid blocking the timer/interface
                 def send_timeout():
-                    self.message_in_dm(requester_id, timeout_msg)
+                    if is_public:
+                        self.message_in_channel(packet.get('channel', 0), timeout_msg, want_ack=False)
+                    else:
+                        self.message_in_dm(requester_id, timeout_msg, want_ack=False)
                 
                 threading.Thread(target=send_timeout, daemon=True).start()
 
@@ -96,7 +107,7 @@ class TracerouteCommand(AbstractCommand):
                 self.bot.pending_traces[target_id].remove(requester_id)
                 if not self.bot.pending_traces[target_id]:
                     del self.bot.pending_traces[target_id]
-            self.reply_in_dm(packet, f"Error starting traceroute: {e}")
+                send_reply(f"Error starting traceroute: {e}")
 
     def get_command_for_logging(self, message: str) -> (str, list[str] | None, str | None):
         return self._gcfl_base_command_and_args(message)

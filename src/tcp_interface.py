@@ -95,8 +95,8 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
             super().sendHeartbeat()
         except (OSError, BrokenPipeError) as e:
             logging.error(f"Heartbeat failed: {e}")
-            # TODO: Decide if we want to handle the error on this thread
-            # self._reconnect_with_backoff()
+            # Shutdown and notify the error handler to trigger a clean restart from the main thread.
+            # This avoids nested reconnection attempts on the heartbeat thread.
             self._shutdown_and_call_error_handler()
 
     def _sendPacket(
