@@ -4,6 +4,8 @@ services:
     image: ghcr.io/pskillen/meshtastic-bot:latest
     container_name: meshtastic-bot
     restart: unless-stopped
+    ports:
+      - "4403:4403"
     env_file:
       - meshtastic-bot.env
     volumes:
