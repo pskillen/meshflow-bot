@@ -15,9 +15,9 @@ logging.basicConfig(level=logging.INFO,
                     stream=sys.stdout)
 
 # Set the log level for specific modules
-logging.getLogger('tcp_interface').setLevel(logging.INFO)
-logging.getLogger('stream_interface').setLevel(logging.INFO)
-logging.getLogger('mesh_interface').setLevel(logging.INFO)
+logging.getLogger('tcp_interface').setLevel(logging.WARNING)
+logging.getLogger('stream_interface').setLevel(logging.WARNING)
+logging.getLogger('mesh_interface').setLevel(logging.WARNING)
 
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
