@@ -318,8 +318,11 @@ class MeshtasticBot:
         portnum = packet.get('decoded', {}).get('portnum', 'unknown')
         logging.info(f"on_receive: Incoming packet from {from_id} (Port: {portnum})")
         
-        if from_id == '!69828b98':
-            logging.debug(f"Received ANY packet from mte4: {packet}")
+        if from_id == '!69828b98' or from_id == '!6985f59c':
+            logging.info(f"Received ANY packet from {from_id}: {packet}")
+            if portnum == 'ROUTING_APP':
+                decoded = packet.get('decoded', {})
+                logging.info(f"  ROUTING_APP Detail: requestId={decoded.get('requestId')}, routing={decoded.get('routing')}")
 
         # dump the packet to disk (if enabled)
         dump_packet(packet)

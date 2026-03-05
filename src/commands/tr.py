@@ -101,7 +101,11 @@ class TracerouteCommand(AbstractCommand):
         try:
             logging.info(f"Initiating traceroute to {target_id} requested by {requester_id}")
             # hopLimit=7 is standard max
-            self.bot.interface.sendTraceRoute(target_id, hopLimit=7)
+            p = self.bot.interface.sendTraceRoute(target_id, hopLimit=7)
+            if p:
+                logging.info(f"Sent traceroute packet to {target_id}. Packet ID: {p.id}")
+            else:
+                logging.warning(f"sendTraceRoute returned None for {target_id}")
         except Exception as e:
             logging.error(f"Failed to send traceroute to {target_id}: {e}")
             if target_id in self.bot.pending_traces and requester_id in self.bot.pending_traces[target_id]:
