@@ -71,7 +71,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         logging.info(f"store_raw_packet called for portnum: {packet.get('decoded', {}).get('portnum')}")
         # Filter out packet types that the API doesn't support or we don't want to store
-        ignored_ports = [345, 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP']
+        ignored_ports = [345, 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP', 'ROUTING_APP']
         portnum = packet.get('decoded', {}).get('portnum')
         if portnum in ignored_ports:
             return
