@@ -30,7 +30,7 @@ class SupportsMessageReactionInterface(TCPInterface):
         packet.decoded.portnum = portNum
         packet.decoded.payload = emoji_bytes
         packet.decoded.reply_id = messageId
-        packet.decoded.emoji = True
+        packet.decoded.emoji = ord(emoji) if isinstance(emoji, str) else 1
 
         self._sendPacket(packet, destinationId,
                          wantAck=wantAck,
