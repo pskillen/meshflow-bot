@@ -17,14 +17,14 @@ class TracerouteCommand(AbstractCommand):
         is_public = packet.get('toId') == '^all' or 'channel' in packet
         
         def send_reply(msg):
-            if is_public:
-                self.reply_in_channel(packet, msg, want_ack=True)
-            else:
-                self.reply_in_dm(packet, msg, want_ack=True)
+            # Always reply in DM
+            self.reply_in_dm(packet, msg, want_ack=True)
 
-        # Add a reaction to show we are working on it
-        logging.info(f"Adding reaction ⌛ for packet {packet.get('id')} from {packet.get('fromId')}")
-        self.bot.interface.sendReaction("⌛", messageId=packet['id'], destinationId=packet['fromId'])
+        # Add a reaction (thumbs up for public to acknowledge without spamming, hourglass for DM)
+        reaction_emoji = "👍" if is_public else "⌛"
+        reaction_dest = packet.get('toId') if is_public else packet.get('fromId')
+        logging.info(f"Adding reaction {reaction_emoji} for packet {packet.get('id')} to {reaction_dest}")
+        self.bot.interface.sendReaction(reaction_emoji, messageId=packet['id'], destinationId=reaction_dest)
 
         requester_id = packet.get('fromId')
         requester = self.bot.node_db.get_by_id(requester_id)
@@ -67,10 +67,10 @@ class TracerouteCommand(AbstractCommand):
         if target_id not in self.bot.pending_traces:
             self.bot.pending_traces[target_id] = []
         
-        # Store context: (requester_id, is_public, to_id, channel_index)
+        # Store context: force is_public=False so bot.py always replies via DM
         to_id = packet.get('toId')
         channel_index = packet.get('channel', 0)
-        context = (requester_id, is_public, to_id, channel_index)
+        context = (requester_id, False, to_id, channel_index)
         
         if context not in self.bot.pending_traces[target_id]:
             self.bot.pending_traces[target_id].append(context)
@@ -90,10 +90,7 @@ class TracerouteCommand(AbstractCommand):
                 
                 # Send the timeout message in a separate thread to avoid blocking the timer/interface
                 def send_timeout():
-                    if is_public:
-                        self.message_in_channel(packet.get('channel', 0), timeout_msg, want_ack=True)
-                    else:
-                        self.message_in_dm(requester_id, timeout_msg, want_ack=True)
+                    self.message_in_dm(requester_id, timeout_msg, want_ack=True)
                 
                 threading.Thread(target=send_timeout, daemon=True).start()
 
