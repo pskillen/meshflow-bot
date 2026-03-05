@@ -54,13 +54,7 @@ class TracerouteCommand(AbstractCommand):
             hops_away = hop_start - hop_limit
             snr = packet.get('rxSnr', 0.0)
 
-            if hops_away == 0:
-                response = f"{requester_name} you are Zero Hops from me. No traceroute required!"
-                logging.info(f"Detected 0 hops for {target_id}. {response}")
-                send_reply(response)
-                return
-
-            status_msg = f"{requester_name} you are {hops_away} hops away (Signal: {snr} dB). Starting full traceroute..."
+            status_msg = f"{requester_name} ({hops_away} hops, {snr}dB). Starting real-time trace..."
             logging.info(f"Detected {hops_away} hops for {target_id}. {status_msg}")
             send_reply(status_msg)
         else:
