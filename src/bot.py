@@ -276,7 +276,7 @@ class MeshtasticBot:
                 combined_response = f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
 
                 # Consolidate into a single message to ensure delivery (less radio congestion)
-                combined_response = f"{response_out}\n{response_in}"
+                # combined_response already defined above as: f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
 
                 # Wait for radio to settle after receiving the traceroute response
                 time.sleep(3)
