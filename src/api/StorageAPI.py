@@ -71,13 +71,22 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         logging.info(f"store_raw_packet called for portnum: {packet.get('decoded', {}).get('portnum')}")
         # Filter out packet types that the API doesn't support or we don't want to store
-        ignored_ports = [345, 'ROUTING_APP', 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP']
+        ignored_ports = [345, 'TRACEROUTE_APP', 'ADMIN_APP', 'NEIGHBORINFO_APP']
         portnum = packet.get('decoded', {}).get('portnum')
         if portnum in ignored_ports:
             return
             
         # Additional filtering for Telemetry packets to avoid API errors
         # The API requires either 'deviceMetrics' or 'localStats'
+        if portnum == 'ROUTING_APP':
+            from_id = packet.get('from')
+            logging.info(f"DEBUG: ROUTING_APP Packet from {from_id}: {packet}")
+        
+        # Log all text messages
+        if portnum == 'TEXT_MESSAGE_APP':
+            from_id = packet.get('from')
+            logging.info(f"DEBUG: TEXT_MESSAGE_APP Packet from {from_id}: {packet}")
+
         if portnum == 'TELEMETRY_APP':
             telemetry = packet.get('decoded', {}).get('telemetry', {})
             if 'deviceMetrics' not in telemetry and 'localStats' not in telemetry:

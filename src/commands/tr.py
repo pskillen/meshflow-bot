@@ -23,9 +23,10 @@ class TracerouteCommand(AbstractCommand):
                 self.reply_in_dm(packet, msg, want_ack=False)
 
         # Add a reaction to show we are working on it
+        logging.info(f"Adding reaction ⌛ for packet {packet.get('id')} from {packet.get('fromId')}")
         self.bot.interface.sendReaction("⌛", messageId=packet['id'], destinationId=packet['fromId'])
 
-        requester_id = packet['fromId']
+        requester_id = packet.get('fromId')
         requester = self.bot.node_db.get_by_id(requester_id)
         requester_name = requester.long_name if requester else requester_id
 
