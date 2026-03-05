@@ -224,6 +224,7 @@ class MeshtasticBot:
 
     def on_traceroute(self, packet, route):
         """Callback for when a traceroute response is received."""
+        logging.info(f"on_traceroute: Received signal. Packet: {packet.get('id') if isinstance(packet, dict) else 'obj'}")
         def process_traceroute():
             try:
                 target_id = packet.get('fromId')

@@ -81,6 +81,7 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
                                                   getattr(packet.decoded, 'traceroute', None)))
 
             logging.info(f"onResponseTraceRoute: Received traceroute response. Route data present: {route_discovery is not None}")
+            logging.info(f"DEBUG: Traceroute packet keys: {packet.keys() if isinstance(packet, dict) else 'not a dict'}")
             
             # Always call super to allow library internal processing (printing to stdout etc)
             super().onResponseTraceRoute(packet)
