@@ -250,46 +250,30 @@ class MeshtasticBot:
                         return r.get(key, [])
                     return getattr(r, key, [])
 
-                # 1. Format the OUTBOUND route (TO target)
-                route_ids = get_route_hops(route, 'route')
-                hops = []
-                for node_id_int in route_ids:
-                    # Convert int to !hex string
-                    node_id_str = f"!{node_id_int:08x}"
-                    node = self.node_db.get_by_id(node_id_str)
-                    if node:
-                         hops.append(f"{node.short_name}")
-                    else:
-                         hops.append(f"{node_id_str}")
-
-                route_str = " -> ".join(hops) if hops else "Direct"
-                
-                # Append target to the end of the TO route
+                # Format compact routes
                 target_node = self.node_db.get_by_id(target_id)
-                target_name = target_node.short_name if target_node else target_id
-                route_str += f" -> {target_name}"
+                t_name = target_node.short_name if target_node else target_id[-4:]
                 
-                response_out = f"Trace TO {target_id} ({len(hops)} hops):\n{route_str}"
-
-                # 2. Format the INBOUND route (FROM target)
-                route_back_ids = get_route_hops(route, 'route_back')
-                hops_back = []
-                for node_id_int in route_back_ids:
-                     node_id_str = f"!{node_id_int:08x}"
-                     node = self.node_db.get_by_id(node_id_str)
-                     if node:
-                         hops_back.append(f"{node.short_name}")
-                     else:
-                         hops_back.append(f"{node_id_str}")
-                
-                back_str = " -> ".join(hops_back) if hops_back else "Direct"
-                
-                # Append bot to the end of the FROM route
                 my_node = self.node_db.get_by_id(self.my_id)
-                my_name = my_node.short_name if my_node else self.my_id
-                back_str += f" -> {my_name}"
-                
-                response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
+                m_name = my_node.short_name if my_node else self.my_id[-4:]
+
+                # Outbound
+                route_ids = get_route_hops(route, 'route')
+                hops_to = []
+                for nid in route_ids:
+                    n = self.node_db.get_by_id(f"!{nid:08x}")
+                    hops_to.append(n.short_name if n else f"{nid:08x}"[-4:])
+                route_to_str = ">".join(hops_to) + (">" if hops_to else "") + t_name
+
+                # Inbound
+                route_back_ids = get_route_hops(route, 'route_back')
+                hops_fr = []
+                for nid in route_back_ids:
+                    n = self.node_db.get_by_id(f"!{nid:08x}")
+                    hops_fr.append(n.short_name if n else f"{nid:08x}"[-4:])
+                route_fr_str = ">".join(hops_fr) + (">" if hops_fr else "") + m_name
+
+                combined_response = f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
 
                 # Consolidate into a single message to ensure delivery (less radio congestion)
                 combined_response = f"{response_out}\n{response_in}"
