@@ -1,9 +1,8 @@
-import socket
-import select
-import threading
+import asyncio
 import logging
 import time
 from collections import deque
+import threading
 
 class TcpProxy:
     def __init__(self, target_host, target_port=4403, listen_host='0.0.0.0', listen_port=4403):
@@ -11,41 +10,42 @@ class TcpProxy:
         self.target_port = int(target_port)
         self.listen_host = listen_host
         self.listen_port = int(listen_port)
-        self.server_socket = None
-        self.target_socket = None
         
-        self.clients = []
-        self.lock = threading.RLock()
+        self.server = None
+        self.target_reader = None
+        self.target_writer = None
+        
+        self.clients = set()
         
         self.running = False
+        self.loop = None
+        self.thread = None
         
-        # Handshake: The first 50 packets from a fresh radio connection
         self.handshake_packets = []
         self.handshake_max_count = 50 
-        
-        # History: The last 50 packets seen
         self.rolling_packets = deque(maxlen=50)
-        
-        # Buffer for incoming raw bytes from the radio
-        self.in_buffer = b''
         
         self.last_target_activity = time.time()
         self.reconnecting = False
 
     def start(self):
         self.running = True
-        self.thread = threading.Thread(target=self._run)
-        self.thread.daemon = True
+        self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
 
     def stop(self):
         self.running = False
-        self._disconnect_all_clients()
-        if self.server_socket:
-            try: self.server_socket.close()
+        if self.loop:
+            self.loop.call_soon_threadsafe(self._stop_loop)
+
+    def _stop_loop(self):
+        if self.server:
+            self.server.close()
+        for writer in self.clients:
+            try: writer.close()
             except: pass
-        if self.target_socket:
-            try: self.target_socket.close()
+        if self.target_writer:
+            try: self.target_writer.close()
             except: pass
 
     def get_status(self):
@@ -53,248 +53,207 @@ class TcpProxy:
             return "Proxy: Offline"
         
         silence = time.time() - self.last_target_activity
-        with self.lock:
-            client_count = len(self.clients)
-            cached_count = len(self.handshake_packets) + len(self.rolling_packets)
+        client_count = len(self.clients)
+        cached_count = len(self.handshake_packets) + len(self.rolling_packets)
             
-        state = "Reconnecting" if self.reconnecting else ("Online" if self.target_socket else "Offline")
+        state = "Reconnecting" if self.reconnecting else ("Online" if self.target_writer else "Offline")
         
         return {
             "state": state,
-            "connected": self.target_socket is not None and not self.reconnecting,
+            "connected": self.target_writer is not None and not self.reconnecting,
             "clients": client_count,
             "silence_secs": int(silence),
             "cached_packets": cached_count
         }
 
-    def _disconnect_all_clients(self):
-        """Force all clients to disconnect so they can re-sync with a new radio session"""
-        with self.lock:
-            for sock in self.clients:
-                try: sock.close()
-                except: pass
-            self.clients = []
-        logging.info("Disconnected all proxy clients to force re-sync.")
+    def _run_loop(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self._async_run())
 
-    def _connect_to_target(self):
-        """Helper to connect to radio with Keep-Alives (Non-blocking retry)"""
-        # Clear state for new connection
-        self.handshake_packets = [] 
-        self.in_buffer = b''
-        self._disconnect_all_clients()
-        self.reconnecting = True
-
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5.0) # 5s timeout for connection attempt
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            try:
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
-            except: pass
-
-            sock.connect((self.target_host, self.target_port))
-            sock.settimeout(10.0) # 10s timeout for all operations
-            self.target_socket = sock
-            self.last_target_activity = time.time()
-            self.reconnecting = False
-            logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
-            return True
-        except Exception as e:
-            logging.error(f"Failed to connect to target ({self.target_host}): {e}")
-            self.target_socket = None
-            return False
-
-    def _process_radio_data(self, data):
-        """Frames raw bytes into Meshtastic packets and caches them"""
-        self.in_buffer += data
-        
-        while len(self.in_buffer) >= 4:
-            if self.in_buffer[0:2] != b'\x94\xc3':
-                idx = self.in_buffer.find(b'\x94\xc3')
-                if idx == -1:
-                    self.in_buffer = b''
-                    break
-                self.in_buffer = self.in_buffer[idx:]
-                continue
-            
-            length = (self.in_buffer[2] << 8) | self.in_buffer[3]
-            total_len = length + 4
-            
-            if len(self.in_buffer) < total_len:
-                break
-            
-            packet = self.in_buffer[:total_len]
-            self.in_buffer = self.in_buffer[total_len:]
-            
-            with self.lock:
-                if len(self.handshake_packets) < self.handshake_max_count:
-                    self.handshake_packets.append(packet)
-                self.rolling_packets.append(packet)
-                targets = self.clients[:]
-            
-            for client_sock in targets:
-                try:
-                    # logging.debug(f"Forwarding packet to {client_sock.getpeername()}")
-                    client_sock.sendall(packet)
-                except Exception as e:
-                    logging.debug(f"Failed to forward packet to client: {e}")
-                    self._remove_client(client_sock)
-
-    def _remove_client(self, sock):
-        try:
-            addr = sock.getpeername()
-            logging.info(f"--- PROXY: Removing client {addr}")
-        except:
-            logging.info("--- PROXY: Removing unknown client")
-
-        with self.lock:
-            if sock in self.clients:
-                self.clients.remove(sock)
-        try: sock.close()
-        except: pass
-        
-        with self.lock:
-            logging.info(f"--- PROXY: Remaining clients: {len(self.clients)}")
-
-    def _run(self):
+    async def _async_run(self):
         logging.info(f"Starting TCP Proxy on {self.listen_host}:{self.listen_port} -> {self.target_host}:{self.target_port}")
-
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
         try:
-            self.server_socket.bind((self.listen_host, self.listen_port))
+            self.server = await asyncio.start_server(
+                self._handle_client, self.listen_host, self.listen_port)
         except Exception as e:
             logging.error(f"Failed to bind proxy port {self.listen_port}: {e}")
             self.running = False
             return
-            
-        self.server_socket.listen(5)
 
+        asyncio.create_task(self._target_connection_manager())
+        asyncio.create_task(self._watchdog())
+
+        try:
+            async with self.server:
+                while self.running:
+                    await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self._stop_loop()
+
+    async def _watchdog(self):
         last_heartbeat_log = time.time()
-        last_reconnect_attempt = 0
-        watchdog_timeout = 300.0
-
         while self.running:
             current_time = time.time()
+            if self.target_writer and not self.reconnecting:
+                if current_time - self.last_target_activity > 300.0:
+                    logging.warning(f"Watchdog: No data from radio for 300s. Forcing reconnect...")
+                    try: self.target_writer.close()
+                    except: pass
+                    self.target_reader = None
+                    self.target_writer = None
 
-            # Reconnection logic (non-blocking)
-            if not self.target_socket or self.reconnecting:
-                if current_time - last_reconnect_attempt > 10.0:
-                    last_reconnect_attempt = current_time
-                    self._connect_to_target()
-                
-                # Sleep a bit to not peg CPU while radio is down
-                if not self.target_socket:
-                    time.sleep(1.0)
-
-            try:
-                with self.lock:
-                    client_socks = [s for s in self.clients if s.fileno() != -1]
-                
-                inputs = [self.server_socket] + client_socks
-                if self.target_socket and not self.reconnecting:
-                    inputs.append(self.target_socket)
-                
-                readable, _, _ = select.select(inputs, [], [], 1.0)
-            except Exception as e:
-                logging.error(f"Select error: {e}")
-                time.sleep(0.5)
-                continue
-
-            # Heartbeat Logging
             if current_time - last_heartbeat_log > 60.0:
-                with self.lock:
-                    client_count = len(self.clients)
-                    client_info = []
-                    for s in self.clients:
-                        try:
-                            peer = s.getpeername()
-                            client_info.append(f"{peer[0]}:{peer[1]}")
-                        except:
-                            client_info.append("unknown")
-                
-                status = "Connected" if self.target_socket and not self.reconnecting else "RECONNECTING"
+                client_count = len(self.clients)
+                status = "Connected" if self.target_writer and not self.reconnecting else "RECONNECTING"
                 silence = current_time - self.last_target_activity
-                logging.info(f"Proxy Heartbeat: {status}. Last radio data {silence:.1f}s ago. Clients: {client_count} ({', '.join(client_info)})")
+                logging.info(f"Proxy Heartbeat: {status}. Last radio data {silence:.1f}s ago. Clients: {client_count}")
                 last_heartbeat_log = current_time
             
-            # Watchdog: Force reconnect if silence is too long on an "active" connection
-            if self.target_socket and not self.reconnecting:
-                if current_time - self.last_target_activity > watchdog_timeout:
-                    logging.warning(f"Watchdog: No data from radio for {watchdog_timeout}s. Forcing reconnect...")
-                    try: self.target_socket.close()
-                    except: pass
-                    self.target_socket = None # Trigger reconnect logic
+            await asyncio.sleep(5)
 
-            for sock in readable:
-                if sock is self.server_socket:
-                    try:
-                        client_socket, addr = self.server_socket.accept()
-                        client_socket.settimeout(10.0) # 10s timeout for client sends
-                        logging.info(f"+++ PROXY: New connection accepted from {addr}")
-                        
-                        with self.lock:
-                            self.clients.append(client_socket)
-                            logging.info(f"--- PROXY: Total active clients now: {len(self.clients)}")
-                            h_snapshot = list(self.handshake_packets)
-                            r_snapshot = list(self.rolling_packets)
-                        
-                        def replay(target_sock, handshake, history, client_addr):
-                            if client_addr[0] in ('127.0.0.1', 'localhost'):
-                                return
-                            try:
-                                time.sleep(2.0)
-                                for p in handshake:
-                                    target_sock.sendall(p)
-                                    time.sleep(0.05) 
-                                for p in history:
-                                    target_sock.sendall(p)
-                                    time.sleep(0.01)
-                                logging.info(f"Replayed {len(handshake) + len(history)} packets to {client_addr}")
-                            except Exception as e:
-                                self._remove_client(target_sock)
+    async def _target_connection_manager(self):
+        while self.running:
+            if self.target_writer is None or self.target_reader is None:
+                self.reconnecting = True
+                self._disconnect_all_clients()
+                self.handshake_packets.clear()
+                self.rolling_packets.clear()
 
-                        threading.Thread(target=replay, args=(client_socket, h_snapshot, r_snapshot, addr), daemon=True).start()
-                                
-                    except Exception as e:
-                         logging.error(f"Error accepting connection: {e}")
-
-                elif self.target_socket and sock is self.target_socket:
+                try:
+                    reader, writer = await asyncio.wait_for(
+                        asyncio.open_connection(self.target_host, self.target_port),
+                        timeout=5.0
+                    )
+                    self.target_reader = reader
+                    self.target_writer = writer
                     self.last_target_activity = time.time()
-                    try:
-                        data = self.target_socket.recv(16384)
-                        if not data:
-                            logging.warning("Radio closed connection. Triggering re-sync...")
-                            self.target_socket.close()
-                            self.target_socket = None
+                    self.reconnecting = False
+                    logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
+                    asyncio.create_task(self._read_from_target())
+                except Exception as e:
+                    logging.error(f"Failed to connect to target ({self.target_host}): {e}")
+                    await asyncio.sleep(5.0)
+            else:
+                await asyncio.sleep(1)
+
+    def _disconnect_all_clients(self):
+        for writer in list(self.clients):
+            try: writer.close()
+            except: pass
+        self.clients.clear()
+        logging.info("Disconnected all proxy clients to force re-sync.")
+
+    async def _read_from_target(self):
+        reader = self.target_reader
+        writer = self.target_writer
+        
+        in_buffer = b''
+        while self.running and self.target_reader == reader:
+            try:
+                data = await reader.read(16384)
+                if not data:
+                    logging.warning("Radio closed connection. Triggering re-sync...")
+                    break
+                self.last_target_activity = time.time()
+                
+                in_buffer += data
+                
+                while len(in_buffer) >= 4:
+                    if in_buffer[0:2] != b'\x94\xc3':
+                        idx = in_buffer.find(b'\x94\xc3')
+                        if idx == -1:
+                            in_buffer = b''
                             break
-                        self._process_radio_data(data)
-                    except Exception as e:
-                        logging.error(f"Error reading from radio: {e}")
-                        self.target_socket.close()
-                        self.target_socket = None
+                        in_buffer = in_buffer[idx:]
+                        continue
+                    
+                    length = (in_buffer[2] << 8) | in_buffer[3]
+                    total_len = length + 4
+                    
+                    if len(in_buffer) < total_len:
+                        break
+                    
+                    packet = in_buffer[:total_len]
+                    in_buffer = in_buffer[total_len:]
+                    
+                    if len(self.handshake_packets) < self.handshake_max_count:
+                        self.handshake_packets.append(packet)
+                    self.rolling_packets.append(packet)
+                    
+                    for client_writer in list(self.clients):
+                        try:
+                            client_writer.write(packet)
+                            await client_writer.drain()
+                        except Exception as e:
+                            logging.debug(f"Failed to forward packet to client: {e}")
+                            self._remove_client(client_writer)
+            except Exception as e:
+                logging.error(f"Error reading from radio: {e}")
+                break
+        
+        if self.target_writer == writer:
+            try: writer.close()
+            except: pass
+            self.target_writer = None
+            self.target_reader = None
 
-                else:
-                    # Data from a client forwarded to radio
+    async def _handle_client(self, reader, writer):
+        addr = writer.get_extra_info('peername')
+        logging.info(f"+++ PROXY: New connection accepted from {addr}")
+        self.clients.add(writer)
+        
+        h_snapshot = list(self.handshake_packets)
+        r_snapshot = list(self.rolling_packets)
+        
+        if addr[0] not in ('127.0.0.1', 'localhost'):
+            try:
+                await asyncio.sleep(2.0)
+                for p in h_snapshot:
+                    writer.write(p)
+                    await writer.drain()
+                    await asyncio.sleep(0.05)
+                for p in r_snapshot:
+                    writer.write(p)
+                    await writer.drain()
+                    await asyncio.sleep(0.01)
+                logging.info(f"Replayed {len(h_snapshot) + len(r_snapshot)} packets to {addr}")
+            except Exception as e:
+                self._remove_client(writer)
+                return
+
+        while self.running:
+            try:
+                data = await reader.read(16384)
+                if not data:
+                    break
+                if self.target_writer and not self.reconnecting:
                     try:
-                        data = sock.recv(16384)
-                        if not data:
-                            self._remove_client(sock)
-                        elif self.target_socket and not self.reconnecting:
-                            try:
-                                chunk_size = 512
-                                for i in range(0, len(data), chunk_size):
-                                    self.target_socket.sendall(data[i:i+chunk_size])
-                                    time.sleep(0.01) 
-                            except Exception as e:
-                                logging.error(f"Error sending to radio: {e}")
-                                try: self.target_socket.close()
-                                except: pass
-                                self.target_socket = None
+                        self.target_writer.write(data)
+                        await self.target_writer.drain()
                     except Exception as e:
-                        logging.debug(f"Error receiving from client: {e}")
-                        self._remove_client(sock)
+                        logging.error(f"Error sending to radio: {e}")
+                        try: self.target_writer.close()
+                        except: pass
+                        self.target_writer = None
+            except Exception as e:
+                logging.debug(f"Error receiving from client: {e}")
+                break
+                
+        self._remove_client(writer)
 
-        self.stop()
+    def _remove_client(self, writer):
+        addr = None
+        try:
+            addr = writer.get_extra_info('peername')
+            logging.info(f"--- PROXY: Removing client {addr}")
+        except:
+            logging.info("--- PROXY: Removing unknown client")
+            
+        if writer in self.clients:
+            self.clients.remove(writer)
+        try: writer.close()
+        except: pass

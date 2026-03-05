@@ -217,8 +217,10 @@ class MeshtasticBot:
                     logging.info(
                         f"Handled message from {sender.long_name if sender else from_id} with responder {responder.__class__.__name__}: {message}")
                     self.command_logger.log_responder_handled(from_id, responder, message)
+            except (KeyError, ValueError) as e:
+                logging.error(f"Packet format error handling message: {e}", exc_info=True)
             except Exception as e:
-                logging.error(f"Error handling message: {e}")
+                logging.error(f"Error handling message: {e}", exc_info=True)
 
     def on_traceroute(self, packet, route):
         """Callback for when a traceroute response is received."""
@@ -327,8 +329,11 @@ class MeshtasticBot:
             except HTTPError as ex:
                 logging.warning(f"Error storing packet: {ex.response.text}")
                 pass
+            except (ConnectionError, TimeoutError) as ex:
+                logging.warning(f"Network error storing packet in API: {ex}")
+                pass
             except Exception as ex:
-                logging.warning(f"Error storing packet in API: {ex}")
+                logging.warning(f"Unexpected error storing packet in API: {ex}", exc_info=True)
                 pass
 
         sender = packet['fromId']
@@ -387,8 +392,11 @@ class MeshtasticBot:
                     except HTTPError as ex:
                         logging.warning(f"Error storing node: {ex.response.text}")
                         pass
+                    except (ConnectionError, TimeoutError) as ex:
+                        logging.warning(f"Network error storing node: {ex}")
+                        pass
                     except Exception as ex:
-                        logging.warning(f"Error storing node: {ex}")
+                        logging.warning(f"Unexpected error storing node: {ex}", exc_info=True)
                         pass
 
             if self.init_complete and is_new:
@@ -440,8 +448,10 @@ class MeshtasticBot:
                 self.interface.sendText(message, destinationId=destination, wantAck=True)
             else:
                 self.interface.sendText(message, channelIndex=channel_index, wantAck=True)
+        except (OSError, ConnectionError) as e:
+            logging.error(f"Network failure reporting node count: {e}", exc_info=True)
         except Exception as e:
-            logging.error(f"Failed to report node count: {e}")
+            logging.error(f"Unexpected error reporting node count: {e}", exc_info=True)
 
     def check_for_zero_nodes(self):
         """Checks if the node count is zero and alerts immediately if it transitioned to zero."""
