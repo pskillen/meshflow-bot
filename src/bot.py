@@ -282,8 +282,8 @@ class MeshtasticBot:
                     hops_fr.append(n.short_name if n else f"{nid:08x}"[-4:])
                 route_fr_str = ">".join(hops_fr) + (">" if hops_fr else "") + m_name
 
-                # Consolidate into a single message
-                combined_response = f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
+                # Consolidate into a single message with hop counts
+                combined_response = f"!tr {t_name}:\nTO({len(route_ids)}h): {route_to_str}\nFR({len(route_back_ids)}h): {route_fr_str}"
 
                 # Longer wait for radio to settle after receiving the traceroute response
                 time.sleep(8)
