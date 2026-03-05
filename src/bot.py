@@ -241,8 +241,17 @@ class MeshtasticBot:
                 if route is None:
                     decoded_keys = packet.get('decoded', {}).keys()
                     logging.warning(f"Traceroute response from {target_id} contained no route data. Decoded keys: {list(decoded_keys)}")
-                    for requester_id in requesters:
-                        self.interface.sendText(f"Traceroute response received from {target_id}, but no route data was provided.", destinationId=requester_id)
+                    for ctx in requesters:
+                        # Handle both old (string) and new (tuple) formats during transition
+                        r_id = ctx[0] if isinstance(ctx, tuple) else ctx
+                        is_pub = ctx[1] if isinstance(ctx, tuple) else False
+                        c_idx = ctx[3] if isinstance(ctx, tuple) else 0
+                        
+                        msg = f"Traceroute response received from {target_id}, but no route data was provided."
+                        if is_pub:
+                            self.interface.sendText(msg, destinationId=requesters[0][2] if isinstance(requesters[0], tuple) else "!all", channelIndex=c_idx, wantAck=True)
+                        else:
+                            self.interface.sendText(msg, destinationId=r_id, wantAck=True)
                     return
 
                 def get_route_hops(r, key='route'):
@@ -273,19 +282,25 @@ class MeshtasticBot:
                     hops_fr.append(n.short_name if n else f"{nid:08x}"[-4:])
                 route_fr_str = ">".join(hops_fr) + (">" if hops_fr else "") + m_name
 
+                # Consolidate into a single message
                 combined_response = f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
 
-                # Consolidate into a single message to ensure delivery (less radio congestion)
-                # combined_response already defined above as: f"!tr {t_name}:\nTO: {route_to_str}\nFR: {route_fr_str}"
+                # Longer wait for radio to settle after receiving the traceroute response
+                time.sleep(8)
 
-                # Wait for radio to settle after receiving the traceroute response
-                time.sleep(3)
+                for ctx in requesters:
+                    if isinstance(ctx, tuple):
+                        r_id, is_pub, to_id, c_idx = ctx
+                        dest_id = to_id if is_pub else r_id
+                    else:
+                        dest_id = ctx # Fallback for old pending traces
+                        is_pub = False
+                        c_idx = 0
 
-                for requester_id in requesters:
-                    logging.info(f"Sending consolidated traceroute result to {requester_id}:\n{combined_response}")
-                    # Use wantAck=False for result delivery to reduce congestion
-                    self.interface.sendText(combined_response, destinationId=requester_id, wantAck=False)
-                    time.sleep(1)
+                    logging.info(f"Sending consolidated traceroute result to {dest_id} (Pub: {is_pub}):\n{combined_response}")
+                    # Use wantAck=True for result delivery to ensure it gets through
+                    self.interface.sendText(combined_response, destinationId=dest_id, channelIndex=c_idx, wantAck=True)
+                    time.sleep(2)
                 
                 logging.info(f"Finished processing traceroute for {target_id}")
             except Exception as e:

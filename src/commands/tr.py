@@ -18,9 +18,9 @@ class TracerouteCommand(AbstractCommand):
         
         def send_reply(msg):
             if is_public:
-                self.reply_in_channel(packet, msg, want_ack=False)
+                self.reply_in_channel(packet, msg, want_ack=True)
             else:
-                self.reply_in_dm(packet, msg, want_ack=False)
+                self.reply_in_dm(packet, msg, want_ack=True)
 
         # Add a reaction to show we are working on it
         logging.info(f"Adding reaction ⌛ for packet {packet.get('id')} from {packet.get('fromId')}")
@@ -63,20 +63,24 @@ class TracerouteCommand(AbstractCommand):
             logging.info(response)
             send_reply(response)
         
-        # Initiate actual traceroute
-        # Map target_id -> list of requester_ids
+        # Store for the callback
         if target_id not in self.bot.pending_traces:
             self.bot.pending_traces[target_id] = []
         
-        if requester_id not in self.bot.pending_traces[target_id]:
-            self.bot.pending_traces[target_id].append(requester_id)
+        # Store context: (requester_id, is_public, to_id, channel_index)
+        to_id = packet.get('toId')
+        channel_index = packet.get('channel', 0)
+        context = (requester_id, is_public, to_id, channel_index)
+        
+        if context not in self.bot.pending_traces[target_id]:
+            self.bot.pending_traces[target_id].append(context)
         
         # Start a timeout timer (120 seconds)
         def check_timeout():
             time.sleep(120)
-            if target_id in self.bot.pending_traces and requester_id in self.bot.pending_traces[target_id]:
-                # Remove this specific requester from the pending list
-                self.bot.pending_traces[target_id].remove(requester_id)
+            if target_id in self.bot.pending_traces:
+                # Find and remove this specific context from the pending list
+                self.bot.pending_traces[target_id] = [c for c in self.bot.pending_traces[target_id] if c[0] != requester_id]
                 # If no more requesters for this target, clean up the key
                 if not self.bot.pending_traces[target_id]:
                     del self.bot.pending_traces[target_id]
@@ -87,9 +91,9 @@ class TracerouteCommand(AbstractCommand):
                 # Send the timeout message in a separate thread to avoid blocking the timer/interface
                 def send_timeout():
                     if is_public:
-                        self.message_in_channel(packet.get('channel', 0), timeout_msg, want_ack=False)
+                        self.message_in_channel(packet.get('channel', 0), timeout_msg, want_ack=True)
                     else:
-                        self.message_in_dm(requester_id, timeout_msg, want_ack=False)
+                        self.message_in_dm(requester_id, timeout_msg, want_ack=True)
                 
                 threading.Thread(target=send_timeout, daemon=True).start()
 
