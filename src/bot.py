@@ -291,18 +291,17 @@ class MeshtasticBot:
                 
                 response_in = f"Trace FROM {target_id} ({len(hops_back)} hops):\n{back_str}"
 
+                # Consolidate into a single message to ensure delivery (less radio congestion)
+                combined_response = f"{response_out}\n{response_in}"
+
                 # Wait for radio to settle after receiving the traceroute response
-                time.sleep(5)
+                time.sleep(3)
 
                 for requester_id in requesters:
-                    logging.info(f"Sending traceroute result to {requester_id}: {response_out}")
+                    logging.info(f"Sending consolidated traceroute result to {requester_id}:\n{combined_response}")
                     # Use wantAck=False for result delivery to reduce congestion
-                    self.interface.sendText(response_out, destinationId=requester_id, wantAck=False)
-                    
-                    # Always send the return path message for consistency
-                    time.sleep(2) 
-                    logging.info(f"Sending traceroute result to {requester_id}: {response_in}")
-                    self.interface.sendText(response_in, destinationId=requester_id, wantAck=False)
+                    self.interface.sendText(combined_response, destinationId=requester_id, wantAck=False)
+                    time.sleep(1)
                 
                 logging.info(f"Finished processing traceroute for {target_id}")
             except Exception as e:
