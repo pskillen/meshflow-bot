@@ -54,14 +54,11 @@ class TracerouteCommand(AbstractCommand):
             hops_away = hop_start - hop_limit
             snr = packet.get('rxSnr', 0.0)
 
-            status_msg = f"{requester_name} ({hops_away} hops, {snr}dB). Starting real-time trace..."
-            logging.info(f"Detected {hops_away} hops for {target_id}. {status_msg}")
-            send_reply(status_msg)
+            # We can log this, but no need to send it explicitly over the radio to save airtime
+            logging.info(f"Detected {hops_away} hops for {target_id}. SNR: {snr}dB.")
         else:
             # Tracing to a different node
-            response = f"Starting traceroute to {target_long_name} ({target_id}) for you..."
-            logging.info(response)
-            send_reply(response)
+            logging.info(f"Starting traceroute to {target_long_name} ({target_id}) for you...")
         
         # Store for the callback
         if target_id not in self.bot.pending_traces:
@@ -97,6 +94,8 @@ class TracerouteCommand(AbstractCommand):
         threading.Thread(target=check_timeout, daemon=True).start()
 
         try:
+            # Let the reaction settle before firing the trace
+            time.sleep(2)
             logging.info(f"Initiating traceroute to {target_id} requested by {requester_id}")
             # hopLimit=7 is standard max
             p = self.bot.interface.sendTraceRoute(target_id, hopLimit=7)

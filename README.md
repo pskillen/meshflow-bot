@@ -132,8 +132,7 @@ The bot listens for messages and responds to commands. You can interact with it 
 | `!help`   | Displays a list of available commands                         |
 | `!hello`  | Displays information about the bot                            |
 | `!ping`   | Responds with "Pong!"                                         |
-| `!nodes`  | Displays a list of connected nodes, stats, etc                |
-| `!nodes totals` | Manually triggers a node count report                        |
+| `!nodes busy` | Displays a summary of the busiest nodes             |
 | `!whoami` | Displays information about the sender                         |
 | `!tr`     | Performs a traceroute to the sender (outbound & inbound)      |
 | `!tr <shortname>` | Performs a traceroute to a specific node by its short name from management node (outbound & inbound) |
@@ -141,11 +140,10 @@ The bot listens for messages and responds to commands. You can interact with it 
 
 ## Features
 
-### Node Count Reporting
-The bot monitors mesh visibility and provides automated reporting:
-- **Scheduled Reports:** Every 3 hours, a status update is sent to a configurable channel (defaulting to Channel 2) with the current online node count. This can be adjusted using `CHANNEL_FOR_NODE_TOTAL_BROADCAST` in your `.env` file.
-- **Immediate Alerts:** If the visible node count drops to zero, the bot sends an immediate warning.
-- **Manual Check:** Use `!nodes totals` to get an instant report via DM.
+### Usage Statistics
+- **Busy Nodes:** Use `!nodes busy` to see a summary of the most active nodes on your mesh.
+- **Detailed Stats:** Use `!nodes busy detailed` for an in-depth breakdown of packet types for those busiest nodes.
+- **Specific Node:** Use `!nodes busy <shortname>` to see stats for a particular node.
 
 ### Enhanced Connectivity (TCP Proxy)
 The bot now includes a built-in TCP proxy to manage the connection to the Meshtastic node. This improves stability and allows for automatic reconnection if the radio connection is lost.

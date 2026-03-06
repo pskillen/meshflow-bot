@@ -144,7 +144,7 @@ class MeshtasticBot:
         from_id = packet['fromId']
 
         sender = self.node_db.get_by_id(from_id)
-        logging.info(f"Received private message: '{message}' from {sender.long_name if sender else from_id}")
+        logging.info(f"✉️  [PRIVATE MSG] '{message}' from {sender.long_name if sender else from_id}")
 
         words = message.split()
         command_name = words[0]
@@ -154,11 +154,11 @@ class MeshtasticBot:
             
             def run_command():
                 try:
-                    logging.info(f"Running command {command_name} in thread for {from_id}")
+                    logging.info(f"🤖 [BOT CMD] Running private command {command_name} in thread for {from_id}")
                     command_instance.handle_packet(packet)
-                    logging.info(f"Finished command {command_name} for {from_id}")
+                    logging.info(f"✅ [BOT CMD] Finished private command {command_name} for {from_id}")
                 except Exception as e:
-                    logging.error(f"Error handling private command {command_name}: {e}", exc_info=True)
+                    logging.error(f"❌ [BOT CMD] Error handling private command {command_name}: {e}", exc_info=True)
             
             threading.Thread(target=run_command, daemon=True).start()
         else:
@@ -184,7 +184,7 @@ class MeshtasticBot:
         sender_name = sender.long_name if sender else from_id
         channel_name = self.get_channel_name(packet)
 
-        logging.info(f"Received group message on channel '{channel_name}' from {sender_name}: {message}")
+        logging.info(f"📢 [GROUP MSG] Channel '{channel_name}' from {sender_name}: {message}")
 
         # Allow certain commands in public channels
         words = message.split()
@@ -193,17 +193,17 @@ class MeshtasticBot:
             if command_name in ["!tr", "!ping", "!hello", "!nodes", "!status", "!whoami"]:
                 env_var_name = f"ENABLE_COMMAND_{command_name.lstrip('!').upper()}"
                 if get_env_bool(env_var_name, True):
-                    logging.info(f"Received public {command_name} from {sender_name}")
+                    logging.info(f"🤖 [BOT CMD] Received public {command_name} from {sender_name}")
                     command_instance = CommandFactory.create_command(command_name, self)
                     if command_instance:
                         def run_command():
                             try:
-                                logging.info(f"Running public command {command_name} in thread for {from_id}")
+                                logging.info(f"🤖 [BOT CMD] Running public command {command_name} in thread for {from_id}")
                                 # Commands by default reply via DM (reply_in_dm).
                                 command_instance.handle_packet(packet)
-                                logging.info(f"Finished public command {command_name} for {from_id}")
+                                logging.info(f"✅ [BOT CMD] Finished public command {command_name} for {from_id}")
                             except Exception as e:
-                                logging.error(f"Error handling public command {command_name}: {e}", exc_info=True)
+                                logging.error(f"❌ [BOT CMD] Error handling public command {command_name}: {e}", exc_info=True)
                         
                         threading.Thread(target=run_command, daemon=True).start()
                         return # Stop processing responders
@@ -215,7 +215,7 @@ class MeshtasticBot:
 
                 if outcome:
                     logging.info(
-                        f"Handled message from {sender.long_name if sender else from_id} with responder {responder.__class__.__name__}: {message}")
+                        f"🤖 [RESPONDER] Handled message from {sender.long_name if sender else from_id} with responder {responder.__class__.__name__}: {message}")
                     self.command_logger.log_responder_handled(from_id, responder, message)
             except (KeyError, ValueError) as e:
                 logging.error(f"Packet format error handling message: {e}", exc_info=True)

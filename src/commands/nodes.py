@@ -14,7 +14,6 @@ class NodesCommand(AbstractCommandWithSubcommands):
     def __init__(self, bot: MeshtasticBot):
         super().__init__(bot, 'nodes')
         self.sub_commands['busy'] = self.handle_busy
-        self.sub_commands['totals'] = self.handle_totals
 
     def get_busy_nodes(self) -> list[MeshNode.User]:
         return sorted(self.bot.node_db.list_nodes(),
@@ -37,9 +36,6 @@ class NodesCommand(AbstractCommandWithSubcommands):
             response += f"- {node.short_name} ({pretty_print_last_heard(last_heard)})\n"
 
         self.reply(packet, response)
-
-    def handle_totals(self, packet: MeshPacket, args: list[str]) -> None:
-        self.bot.report_node_count(destination=packet['fromId'])
 
     def handle_busy(self, packet: MeshPacket, args: list[str]) -> None:
         sender = packet['fromId']
@@ -100,7 +96,6 @@ class NodesCommand(AbstractCommandWithSubcommands):
 
     def show_help(self, packet: MeshPacket, args: list[str]) -> None:
         help_text = "!nodes: details about nodes this device has seen\n"
-        help_text += "!nodes totals: report the current node count\n"
         help_text += "!nodes busy: summary of busiest nodes\n"
         help_text += "!nodes busy detailed: detailed info about busiest nodes\n"
         self.reply(packet, help_text)
