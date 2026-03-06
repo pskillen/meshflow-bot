@@ -151,6 +151,13 @@ The bot now includes a built-in TCP proxy to manage the connection to the Meshta
 ### Improved Logging
 Messages received on named Group Channels (e.g., 'LongRange', 'PrivateChat') are now logged with their specific channel name, making it easier to track conversations across different mesh networks.
 
+**Log Format Details:**
+The bot uses emojis and badges in its standard output logs to easily identify incoming requests:
+- **Private Messages**: `✉️  [PRIVATE MSG]`
+- **Group Messages**: `📢 [GROUP MSG]`
+- **Bot Commands**: `🤖 [BOT CMD]`
+- **Responder Actions**: `🤖 [RESPONDER]`
+
 ### Advanced Traceroute
 The `!tr` command provides visibility into the mesh topology:
 - **Full Path visibility:** Shows the complete route including the target node.
