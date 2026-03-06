@@ -137,6 +137,8 @@ The bot listens for messages and responds to commands. You can interact with it 
 | `!tr`     | Performs a traceroute to the sender (outbound & inbound)      |
 | `!tr <shortname>` | Performs a traceroute to a specific node by its short name from management node (outbound & inbound) |
 | `!status` | Displays bot status and radio connection details              |
+| `!prefs`  | Configure bot settings related to your node                   |
+| `!admin`  | (Admin only) Admin commands like `reset packets` and `users`  |
 
 ## Features
 
