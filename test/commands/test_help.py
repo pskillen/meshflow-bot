@@ -19,7 +19,7 @@ class TestHelpCommand(CommandWSCTestCase):
 
         response = self.mock_interface.sendText.call_args[0][0]
 
-        skipped_commands = ['!admin']
+        skipped_commands = []
 
         # Ensure every command in CommandFactory is mentioned in the response
         for command in CommandFactory.commands.keys():

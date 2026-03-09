@@ -22,6 +22,8 @@ class HelpCommand(AbstractCommandWithSubcommands):
             self.sub_commands['prefs'] = self.handle_prefs
         if get_env_bool('ENABLE_COMMAND_STATUS', True):
             self.sub_commands['status'] = self.handle_status
+        if get_env_bool('ENABLE_COMMAND_ADMIN', True):
+            self.sub_commands['admin'] = self.handle_admin
         # if get_env_bool('ENABLE_COMMAND_ENROLL', True):
         #     self.sub_commands['enroll'] = self.handle_enroll
         # if get_env_bool('ENABLE_COMMAND_LEAVE', True):
@@ -90,6 +92,10 @@ class HelpCommand(AbstractCommandWithSubcommands):
 
     def handle_status(self, packet: MeshPacket, args: list[str]) -> None:
         response = "!status: show current bot and proxy health status"
+        self.reply(packet, response)
+
+    def handle_admin(self, packet: MeshPacket, args: list[str]) -> None:
+        response = "!admin: admin commands (restricted)"
         self.reply(packet, response)
 
     def get_command_for_logging(self, message: str) -> (str, list[str] | None, str | None):
