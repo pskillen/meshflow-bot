@@ -116,6 +116,10 @@ class TcpProxy:
             await asyncio.sleep(5)
 
     async def _target_connection_manager(self):
+        backoff_time = 5.0
+        max_backoff_time = 60.0
+        backoff_rate = 2.0
+        
         while self.running:
             if self.target_writer is None or self.target_reader is None:
                 self.reconnecting = True
@@ -124,6 +128,7 @@ class TcpProxy:
                 self.rolling_packets.clear()
 
                 try:
+                    logging.info(f"Proxy attempting to connect to target device at {self.target_host}:{self.target_port}...")
                     reader, writer = await asyncio.wait_for(
                         asyncio.open_connection(self.target_host, self.target_port),
                         timeout=5.0
@@ -132,11 +137,17 @@ class TcpProxy:
                     self.target_writer = writer
                     self.last_target_activity = time.time()
                     self.reconnecting = False
-                    logging.info(f"Proxy connected to target device at {self.target_host}:{self.target_port}")
+                    backoff_time = 5.0 # Reset backoff on success
+                    logging.info(f"Proxy successfully connected to target device at {self.target_host}:{self.target_port}")
                     asyncio.create_task(self._read_from_target())
+                except (asyncio.TimeoutError, ConnectionError, OSError) as e:
+                    logging.error(f"Failed to connect to target ({self.target_host}): {e}. Retrying in {backoff_time:.1f}s...")
+                    await asyncio.sleep(backoff_time)
+                    backoff_time = min(backoff_time * backoff_rate, max_backoff_time)
                 except Exception as e:
-                    logging.error(f"Failed to connect to target ({self.target_host}): {e}")
-                    await asyncio.sleep(5.0)
+                    logging.error(f"Unexpected error in target connection manager: {e}", exc_info=True)
+                    await asyncio.sleep(backoff_time)
+                    backoff_time = min(backoff_time * backoff_rate, max_backoff_time)
             else:
                 await asyncio.sleep(1)
 
