@@ -36,6 +36,8 @@ admin_nodes_raw = os.getenv("ADMIN_NODES") or ""
 ADMIN_NODES = [node.strip() for node in admin_nodes_raw.split(',') if node.strip()]
 
 ENABLE_TCP_PROXY = get_env_bool("ENABLE_TCP_PROXY", True)
+PROXY_HANDSHAKE_CACHE_SIZE = int(os.getenv("PROXY_HANDSHAKE_CACHE_SIZE", 100))
+PROXY_ROLLING_CACHE_SIZE = int(os.getenv("PROXY_ROLLING_CACHE_SIZE", 100))
 
 DATA_DIR = os.getenv("DATA_DIR", "data")
 STORAGE_API_ROOT = os.getenv("STORAGE_API_ROOT")
@@ -60,6 +62,8 @@ def main():
     logging.info(f"--- Configuration ---")
     logging.info(f"MESHTASTIC_IP: {MESHTASTIC_IP}")
     logging.info(f"ENABLE_TCP_PROXY: {ENABLE_TCP_PROXY}")
+    logging.info(f"PROXY_HANDSHAKE_CACHE_SIZE: {PROXY_HANDSHAKE_CACHE_SIZE}")
+    logging.info(f"PROXY_ROLLING_CACHE_SIZE: {PROXY_ROLLING_CACHE_SIZE}")
     logging.info(f"ENABLE_FEATURE_NODE_TOTALS: {get_env_bool('ENABLE_FEATURE_NODE_TOTALS', True)}")
     logging.info(f"FREQUENCY_OF_NODE_REPORTS: {os.getenv('FREQUENCY_OF_NODE_REPORTS', '3')} hours")
     logging.info(f"CHANNEL_FOR_NODE_TOTAL_BROADCAST: {os.getenv('CHANNEL_FOR_NODE_TOTAL_BROADCAST', '2')}")
@@ -74,7 +78,7 @@ def main():
     if ENABLE_TCP_PROXY:
         # Start the TCP Proxy
         # It listens on 0.0.0.0:4403 and forwards to MESHTASTIC_IP:4403
-        proxy = TcpProxy(target_host=MESHTASTIC_IP, target_port=4403, listen_host='0.0.0.0', listen_port=4403)
+        proxy = TcpProxy(target_host=MESHTASTIC_IP, target_port=4403, listen_host='0.0.0.0', listen_port=4403, handshake_cache_size=PROXY_HANDSHAKE_CACHE_SIZE, rolling_cache_size=PROXY_ROLLING_CACHE_SIZE)
         proxy.start()
         
         # Give the proxy a moment to bind to the port before the bot tries to connect

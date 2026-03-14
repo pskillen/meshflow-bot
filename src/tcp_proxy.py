@@ -5,7 +5,7 @@ from collections import deque
 import threading
 
 class TcpProxy:
-    def __init__(self, target_host, target_port=4403, listen_host='0.0.0.0', listen_port=4403):
+    def __init__(self, target_host, target_port=4403, listen_host='0.0.0.0', listen_port=4403, handshake_cache_size=100, rolling_cache_size=100):
         self.target_host = target_host
         self.target_port = int(target_port)
         self.listen_host = listen_host
@@ -22,8 +22,8 @@ class TcpProxy:
         self.thread = None
         
         self.handshake_packets = []
-        self.handshake_max_count = 50 
-        self.rolling_packets = deque(maxlen=50)
+        self.handshake_max_count = handshake_cache_size 
+        self.rolling_packets = deque(maxlen=rolling_cache_size)
         
         self.last_target_activity = time.time()
         self.reconnecting = False

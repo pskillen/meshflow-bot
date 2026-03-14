@@ -63,6 +63,8 @@ You can enable or disable specific features and commands using environment varia
 
 ### Feature Toggles
 - `ENABLE_TCP_PROXY`: Set to `false` to disable the internal TCP proxy. The bot will connect directly to `MESHTASTIC_IP`.
+- `PROXY_HANDSHAKE_CACHE_SIZE`: Number of initial packets to cache for connecting proxy clients (default `100`).
+- `PROXY_ROLLING_CACHE_SIZE`: Number of recent packets to cache in a rolling queue for connecting proxy clients (default `100`).
 
 ### Command Toggles
 Set any of the following to `false` to disable the command and hide it from the `!help` menu:
