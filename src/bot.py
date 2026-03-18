@@ -310,9 +310,18 @@ class MeshtasticBot:
         dump_packet(packet)
 
         portnum = packet.get("decoded", {}).get("portnum", "unknown")
+        # Ensure we check against both the string name and the integer ID if available
         portnum_key = str(portnum).upper()
+        
         has_decoded = 'decoded' in packet or 'decrypted' in packet
-        if self.ignore_portnums and portnum_key in self.ignore_portnums:
+        is_ignored = False
+        if self.ignore_portnums:
+            if portnum_key in self.ignore_portnums:
+                is_ignored = True
+            elif isinstance(portnum, int) and str(portnum) in self.ignore_portnums:
+                is_ignored = True
+
+        if is_ignored:
             logging.info(f"Skipping API submission for packet with portnum {portnum} (in IGNORE_PORTNUMS)")
         elif not has_decoded:
             pass  # Skip API submission for packets with no decoded data

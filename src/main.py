@@ -77,6 +77,7 @@ def main():
     logging.info(f"CHANNEL_FOR_NODE_TOTAL_BROADCAST: {os.getenv('CHANNEL_FOR_NODE_TOTAL_BROADCAST', '2')}")
     logging.info(f"ENABLE_COMMAND_PING: {get_env_bool('ENABLE_COMMAND_PING', True)}")
     logging.info(f"ENABLE_COMMAND_TR: {get_env_bool('ENABLE_COMMAND_TR', True)}")
+    logging.info(f"IGNORE_PORTNUMS: {list(IGNORE_PORTNUMS)}")
     logging.info(f"STORAGE_API_ROOT: {STORAGE_API_ROOT}")
     if STORAGE_API_2_ROOT:
         logging.info(f"STORAGE_API_2_ROOT: {STORAGE_API_2_ROOT}")
