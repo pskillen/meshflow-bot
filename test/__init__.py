@@ -30,6 +30,7 @@ class BaseFeatureTestCase(unittest.TestCase, ABC):
             for call_args in self.mock_interface.sendText.call_args_list:
                 if (call_args[1]['destinationId'] == to.user.id
                         and call_args[1]['wantAck'] == want_ack
+                        and call_args[1].get('hopLimit') == 5
                         and call_args[0][0].strip() == expected_response):
                     return
 
@@ -43,7 +44,8 @@ class BaseFeatureTestCase(unittest.TestCase, ABC):
             self.mock_interface.sendText.assert_called_once_with(
                 expected_response,
                 destinationId=to.user.id,
-                wantAck=want_ack
+                wantAck=want_ack,
+                hopLimit=5,
             )
 
     def assert_reaction_sent(self, emoji: str, reply_id: int, channel=0, sender_id: str = None):

@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "name": "Meshtastic Bot",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "python": "venv/bin/python",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

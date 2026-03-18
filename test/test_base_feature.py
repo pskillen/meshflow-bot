@@ -21,23 +21,30 @@ class TestAbstractBaseFeature(unittest.TestCase):
         sender = self.test_non_admin_nodes[1]
         packet = build_test_text_packet('!test', sender.user.id, self.bot.my_id, channel=1)
         self.feature.reply_in_channel(packet, "Test message")
-        self.mock_interface.sendText.assert_called_once_with("Test message", channelIndex=1, wantAck=False)
+        self.mock_interface.sendText.assert_called_once_with(
+            "Test message", channelIndex=1, wantAck=False, hopLimit=5
+        )
 
     def test_message_in_channel(self):
         self.feature.message_in_channel(1, "Test message")
-        self.mock_interface.sendText.assert_called_once_with("Test message", channelIndex=1, wantAck=False)
+        self.mock_interface.sendText.assert_called_once_with(
+            "Test message", channelIndex=1, wantAck=False, hopLimit=5
+        )
 
     def test_reply_in_dm(self):
         sender = self.test_non_admin_nodes[1]
         packet = build_test_text_packet('!test', sender.user.id, self.bot.my_id)
         self.feature.reply_in_dm(packet, "Test message")
-        self.mock_interface.sendText.assert_called_once_with("Test message", destinationId=sender.user.id, wantAck=False)
+        self.mock_interface.sendText.assert_called_once_with(
+            "Test message", destinationId=sender.user.id, wantAck=False, hopLimit=5
+        )
 
     def test_message_in_dm(self):
         sender = self.test_non_admin_nodes[1]
         self.feature.message_in_dm(sender.user.id, "Test message")
-        self.mock_interface.sendText.assert_called_once_with("Test message", destinationId=sender.user.id,
-                                                             wantAck=False)
+        self.mock_interface.sendText.assert_called_once_with(
+            "Test message", destinationId=sender.user.id, wantAck=False, hopLimit=5
+        )
 
     def test_react_in_channel(self):
         sender = self.test_non_admin_nodes[1]

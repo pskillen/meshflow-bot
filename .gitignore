@@ -8,6 +8,11 @@ nodes.json
 all_state.json
 data/
 docker-data/
+tmp/
+temp/
+
+# OS files
+.DS_Store
 
 ### Python template
 # Byte-compiled / optimized / DLL files

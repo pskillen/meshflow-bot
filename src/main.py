@@ -23,6 +23,7 @@ logging.getLogger('mesh_interface').setLevel(logging.WARNING)
 from src.api.StorageAPI import StorageAPIWrapper
 from src.bot import MeshtasticBot
 from src.helpers import get_env_bool
+from src.ws_client import MeshflowWSClient
 from src.persistence.commands_logger import SqliteCommandLogger
 from src.persistence.node_info import InMemoryNodeInfoStore
 from src.persistence.node_db import SqliteNodeDB
@@ -46,6 +47,13 @@ STORAGE_API_VERSION = int(os.getenv("STORAGE_API_VERSION", 1))
 STORAGE_API_2_ROOT = os.getenv("STORAGE_API_2_ROOT")
 STORAGE_API_2_TOKEN = os.getenv("STORAGE_API_2_TOKEN", None)
 STORAGE_API_2_VERSION = int(os.getenv("STORAGE_API_2_VERSION", 1))
+MESHFLOW_WS_URL = os.getenv("MESHFLOW_WS_URL")  # e.g. ws://localhost:8000; derived from storage API if unset
+
+# Comma-separated portnums to skip when submitting to API (e.g. 345,ROUTING_APP)
+_ignore_portnums_raw = os.getenv("IGNORE_PORTNUMS", "")
+IGNORE_PORTNUMS = frozenset(
+    p.strip().upper() for p in _ignore_portnums_raw.split(",") if p.strip()
+)
 
 
 def main():
@@ -89,6 +97,7 @@ def main():
     connection_address = 'localhost' if ENABLE_TCP_PROXY else MESHTASTIC_IP
     bot = MeshtasticBot(connection_address)
     bot.proxy = proxy
+    bot.ignore_portnums = IGNORE_PORTNUMS
     bot.admin_nodes = ADMIN_NODES
     bot.user_prefs_persistence = SqliteUserPrefsPersistence(str(user_prefs_file))
     bot.command_logger = SqliteCommandLogger(str(command_log_file))
@@ -100,6 +109,24 @@ def main():
     if STORAGE_API_2_ROOT:
         bot.storage_apis.append(StorageAPIWrapper(bot, STORAGE_API_2_ROOT, STORAGE_API_2_TOKEN, STORAGE_API_2_VERSION, failed_packets_dir))
 
+    # WebSocket client for receiving commands (e.g. traceroute)
+    ws_url = MESHFLOW_WS_URL
+    ws_token = None
+    if not ws_url:
+        base = STORAGE_API_ROOT
+        if base:
+            ws_url = base \
+                .replace("http://", "ws://") \
+                .replace("https://", "wss://")
+    if STORAGE_API_ROOT and STORAGE_API_TOKEN:
+        ws_token = STORAGE_API_TOKEN
+    if ws_url and ws_token:
+        bot.ws_client = MeshflowWSClient(
+            ws_url=ws_url,
+            api_key=ws_token,
+            on_traceroute=bot.on_traceroute_command,
+        )
+
     try:
         node_info.load_from_file(str(node_info_file))
         bot.connect()
@@ -108,6 +135,8 @@ def main():
     except Exception as e:
         logging.error(f"Error: {e}")
     finally:
+        if bot.ws_client:
+            bot.ws_client.stop()
         bot.disconnect()
         node_info.persist_to_file(str(node_info_file))
 

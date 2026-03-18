@@ -2,7 +2,7 @@ name: Release
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   unit-tests:
@@ -13,13 +13,11 @@ jobs:
     steps:
       - name: Extract Release Tag
         id: get_tag
-        run: |
-          echo "VERSION_TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          echo "IS_PRERELEASE=${{ github.event.release.prerelease }}" >> "$GITHUB_OUTPUT"
+        run: echo "VERSION_LABEL=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
 
     outputs:
-      VERSION_TAG: ${{ steps.get_tag.outputs.VERSION_TAG }}
-      IS_PRERELEASE: ${{ steps.get_tag.outputs.IS_PRERELEASE }}
+      VERSION_LABEL: ${{ steps.get_tag.outputs.VERSION_LABEL }}
+      IS_PRERELEASE: ${{ github.event.release.prerelease }}
 
   build-and-push:
     needs:
@@ -27,6 +25,5 @@ jobs:
       - extract-tag
     uses: ./.github/workflows/docker-build.yaml
     with:
-      VERSION_TAG: ${{ needs.extract-tag.outputs.VERSION_TAG }}
-      IS_PRERELEASE: ${{ fromJson(needs.extract-tag.outputs.IS_PRERELEASE) }}  # must be boolean
-      IS_LATEST: true
+      VERSION_LABEL: ${{ needs.extract-tag.outputs.VERSION_LABEL }}
+      ENVIRONMENT: ${{ needs.extract-tag.outputs.IS_PRERELEASE == 'true' && 'preprod' || 'prod' }}
