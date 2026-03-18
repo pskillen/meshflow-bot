@@ -111,30 +111,24 @@ class StorageAPIWrapper(BaseAPIWrapper):
         try:
             response = self._post(self._get_url('raw_packet'), json=packet)
 
-            response_json = response.json()
-            return response_json
+            try:
+                response_json = response.json()
+                logging.info(f"API Response ({response.status_code}): {response_json}")
+                return response_json
+            except JSONDecodeError:
+                logging.info(f"API Response ({response.status_code}, not JSON): {response.text}")
+                return {'text': response.text}
+
         except HTTPError as ex:
             logging.error(f"HTTP error storing packet: {ex.response.text}")
             logging.error(f"Packet: {packet}")
-
-            # Dump the packet to a .json file
             if self.failed_packets_dir:
                 self._dump_failed_packet(packet, ex)
             return
+
         except Exception as ex:
             logging.error(f"Error storing packet: {ex}")
             logging.error(f"Packet: {packet}")
-
-        try:
-            response_json = response.json()
-            logging.info(f"API Response ({response.status_code}): {response_json}")
-            return response_json
-        except JSONDecodeError:
-            logging.info(f"API Response ({response.status_code}, not JSON): {response.text}")
-            return {'text': response.text}
-        except Exception as ex:
-            logging.error(f"Error processing API response: {ex}")
-            # Dump the packet to a .json file
             if self.failed_packets_dir:
                 self._dump_failed_packet(packet, ex)
             return
