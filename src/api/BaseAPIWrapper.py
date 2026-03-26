@@ -6,10 +6,12 @@ import requests
 class BaseAPIWrapper(ABC):
     base_url: str
     auth_token: str | None
+    session: requests.Session
 
     def __init__(self, base_url: str, auth_token: str = None):
         self.base_url = base_url.rstrip('/')
         self.auth_token = auth_token
+        self.session = requests.Session()
 
     def _get_headers(self) -> dict:
         headers = {
@@ -23,13 +25,13 @@ class BaseAPIWrapper(ABC):
 
     def _get(self, url: str) -> requests.Response:
         full_url = f"{self.base_url}/{url.lstrip('/')}"
-        response = requests.get(full_url, headers=self._get_headers())
+        response = self.session.get(full_url, headers=self._get_headers())
         response.raise_for_status()
 
         return response
 
     def _post(self, url: str, json: dict) -> requests.Response:
         full_url = f"{self.base_url}/{url.lstrip('/')}"
-        response = requests.post(full_url, json=json, headers=self._get_headers())
+        response = self.session.post(full_url, json=json, headers=self._get_headers())
         response.raise_for_status()
         return response

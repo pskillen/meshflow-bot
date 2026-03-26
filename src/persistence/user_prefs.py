@@ -51,7 +51,8 @@ class AbstractUserPrefsPersistence(abc.ABC):
 class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersistenceStore):
 
     def _initialize_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS user_prefs (
@@ -66,7 +67,8 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
             conn.commit()
 
     def get_user_prefs(self, user_id: str) -> UserPrefs:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             # Fetch the data
             cursor = conn.cursor()
             cursor.execute('''
@@ -91,7 +93,8 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
             return user_prefs
 
     def persist_user_prefs(self, user_id: str, user_prefs: UserPrefs) -> UserPrefs:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             for key, preference in user_prefs.__dict__.items():
                 if key == 'user_id':
