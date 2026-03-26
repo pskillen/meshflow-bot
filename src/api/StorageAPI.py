@@ -134,7 +134,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         else:
             return None
 
-    def _dump_failed_packet(self, packet, ex: HTTPError):
+    def _dump_failed_packet(self, packet, ex: Exception):
         raw_packet: MeshPacket = packet.get('raw', None)
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -144,13 +144,21 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         try:
             error_info = {
-                'status_code': ex.response.status_code,
-                'reason': ex.response.reason,
-                'text': ex.response.text,
-                'url': ex.response.url,
-                'headers': dict(ex.response.headers),
                 'traceback': traceback.format_exc()
             }
+            # Only add response details if the exception has a response object (HTTPError)
+            if hasattr(ex, 'response') and ex.response is not None:
+                error_info.update({
+                    'status_code': ex.response.status_code,
+                    'reason': ex.response.reason,
+                    'text': ex.response.text,
+                    'url': ex.response.url,
+                    'headers': dict(ex.response.headers),
+                })
+            else:
+                # For non-HTTP errors, just include the error message
+                error_info['error'] = str(ex)
+            
             filename = f"failed_packet_{timestamp}_error.json"
             filepath = self.failed_packets_dir / filename
             with open(filepath, 'w') as f:

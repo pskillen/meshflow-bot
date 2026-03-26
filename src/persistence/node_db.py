@@ -117,7 +117,8 @@ class InMemoryNodeDB(AbstractNodeDB):
 class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
 
     def _initialize_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS nodes (
@@ -156,7 +157,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             conn.commit()
 
     def store_user(self, node_user: MeshNode.User):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT OR REPLACE INTO nodes (id, short_name, long_name, macaddr, hw_model, public_key)
@@ -166,7 +168,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             conn.commit()
 
     def store_position(self, node_id: str, position: MeshNode.Position):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO positions (node_id, logged_time, reported_time, latitude, longitude, altitude, location_source)
@@ -176,7 +179,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             conn.commit()
 
     def store_device_metrics(self, node_id: str, device_metrics: MeshNode.DeviceMetrics):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO device_metrics (node_id, logged_time, battery_level, voltage, channel_utilization, air_util_tx, uptime_seconds)
@@ -186,7 +190,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             conn.commit()
 
     def get_by_id(self, node_id: str) -> MeshNode.User | None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('SELECT id, short_name, long_name, macaddr, hw_model, public_key FROM nodes WHERE id = ?',
                            (node_id,))
@@ -197,7 +202,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             return None
 
     def get_by_short_name(self, short_name: str) -> MeshNode.User | None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT id, short_name, long_name, macaddr, hw_model, public_key FROM nodes WHERE short_name = ? COLLATE NOCASE',
@@ -209,7 +215,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
             return None
 
     def list_nodes(self) -> list[MeshNode.User]:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('SELECT id, short_name, long_name, macaddr, hw_model, public_key FROM nodes')
             rows = cursor.fetchall()
@@ -217,7 +224,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
                                   hw_model=row[4], public_key=row[5]) for row in rows]
 
     def get_last_position(self, node_id: str) -> MeshNode.Position | None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT logged_time, reported_time, latitude, longitude, altitude, location_source
@@ -234,7 +242,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
 
     def get_position_log(self, node_id: str, start: datetime, end: datetime) -> list[
         MeshNode.Position]:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT logged_time, reported_time, latitude, longitude, altitude, location_source
@@ -247,7 +256,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
                                       altitude=row[4], location_source=row[5]) for row in rows]
 
     def get_last_device_metrics(self, node_id: str) -> MeshNode.DeviceMetrics | None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT logged_time, battery_level, voltage, channel_utilization, air_util_tx, uptime_seconds
@@ -264,7 +274,8 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
 
     def get_device_metrics_log(self, node_id: str, start: datetime, end: datetime) -> list[
         MeshNode.DeviceMetrics]:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT logged_time, battery_level, voltage, channel_utilization, air_util_tx, uptime_seconds

@@ -37,7 +37,8 @@ class AbstractCommandLogger(abc.ABC):
 class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
 
     def _initialize_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS command_log (
@@ -70,7 +71,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
         base_cmd, subcommands, args = command_instance.get_command_for_logging(message)
         subcommands_str = ' '.join(subcommands) if subcommands else None
 
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO command_log (sender_id, base_command, sub_commands, args, timestamp, handler_class)
@@ -80,7 +82,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             conn.commit()
 
     def log_responder_handled(self, sender_id: str, responder_instance, message_text: str) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO responder_log (sender_id, message, timestamp, responder_class)
@@ -89,7 +92,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             conn.commit()
 
     def log_unknown_request(self, sender_id: str, message: str) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO unknown_requests (sender_id, message, timestamp)
@@ -98,7 +102,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             conn.commit()
 
     def get_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             if sender_id:
                 cursor.execute('''
@@ -114,7 +119,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             return pd.DataFrame(rows, columns=['sender_id', 'base_command', 'timestamp'])
 
     def get_unknown_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             if sender_id:
                 cursor.execute('''
@@ -130,7 +136,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             return pd.DataFrame(rows, columns=['sender_id', 'message', 'timestamp'])
 
     def get_responder_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = self._get_connection()
+        with self._lock:
             cursor = conn.cursor()
             if sender_id:
                 cursor.execute('''
