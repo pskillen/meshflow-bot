@@ -14,6 +14,7 @@ class NodesCommand(AbstractCommandWithSubcommands):
     def __init__(self, bot: MeshtasticBot):
         super().__init__(bot, 'nodes')
         self.sub_commands['busy'] = self.handle_busy
+        self.sub_commands['totals'] = self.handle_totals
 
     def get_busy_nodes(self) -> list[MeshNode.User]:
         return sorted(self.bot.node_db.list_nodes(),
@@ -94,10 +95,22 @@ class NodesCommand(AbstractCommandWithSubcommands):
 
         self.reply_to(sender, response)
 
+    def handle_totals(self, packet: MeshPacket, args: list[str]) -> None:
+        from_id = packet['fromId']
+        # If the user provides a channel index, use it to send the report there
+        if args and args[0].isdigit():
+            channel_index = int(args[0])
+            self.bot.report_node_count(channel_index=channel_index)
+            self.reply(packet, f"Node count report sent to channel {channel_index}.")
+        else:
+            # By default, just reply to the user with the count in a DM
+            self.bot.report_node_count(destination=from_id)
+
     def show_help(self, packet: MeshPacket, args: list[str]) -> None:
         help_text = "!nodes: details about nodes this device has seen\n"
         help_text += "!nodes busy: summary of busiest nodes\n"
         help_text += "!nodes busy detailed: detailed info about busiest nodes\n"
+        help_text += "!nodes totals: report current online node count\n"
         self.reply(packet, help_text)
 
     def get_command_for_logging(self, message: str) -> (str, list[str] | None, str | None):

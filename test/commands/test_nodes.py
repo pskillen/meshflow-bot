@@ -88,13 +88,26 @@ class TestNodesCommand(CommandWSCTestCase):
         packet = build_test_text_packet('!nodes totals', self.test_nodes[1].user.id, self.bot.my_id)
         self.command.handle_packet(packet)
 
-        # report_node_count is called on the bot
-        # In this test environment, we expect it to send a message via the interface
-        online_nodes = self.bot.node_info.get_online_nodes()
-        count = len(online_nodes)
-        expected_message = f"MTEK has a node count of {count}"
+        # The command calls bot.report_node_count(destination=from_id)
+        # which sends "MTEK has a node count of X"
+        online_count = len(self.bot.node_info.get_online_nodes())
+        expected_message = f"MTEK has a node count of {online_count}"
         
         self.assert_message_sent(expected_message, self.test_nodes[1], want_ack=True)
+
+    def test_handle_totals_channel_command(self):
+        packet = build_test_text_packet('!nodes totals 3', self.test_nodes[1].user.id, self.bot.my_id)
+        self.command.handle_packet(packet)
+
+        # The command calls bot.report_node_count(channel_index=3)
+        online_count = len(self.bot.node_info.get_online_nodes())
+        expected_report = f"MTEK has a node count of {online_count}"
+        
+        # It also replies to the user
+        expected_reply = "Node count report sent to channel 3."
+        
+        self.mock_interface.sendText.assert_any_call(expected_report, channelIndex=3, wantAck=True)
+        self.mock_interface.sendText.assert_any_call(expected_reply, destinationId=self.test_nodes[1].user.id, wantAck=True)
 
 
 if __name__ == '__main__':

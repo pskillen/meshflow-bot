@@ -1,5 +1,9 @@
 # Meshtastic Bot
 
+### Although this is based on https://github.com/pskillen/meshtastic-bot I have personalised it a lot to my own setup for commands, auto replies and automations etc 
+
+I am now working on Node-totals which I hope to be able to report the number of nodes my remote nodes can see.
+
 Meshtastic Bot is a Python-based bot for interacting with Meshtastic devices. It listens for messages, processes commands, and responds with appropriate actions. This guide is focused on helping you run the bot as-is, with minimal setup.
 
 ## Quick Start: Run with Docker
@@ -12,34 +16,39 @@ The easiest way to run Meshtastic Bot is using Docker. This method requires mini
 - Create a `.env` file in your project directory with the required environment variables:
 
 ```
-MESHTASTIC_NODE_IP=your_meshtastic_node_ip
+MESHTASTIC_IP=your_meshtastic_node_ip
 ADMIN_NODES=comma_separated_admin_node_ids
-STORAGE_API_ROOT=your_storage_api_url
-STORAGE_API_TOKEN=your_storage_api_token
+STORAGE_API_ROOT=https://meshflow.pskillen.xyz
+STORAGE_API_TOKEN=your_storage_api_token from above site
 # Optionally, you can upload to a second API as well
 STORAGE_API_2_ROOT=your_storage_api_2_url
 STORAGE_API_2_TOKEN=your_storage_api_2_token
+
+# Feature Toggles
+ENABLE_TCP_PROXY=true
+
+# Command Toggles (set to false to disable)
+ENABLE_COMMAND_PING=true
+ENABLE_COMMAND_TR=true
+ENABLE_COMMAND_HELLO=true
+ENABLE_COMMAND_HELP=true
+ENABLE_COMMAND_NODES=true
+ENABLE_COMMAND_WHOAMI=true
+ENABLE_COMMAND_PREFS=true
+ENABLE_COMMAND_ADMIN=true
+ENABLE_COMMAND_STATUS=true
 ```
 
 ### 2. Use This `docker-compose.yaml`
 
 ```yaml
-version: '3.8'
-
 services:
   bot:
     image: ghcr.io/pskillen/meshtastic-bot:latest
     container_name: meshtastic-bot
     restart: unless-stopped
-    environment:
-      - MESHTASTIC_IP=${MESHTASTIC_NODE_IP}
-      - ADMIN_NODES=${ADMIN_NODES}
-      - STORAGE_API_ROOT=${STORAGE_API_ROOT}
-      - STORAGE_API_TOKEN=${STORAGE_API_TOKEN}
-      - STORAGE_API_VERSION=2
-      - STORAGE_API_2_ROOT=${STORAGE_API_2_ROOT}
-      - STORAGE_API_2_TOKEN=${STORAGE_API_2_TOKEN}
-      - STORAGE_API_2_VERSION=2
+    env_file:
+      - meshtastic-bot.env
     volumes:
       - mesh_bot_data:/app/data
 
@@ -125,7 +134,7 @@ If you prefer to run the bot natively (e.g., for development or customization):
 
 ## Usage
 
-The bot listens for messages and responds to commands. You can interact with it via supported Meshtastic channels.
+The bot listens for messages and responds to commands as a direct message. You can interact with it via supported Meshtastic channels.
 
 ### Supported Commands
 
@@ -134,20 +143,19 @@ The bot listens for messages and responds to commands. You can interact with it 
 | `!help`   | Displays a list of available commands                         |
 | `!hello`  | Displays information about the bot                            |
 | `!ping`   | Responds with "Pong!"                                         |
-| `!nodes busy` | Displays a summary of the busiest nodes             |
+| `!nodes`  | Displays a list of connected nodes, stats, etc                |
+| `!nodes totals` | Manually triggers a node count report                        |
 | `!whoami` | Displays information about the sender                         |
 | `!tr`     | Performs a traceroute to the sender (outbound & inbound)      |
-| `!tr <shortname>` | Performs a traceroute to a specific node by its short name from management node (outbound & inbound) |
 | `!status` | Displays bot status and radio connection details              |
-| `!prefs`  | Configure bot settings related to your node                   |
-| `!admin`  | (Admin only) Admin commands like `reset packets` and `users`  |
 
 ## Features
 
-### Usage Statistics
-- **Busy Nodes:** Use `!nodes busy` to see a summary of the most active nodes on your mesh.
-- **Detailed Stats:** Use `!nodes busy detailed` for an in-depth breakdown of packet types for those busiest nodes.
-- **Specific Node:** Use `!nodes busy <shortname>` to see stats for a particular node.
+### Node Count Reporting
+The bot monitors mesh visibility and provides automated reporting:
+- **Scheduled Reports:** Every 3 hours, a status update is sent to Channel 2 (GregPrivate) with the current online node count.
+- **Immediate Alerts:** If the visible node count drops to zero, the bot sends an immediate warning.
+- **Manual Check:** Use `!nodes totals` to get an instant report via DM.
 
 ### Enhanced Connectivity (TCP Proxy)
 The bot now includes a built-in TCP proxy to manage the connection to the Meshtastic node. This improves stability and allows for automatic reconnection if the radio connection is lost.
@@ -155,19 +163,10 @@ The bot now includes a built-in TCP proxy to manage the connection to the Meshta
 ### Improved Logging
 Messages received on named Group Channels (e.g., 'LongRange', 'PrivateChat') are now logged with their specific channel name, making it easier to track conversations across different mesh networks.
 
-**Log Format Details:**
-The bot uses emojis and badges in its standard output logs to easily identify incoming requests:
-- **Private Messages**: `✉️  [PRIVATE MSG]`
-- **Group Messages**: `📢 [GROUP MSG]`
-- **Bot Commands**: `🤖 [BOT CMD]`
-- **Responder Actions**: `🤖 [RESPONDER]`
-
 ### Advanced Traceroute
-The `!tr` command provides visibility into the mesh topology:
-- **Full Path visibility:** Shows the complete route including the target node.
-- **Targeted Trace:** Use `!tr <shortname>` (e.g., `!tr NUMC`) to trace the route to a specific node. The results will be sent back to you.
-- **Outbound:** The route from the bot to the destination.
-- **Inbound:** The route back from the destination to the bot (if available).
+The `!tr` command has been upgraded to show the full path:
+- **Outbound:** The route from the bot to your node.
+- **Inbound:** The route back from your node to the bot (if available).
 
 ---
 
