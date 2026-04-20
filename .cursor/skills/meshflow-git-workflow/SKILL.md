@@ -116,7 +116,7 @@ refactor(storage): extract packet parsing into service
 
 When the work is done:
 
-1. Open a PR in each affected repository
+1. Open a PR in each affected repository using the github-personal MCP. Do not use gh cli.
 2. Link the relevant issue(s) in the PR (e.g. "Closes #123")
 3. For multi-repo changes, link related PRs between repos in the description
 
