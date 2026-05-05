@@ -1,10 +1,16 @@
+from collections import Counter
 from datetime import datetime, timezone, timedelta
+from typing import Any
 
 from meshtastic.protobuf.mesh_pb2 import MeshPacket
 
 from src.bot import MeshtasticBot
 from src.commands.command import AbstractCommandWithSubcommands
 from src.data_classes import MeshNode
+
+
+def _rows_for_sender(rows: list[dict[str, Any]], sender_id: str) -> list[dict[str, Any]]:
+    return [r for r in rows if r['sender_id'] == sender_id]
 
 
 class AdminCommand(AbstractCommandWithSubcommands):
@@ -66,11 +72,11 @@ class AdminCommand(AbstractCommandWithSubcommands):
         responder_history = self.bot.command_logger.get_responder_history(
             since=since, sender_id=req_user.id)
 
-        command_counts = command_history['base_command'].value_counts().to_dict()
-        responder_counts = responder_history['responder_class'].value_counts().to_dict()
+        command_counts = Counter(row['base_command'] for row in command_history)
+        responder_counts = Counter(row['responder_class'] for row in responder_history)
 
         known_count = sum(command_counts.values())
-        unknown_count = unknown_command_history.shape[0]
+        unknown_count = len(unknown_command_history)
         responder_count = sum(responder_counts.values())
 
         response = f"{req_user.long_name} - {known_count} cmds, {responder_count} responders, {unknown_count} unknown cmds\n"
@@ -79,19 +85,19 @@ class AdminCommand(AbstractCommandWithSubcommands):
 
         if known_count > 0:
             response = f"Commands:\n"
-            for command, count in command_counts.items():
+            for command, count in command_counts.most_common():
                 response += f"- {command}: {count}\n"
             self.reply(packet, response)
 
         if unknown_count > 0:
             response = "Unknown Commands:\n"
-            for _, row in unknown_command_history.iterrows():
+            for row in unknown_command_history:
                 response += f"- {row['message']}\n"
             self.reply(packet, response)
 
         if responder_count > 0:
             response = f"Responders:\n"
-            for responder, count in responder_counts.items():
+            for responder, count in responder_counts.most_common():
                 response += f"- {responder}: {count}\n"
             self.reply(packet, response)
 
@@ -104,15 +110,15 @@ class AdminCommand(AbstractCommandWithSubcommands):
         unknown_command_history = self.bot.command_logger.get_unknown_command_history(since=since)
         responder_history = self.bot.command_logger.get_responder_history(since=since)
 
-        user_ids = (set(command_history['sender_id'])
-                    .union(set(unknown_command_history['sender_id']))
-                    .union(set(responder_history['sender_id'])))
+        user_ids = ({r['sender_id'] for r in command_history}
+                    | {r['sender_id'] for r in unknown_command_history}
+                    | {r['sender_id'] for r in responder_history})
 
         # sort user_ids by sum of known, unknown, and responder commands. finally, sort by user_id
         user_ids = sorted(user_ids, key=lambda user_id: (
-            command_history[command_history['sender_id'] == user_id].shape[0]
-            + unknown_command_history[unknown_command_history['sender_id'] == user_id].shape[0]
-            + responder_history[responder_history['sender_id'] == user_id].shape[0],
+            len(_rows_for_sender(command_history, user_id))
+            + len(_rows_for_sender(unknown_command_history, user_id))
+            + len(_rows_for_sender(responder_history, user_id)),
             user_id
         ))
 
@@ -121,13 +127,13 @@ class AdminCommand(AbstractCommandWithSubcommands):
             node = self.bot.node_db.get_by_id(user_id)
             user_name = node.short_name if node else f"Unknown user {user_id}"
 
-            known_requests = command_history[command_history['sender_id'] == user_id]
-            unknown_requests = unknown_command_history[unknown_command_history['sender_id'] == user_id]
-            responder_requests = responder_history[responder_history['sender_id'] == user_id]
+            known_requests = _rows_for_sender(command_history, user_id)
+            unknown_requests = _rows_for_sender(unknown_command_history, user_id)
+            responder_requests = _rows_for_sender(responder_history, user_id)
 
-            known_request_count = known_requests.shape[0]
-            unknown_request_count = unknown_requests.shape[0]
-            responder_request_count = responder_requests.shape[0]
+            known_request_count = len(known_requests)
+            unknown_request_count = len(unknown_requests)
+            responder_request_count = len(responder_requests)
             # total_requests = known_request_count + unknown_request_count + responder_request_count
 
             response += f"- {user_name}: {known_request_count} cmds, {unknown_request_count} unk, {responder_request_count} resp\n"

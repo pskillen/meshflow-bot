@@ -72,20 +72,18 @@ class TestSqliteCommandLogger(unittest.TestCase):
 
         since = datetime.now(timezone.utc) - timedelta(days=1)
         history = self.logger.get_command_history(since=since)
-        self.assertFalse(history.empty)
-        self.assertIn('sender_id', history.columns)
-        self.assertIn('base_command', history.columns)
-        self.assertIn('timestamp', history.columns)
+        self.assertGreater(len(history), 0)
+        for key in ('sender_id', 'base_command', 'timestamp'):
+            self.assertIn(key, history[0])
 
     def test_get_unknown_command_history(self):
         self.logger.log_unknown_request('sender1', 'unknown message')
 
         since = datetime.now(timezone.utc) - timedelta(days=1)
         history = self.logger.get_unknown_command_history(since=since)
-        self.assertFalse(history.empty)
-        self.assertIn('sender_id', history.columns)
-        self.assertIn('message', history.columns)
-        self.assertIn('timestamp', history.columns)
+        self.assertGreater(len(history), 0)
+        for key in ('sender_id', 'message', 'timestamp'):
+            self.assertIn(key, history[0])
 
     def test_get_responder_history(self):
         responder_instance = MagicMock(spec=AbstractResponder)
@@ -93,10 +91,9 @@ class TestSqliteCommandLogger(unittest.TestCase):
 
         since = datetime.now(timezone.utc) - timedelta(days=1)
         history = self.logger.get_responder_history(since=since)
-        self.assertFalse(history.empty)
-        self.assertIn('sender_id', history.columns)
-        self.assertIn('responder_class', history.columns)
-        self.assertIn('timestamp', history.columns)
+        self.assertGreater(len(history), 0)
+        for key in ('sender_id', 'responder_class', 'timestamp'):
+            self.assertIn(key, history[0])
 
 
 if __name__ == '__main__':

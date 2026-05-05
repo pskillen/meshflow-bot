@@ -103,3 +103,8 @@ Environment variables (see `.env.example`):
 
 When asked to create a pull request description, follow the template at
 .github/pull_request_template.md, and output a markdown file named `tmp/PR.md`
+
+## Plan mode
+
+When creating a plan, Include that we should branch from the latest origin/main, do the work, commit, push, and open a PR. Use the github-personal MCP. the gh
+command is not available, do not use it.

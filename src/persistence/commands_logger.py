@@ -1,10 +1,13 @@
 import abc
 import sqlite3
 from datetime import datetime, timezone
-
-import pandas as pd
+from typing import Any
 
 from src.persistence import BaseSqlitePersistenceStore
+
+
+def _sqlite_rows_to_dicts(rows: list[tuple], columns: list[str]) -> list[dict[str, Any]]:
+    return [dict(zip(columns, row)) for row in rows]
 
 
 class AbstractCommandLogger(abc.ABC):
@@ -22,15 +25,15 @@ class AbstractCommandLogger(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_command_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
         pass
 
     @abc.abstractmethod
-    def get_unknown_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_unknown_command_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
         pass
 
     @abc.abstractmethod
-    def get_responder_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_responder_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
         pass
 
 
@@ -97,7 +100,8 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
             ''', (sender_id, message, datetime.now(timezone.utc).isoformat()))
             conn.commit()
 
-    def get_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_command_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
+        columns = ['sender_id', 'base_command', 'timestamp']
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             if sender_id:
@@ -111,9 +115,10 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
                     WHERE timestamp >= ?
                 ''', (since.isoformat(),))
             rows = cursor.fetchall()
-            return pd.DataFrame(rows, columns=['sender_id', 'base_command', 'timestamp'])
+            return _sqlite_rows_to_dicts(rows, columns)
 
-    def get_unknown_command_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_unknown_command_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
+        columns = ['sender_id', 'message', 'timestamp']
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             if sender_id:
@@ -127,9 +132,10 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
                     WHERE timestamp >= ?
                 ''', (since.isoformat(),))
             rows = cursor.fetchall()
-            return pd.DataFrame(rows, columns=['sender_id', 'message', 'timestamp'])
+            return _sqlite_rows_to_dicts(rows, columns)
 
-    def get_responder_history(self, since: datetime, sender_id: str = None) -> pd.DataFrame:
+    def get_responder_history(self, since: datetime, sender_id: str = None) -> list[dict[str, Any]]:
+        columns = ['sender_id', 'responder_class', 'timestamp']
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             if sender_id:
@@ -143,5 +149,4 @@ class SqliteCommandLogger(AbstractCommandLogger, BaseSqlitePersistenceStore):
                     WHERE timestamp >= ?
                 ''', (since.isoformat(),))
             rows = cursor.fetchall()
-            return pd.DataFrame(rows, columns=['sender_id', 'responder_class', 'timestamp'])
-
+            return _sqlite_rows_to_dicts(rows, columns)

@@ -2,8 +2,6 @@ from datetime import datetime, timedelta, timezone
 import unittest
 from unittest.mock import MagicMock
 
-import pandas as pd
-
 from src.commands.admin import AdminCommand
 from src.data_classes import MeshNode
 from test.commands import CommandWSCTestCase
@@ -24,23 +22,35 @@ class TestAdminCommand(CommandWSCTestCase):
     def _setup_nodes_mock_data(self, node_list: list[MeshNode]):
         # Create mock command history using test nodes
         # each test_node gets 2 commands, 1 unknown command, and 2 responders
-        self.mock_command_history = pd.DataFrame({
-            'sender_id': [node.user.id for node in node_list for _ in range(2)],
-            'base_command': ['cmd1', 'cmd2'] * len(node_list),
-            'timestamp': [datetime.now(timezone.utc) - timedelta(days=i) for i in range(2 * len(node_list))]
-        })
+        unknown_messages = ['unknown1', 'unknown2', 'unknown3']
+        self.mock_command_history = [
+            {
+                'sender_id': node.user.id,
+                'base_command': 'cmd1' if j == 0 else 'cmd2',
+                'timestamp': datetime.now(timezone.utc) - timedelta(days=i * 2 + j),
+            }
+            for i, node in enumerate(node_list)
+            for j in range(2)
+        ]
 
-        self.mock_unknown_command_history = pd.DataFrame({
-            'sender_id': [node.user.id for node in node_list],
-            'message': ['unknown1', 'unknown2', 'unknown3'][:len(node_list)],
-            'timestamp': [datetime.now(timezone.utc) - timedelta(days=i) for i in range(len(node_list))]
-        })
+        self.mock_unknown_command_history = [
+            {
+                'sender_id': node.user.id,
+                'message': unknown_messages[i],
+                'timestamp': datetime.now(timezone.utc) - timedelta(days=i),
+            }
+            for i, node in enumerate(node_list)
+        ]
 
-        self.mock_responder_history = pd.DataFrame({
-            'sender_id': [node.user.id for node in node_list for _ in range(2)],
-            'responder_class': ['Responder1', 'Responder2'] * len(node_list),
-            'timestamp': [datetime.now(timezone.utc) - timedelta(days=i) for i in range(2 * len(node_list))]
-        })
+        self.mock_responder_history = [
+            {
+                'sender_id': node.user.id,
+                'responder_class': 'Responder1' if j == 0 else 'Responder2',
+                'timestamp': datetime.now(timezone.utc) - timedelta(days=i * 2 + j),
+            }
+            for i, node in enumerate(node_list)
+            for j in range(2)
+        ]
 
         self.bot.command_logger.get_command_history = MagicMock(return_value=self.mock_command_history)
         self.bot.command_logger.get_unknown_command_history = MagicMock(return_value=self.mock_unknown_command_history)
