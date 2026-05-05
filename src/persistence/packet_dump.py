@@ -4,9 +4,6 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from meshtastic.protobuf.mesh_pb2 import MeshPacket
-
-
 dump_portnums = os.getenv("DUMP_PACKETS_PORTNUMS", None)
 if dump_portnums:
     dump_portnums = dump_portnums.split(",")
@@ -20,7 +17,7 @@ else:
     logging.info("Not dumping packets - set DUMP_PACKETS_PORTNUMS to comma separated list of portnums to dump")
 
 
-def dump_packet(packet: MeshPacket):
+def dump_packet(packet: dict):
     global dump_portnums
     if not dump_portnums or len(dump_portnums) == 0:
         return
