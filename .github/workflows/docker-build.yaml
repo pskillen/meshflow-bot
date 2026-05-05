@@ -55,8 +55,8 @@ jobs:
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             VERSION=${{ inputs.VERSION_LABEL }}
-          cache-from: type=gha,scope=${{ github.ref_name }}-meshtastic-bot
-          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-meshtastic-bot
+          cache-from: type=gha,scope=${{ github.ref_name }}-meshflow-bot
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-meshflow-bot
 
       - name: Export digest
         run: |
@@ -127,6 +127,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository_owner: ${{ github.repository_owner }}
-          package_name: meshtastic-bot
+          package_name: meshflow-bot
           owner_type: user
           untagged_only: true
