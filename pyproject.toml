@@ -1,0 +1,24 @@
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = [
+    "--doctest-modules",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=70",
+]
+
+[tool.coverage.run]
+source = ["src"]
+# Entry point, long-lived TCP/WebSocket, and device-bound code are exercised
+# via manual / staging smoke; keep the percentage gate meaningful for the
+# rest of `src/`.
+omit = [
+    "src/main.py",
+    "src/ws_client.py",
+    "src/meshtastic/tcp_interface.py",
+    "src/meshtastic/traceroute.py",
+]
+
+[tool.coverage.report]
+show_missing = true

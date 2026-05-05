@@ -12,7 +12,7 @@ from typing import Any, Optional
 from src.data_classes import MeshNode
 
 
-@dataclass(frozen=True)
+@dataclass
 class IncomingPacket:
     """A packet received from the radio, in protocol-agnostic form."""
 
@@ -40,7 +40,7 @@ class IncomingPacket:
     Only the storage uploader and the originating adapter should look at this."""
 
 
-@dataclass(frozen=True)
+@dataclass
 class IncomingTextMessage:
     """A decoded text message routed to commands/responders.
 
@@ -66,7 +66,7 @@ class IncomingTextMessage:
         return self.hop_start - self.hop_limit
 
 
-@dataclass(frozen=True)
+@dataclass
 class NodeUpdate:
     """A node's user/position/metrics changed."""
 
@@ -75,7 +75,7 @@ class NodeUpdate:
     raw: Any = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConnectionEstablished:
     """The radio is connected and ready to send/receive."""
 

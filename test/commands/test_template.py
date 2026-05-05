@@ -5,7 +5,7 @@ from src.commands.template import TemplateCommand
 from src.data_classes import MeshNode
 from src.persistence.user_prefs import UserPrefs
 from test.commands import CommandTestCase
-from test.test_setup_data import build_test_text_packet, meshtastic_hex_to_int
+from test.test_setup_data import build_test_text_message
 
 
 class TestTemplateCommand(CommandTestCase):
@@ -18,32 +18,30 @@ class TestTemplateCommand(CommandTestCase):
 
     def test_handle_packet(self):
         sender = self.test_nodes[1]
-        packet = build_test_text_packet('!template test message', sender.user.id, self.bot.my_id)
-        packet['hopStart'] = 5
-        packet['hopLimit'] = 3
-
-        self.command.handle_packet(packet)
-
-        expected_message = f"Hello, {sender.user.long_name}! You sent: !template test message"
-        self.assert_message_sent(expected_message, sender)
+        msg = build_test_text_message(
+            '!template test message', sender.user.id, self.bot.my_id, max_hops=5, hops_left=3
+        )
+        self.command.handle_packet(msg)
+        self.assert_message_sent(
+            f"Hello, {sender.user.long_name}! You sent: !template test message", sender
+        )
 
     def test_handle_packet_no_sender(self):
         sender = MeshNode()
         sender.user = MeshNode.User()
         sender.user.id = '1234567890'
 
-        packet = build_test_text_packet('!template test message', sender.user.id, self.bot.my_id)
-        packet['hopStart'] = 5
-        packet['hopLimit'] = 3
-
-        self.command.handle_packet(packet)
-
-        expected_message = f"Hello, {sender.user.id}! You sent: !template test message"
-        self.assert_message_sent(expected_message, sender)
+        msg = build_test_text_message(
+            '!template test message', sender.user.id, self.bot.my_id, max_hops=5, hops_left=3
+        )
+        self.command.handle_packet(msg)
+        self.assert_message_sent(
+            f"Hello, {sender.user.id}! You sent: !template test message", sender
+        )
 
     def test_user_prefs_rendering(self):
         sender = self.test_nodes[1]
-        packet = build_test_text_packet('!myuserprefs', sender.user.id, self.bot.my_id)
+        msg = build_test_text_message('!myuserprefs', sender.user.id, self.bot.my_id)
 
         custom_user_prefs = UserPrefs(sender.user.id)
         custom_user_prefs.respond_to_testing = True
@@ -53,10 +51,9 @@ class TestTemplateCommand(CommandTestCase):
 
         template = "{{ 'Respond to testing: ' ~ user_prefs.respond_to_testing }}"
         command = TemplateCommand(self.bot, 'myuserprefs', template)
-        command.handle_packet(packet)
+        command.handle_packet(msg)
 
-        expected_rendered_message = "Respond to testing: True"
-        self.assert_message_sent(expected_rendered_message, sender)
+        self.assert_message_sent("Respond to testing: True", sender)
 
 
 if __name__ == '__main__':

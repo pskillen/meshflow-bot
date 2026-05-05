@@ -1,10 +1,9 @@
 from abc import ABC
 
-from meshtastic.protobuf.mesh_pb2 import MeshPacket
-
 from src.commands.command import AbstractCommand, AbstractCommandWithSubcommands
+from src.radio.events import IncomingTextMessage
 from test import BaseFeatureTestCase
-from test.test_setup_data import build_test_text_packet
+from test.test_setup_data import build_test_text_message
 
 
 class CommandTestCase(BaseFeatureTestCase, ABC):
@@ -14,21 +13,14 @@ class CommandTestCase(BaseFeatureTestCase, ABC):
 class CommandWSCTestCase(CommandTestCase):
     command: AbstractCommandWithSubcommands
 
-    def assert_show_help_for_command(self, packet: MeshPacket):
-        self.command.handle_packet(packet)
-        response = self.bot.interface.sendText.call_args[0][0]
-        # summary line should be in the response
+    def assert_show_help_for_command(self, message: IncomingTextMessage):
+        self.command.handle_packet(message)
+        response = self.fake_radio.send_text.call_args[0][0]
         want = f"!{self.command.base_command}: "
         self.assertIn(want, response)
-        # each sub_command in command should appear in the response
         for sub_command in self.command.sub_commands:
-            # we can skip the '!cmd help' subcommand
-            if sub_command == 'help':
+            if sub_command in ("help", ""):
                 continue
-            # and the empty string subcommand
-            if sub_command == '':
-                continue
-
             want = f"!{self.command.base_command} {sub_command}"
             self.assertIn(want, response)
 
@@ -36,5 +28,7 @@ class CommandWSCTestCase(CommandTestCase):
         if self.__class__.__name__ == 'CommandWSCTestCase':
             return
         base_cmd = self.command.base_command
-        packet = build_test_text_packet(f'!{base_cmd} help', self.test_nodes[1].user.id, self.bot.my_id)
-        self.assert_show_help_for_command(packet)
+        message = build_test_text_message(
+            f'!{base_cmd} help', self.test_nodes[1].user.id, self.bot.my_id
+        )
+        self.assert_show_help_for_command(message)

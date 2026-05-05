@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# dev dependencies
+unittest-xml-reporting~=3.2.0
+pytest~=8.3
+pytest-cov~=6.0
