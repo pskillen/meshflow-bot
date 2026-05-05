@@ -1,6 +1,21 @@
+"""Meshtastic-shaped api serializers and the :class:`PacketSerializer` adapter.
+
+The model serializers (``MeshNodeSerializer``, ``PositionSerializer``,
+``DeviceMetricsSerializer``) translate the bot's internal :class:`MeshNode`
+into the JSON shape meshflow-api expects today (which is Meshtastic-shaped).
+:class:`MeshtasticPacketSerializer` is the entry point used by
+:class:`~src.api.StorageAPI.StorageAPIWrapper` — it just defers to those
+serializers and adds raw-packet sanitisation.
+"""
+
+from __future__ import annotations
+
+import base64
 import datetime
 from abc import ABC
+from typing import Any
 
+from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
 
 
@@ -125,3 +140,39 @@ class MeshNodeSerializer(AbstractModelSerializer):
         node.device_metrics = device_metrics
 
         return node
+
+
+def _sanitise_raw_packet(data: Any) -> Any:
+    """Recursively scrub bytes (-> base64) and drop the ``raw`` protobuf
+    field from a Meshtastic packet dict before upload."""
+    if isinstance(data, dict):
+        cleaned = {k: v for k, v in data.items() if k != "raw"}
+        return {key: _sanitise_raw_packet(value) for key, value in cleaned.items()}
+    if isinstance(data, list):
+        return [_sanitise_raw_packet(item) for item in data]
+    if isinstance(data, bytes):
+        return base64.b64encode(data).decode("utf-8")
+    return data
+
+
+class MeshtasticPacketSerializer(PacketSerializer):
+    """Meshtastic-shaped concrete :class:`PacketSerializer`."""
+
+    def serialise_raw_packet(self, packet: Any) -> dict:
+        if not isinstance(packet, dict):
+            raise TypeError(
+                f"MeshtasticPacketSerializer expects a dict packet, got {type(packet).__name__}"
+            )
+        raw_proto = packet.get("raw")
+        cleaned = _sanitise_raw_packet(packet)
+        # Some fields are absent for nullish values; copy them off the protobuf
+        # if we have it so the api receives a full record.
+        if raw_proto is not None and "channel" not in cleaned:
+            cleaned["channel"] = getattr(raw_proto, "channel", 0)
+        return cleaned
+
+    def serialise_node(self, node: MeshNode) -> dict:
+        return MeshNodeSerializer.to_api_dict(node)
+
+    def deserialise_node(self, node_data: dict) -> MeshNode:
+        return MeshNodeSerializer.from_api_dict(node_data)

@@ -1,12 +1,17 @@
+"""Protocol-agnostic bot core.
+
+:class:`MeshflowBot` knows about commands, responders, the node DB, and the
+storage API; it does not know about Meshtastic, MeshCore, pubsub, TCP, or
+``MeshPacket``. All of that lives behind a :class:`RadioInterface`.
+"""
+
+from __future__ import annotations
+
 import logging
-import sys
 import time
-from datetime import datetime, timezone
+from typing import Optional
 
 import schedule
-from meshtastic.protobuf.mesh_pb2 import MeshPacket
-from pubsub import pub
-from requests import HTTPError
 
 from src.api.StorageAPI import StorageAPIWrapper
 from src.commands.factory import CommandFactory
@@ -17,43 +22,41 @@ from src.persistence.node_db import AbstractNodeDB
 from src.persistence.node_info import AbstractNodeInfoStore
 from src.persistence.packet_dump import dump_packet
 from src.persistence.user_prefs import AbstractUserPrefsPersistence
+from src.radio.errors import call_safely, get_global_error_counter
+from src.radio.events import (
+    ConnectionEstablished,
+    IncomingPacket,
+    IncomingTextMessage,
+    NodeUpdate,
+)
+from src.radio.interface import RadioHandlers, RadioInterface
 from src.responders.responder_factory import ResponderFactory
-from src.tcp_interface import (AutoReconnectTcpInterface,
-                               SupportsMessageReactionInterface)
-from src.traceroute import on_traceroute_command
+
+logger = logging.getLogger(__name__)
 
 
-class MeshtasticBot:
+class MeshflowBot:
     admin_nodes: list[str]
-    ignore_portnums: (
-        frozenset  # Portnums to skip when submitting to API (from IGNORE_PORTNUMS env)
-    )
+    ignore_portnums: frozenset
 
-    interface: SupportsMessageReactionInterface
+    radio: RadioInterface
     init_complete: bool
 
-    my_id: str
-    my_nodenum: int
     node_db: AbstractNodeDB
     node_info: AbstractNodeInfoStore
     command_logger: AbstractCommandLogger
-
     user_prefs_persistence: AbstractUserPrefsPersistence
 
     storage_apis: list[StorageAPIWrapper]
     ws_client: object | None  # MeshflowWSClient when configured
 
-    def __init__(self, address: str):
-        self.address = address
-
+    def __init__(self, radio: RadioInterface):
+        self.radio = radio
         self.admin_nodes = []
         self.ignore_portnums = frozenset()
 
-        self.interface = None
         self.init_complete = False
 
-        self.my_id = None
-        self.my_nodenum = None
         self.node_db = None
         self.node_info = None
         self.command_logger = None
@@ -61,245 +64,203 @@ class MeshtasticBot:
         self.storage_apis = []
         self.ws_client = None
 
-        pub.subscribe(self.on_receive, "meshtastic.receive")
-        pub.subscribe(self.on_receive_text, "meshtastic.receive.text")
-        pub.subscribe(self.on_node_updated, "meshtastic.node.updated")
-        pub.subscribe(self.on_connection, "meshtastic.connection.established")
+        self._error_counter = get_global_error_counter()
 
-    def connect(self):
-        logging.info(f"Connecting to Meshtastic node at {self.address}...")
-        self.init_complete = False
-
-        old_packet_queue = None
-        if self.interface and hasattr(self.interface, "packet_queue"):
-            old_packet_queue = self.interface.packet_queue
-
-        self.interface = AutoReconnectTcpInterface(
-            hostname=self.address,
-            error_handler=self._handle_interface_error,
-            packet_queue=old_packet_queue,
+        radio.set_handlers(
+            RadioHandlers(
+                on_packet=self._on_packet,
+                on_text_message=self._on_text_message,
+                on_node_update=self._on_node_update,
+                on_connection_established=self._on_connection_established,
+                on_disconnected=self._on_disconnected,
+            )
         )
 
-        logging.info("Connected. Listening for messages...")
+    # --- connection-derived state ----------------------------------------
 
-    def _handle_interface_error(self, error):
-        self.disconnect()
+    @property
+    def my_id(self) -> Optional[str]:
+        return self.radio.local_node_id
 
-        logging.error(f"Handling interface error: {error}")
-        backoff_time = 5  # Initial back-off time in seconds
-        max_backoff_time = 300  # Maximum back-off time in seconds (5 minutes)
-        backoff_rate = 1.5  # Exponential back-off rate
+    @property
+    def my_nodenum(self) -> Optional[int]:
+        return self.radio.local_nodenum
 
-        while True:
-            try:
-                self.connect()
-                self.init_complete = True
-                logging.info("Reconnected successfully")
-                break
-            except Exception as e:
-                logging.error(f"Reconnection attempt failed: {e}")
-                if backoff_time == max_backoff_time:
-                    logging.error("Max backoff time reached. Exiting.")
-                    sys.exit(1)
-                backoff_time = min(
-                    backoff_time * backoff_rate, max_backoff_time
-                )  # Exponential back-off
-                logging.info(f"Next reconnection attempt in {backoff_time} seconds")
-                time.sleep(backoff_time)
+    # --- lifecycle --------------------------------------------------------
 
-    def disconnect(self):
-        self.init_complete = False
-        try:
-            if self.interface:
-                self.interface.close()
-                self.interface._disconnected()
-        except OSError as ex:
-            logging.warning(f"Failed to close connection. Continuing anyway: {ex}")
+    def connect(self) -> None:
+        self.radio.connect()
 
-    def on_traceroute_command(self, target_node_id: int):
-        """Handle traceroute command from WebSocket (e.g. from Meshflow API)."""
-        on_traceroute_command(self, target_node_id)
+    def disconnect(self) -> None:
+        self.radio.disconnect()
 
-    def on_connection(self, interface, topic=pub.AUTO_TOPIC):
-        self.my_nodenum = interface.localNode.nodeNum  # in dec
-        self.my_id = f"!{hex(self.my_nodenum)[2:]}"
+    def on_traceroute_command(self, target_node_id: int) -> None:
+        """Handle a traceroute command (e.g. delivered via WebSocket)."""
+        if not self.radio.is_connected:
+            logger.warning("Traceroute requested but radio not connected; skipping")
+            return
+        self.radio.send_traceroute(target_node_id)
 
+    # --- radio event handlers --------------------------------------------
+
+    def _on_connection_established(self, event: ConnectionEstablished) -> None:
         self.init_complete = True
-        logging.info("Connected to Meshtastic node")
+        logger.info("Connected as %s (nodenum=%s)", event.local_node_id, event.local_nodenum)
         self.print_nodes()
-
         if self.ws_client:
             self.ws_client.start()
 
-    def on_receive_text(self, packet: MeshPacket, interface):
-        """Callback function triggered when a text message is received."""
+    def _on_disconnected(self, error: Optional[Exception]) -> None:
+        self.init_complete = False
+        if error:
+            logger.warning("Radio disconnected: %s", error)
 
-        to_id = packet["toId"]
+    def _on_packet(self, event: IncomingPacket) -> None:
+        if event.raw is not None:
+            dump_packet(event.raw)
 
-        if to_id == self.my_id:
-            self.handle_private_message(packet)
-        else:
-            self.handle_public_message(packet)
-
-    def handle_private_message(self, packet: MeshPacket):
-        """Handle private messages."""
-        message = packet["decoded"]["text"]
-        from_id = packet["fromId"]
-
-        sender = self.node_db.get_by_id(from_id)
-        logging.info(
-            f"Received private message: '{message}' from {sender.long_name if sender else from_id}"
-        )
-
-        words = message.split()
-        command_name = words[0]
-        command_instance = CommandFactory.create_command(command_name, self)
-        if command_instance:
-            self.command_logger.log_command(from_id, command_instance, message)
-            try:
-                command_instance.handle_packet(packet)
-            except Exception as e:
-                logging.error(f"Error handling message: {e}")
-        else:
-            self.command_logger.log_unknown_request(from_id, message)
-
-    def handle_public_message(self, packet: MeshPacket):
-        """Handle public messages."""
-        message = packet["decoded"]["text"]
-        from_id = packet["fromId"]
-        sender = self.node_db.get_by_id(from_id)
-
-        responder = ResponderFactory.match_responder(message, self)
-        if responder:
-            try:
-                outcome = responder.handle_packet(packet)
-
-                if outcome:
-                    logging.info(
-                        f"Handled message from {sender.long_name if sender else from_id} with responder {responder.__class__.__name__}: {message}"
-                    )
-                    self.command_logger.log_responder_handled(
-                        from_id, responder, message
-                    )
-            except Exception as e:
-                logging.error(f"Error handling message: {e}")
-
-    def on_receive(self, packet: MeshPacket, interface):
-        # dump the packet to disk (if enabled)
-        dump_packet(packet)
-
-        portnum = packet.get("decoded", {}).get("portnum", "unknown")
-        portnum_key = str(portnum).upper()
-        has_decoded = "decoded" in packet or "decrypted" in packet
-
-        # Skip device metrics from self - node sends 1/min to connected clients;
-        # another bot will capture when broadcast over the air
-        sender = packet.get("fromId")
-        skip_self_device_metrics = (
-            sender == self.my_id
-            and portnum_key == "TELEMETRY_APP"
-            and "deviceMetrics" in (packet.get("decoded", {}).get("telemetry") or {})
-        )
-
-        if self.ignore_portnums and portnum_key in self.ignore_portnums:
-            logging.info(
-                f"Skipping API submission for packet with portnum {portnum} (in IGNORE_PORTNUMS)"
+        if self.ignore_portnums and event.portnum in self.ignore_portnums:
+            logger.info(
+                "Skipping API submission for packet with portnum %s (in IGNORE_PORTNUMS)",
+                event.portnum,
             )
-            # Continue with node_info etc. below, just skip storage API
-        elif not has_decoded:
-            pass  # Skip API submission for packets with no decoded data
-        elif skip_self_device_metrics:
-            pass  # Skip device metrics from self - another bot will capture over the air
+        elif not event.has_decoded:
+            pass  # encrypted-only packet; nothing to upload
+        elif event.is_self_telemetry:
+            pass  # self device-metrics; another bot will capture over the air
         else:
             for storage_api in self.storage_apis:
-                try:
-                    storage_api.store_raw_packet(packet)
-                except HTTPError as ex:
-                    logging.warning(f"Error storing packet: {ex.response.text}")
-                    pass
-                except Exception as ex:
-                    logging.warning(f"Error storing packet in API: {ex}")
-                    pass
+                call_safely(
+                    "bot.store_raw_packet",
+                    storage_api.store_raw_packet,
+                    event.raw if event.raw is not None else event,
+                    counter=self._error_counter,
+                )
+
+        sender = event.from_id
+        if not sender:
+            return
 
         node = self.node_db.get_by_id(sender)
         if not node:
-            # logging.warning(f"Received packet from unknown sender {sender}")
             return
 
-        if node:
-            portnum = packet["decoded"]["portnum"] if "decoded" in packet else "unknown"
-            if sender == self.my_id and portnum == "TELEMETRY_APP":
-                # Ignore telemetry packets sent by self
-                pass
-            else:
-                # Increment packets_today for this node
-                self.node_info.node_packet_received(sender, portnum)
+        # Track activity, except for self-telemetry which would inflate counts
+        if not (sender == self.my_id and event.portnum == "TELEMETRY_APP"):
+            self.node_info.node_packet_received(sender, event.portnum)
 
-        if sender == self.my_id:
-            recipient_id = packet["toId"]
-            recipient = self.node_db.get_by_id(recipient_id)
-            portnum = packet["decoded"]["portnum"]
-
-            logging.debug(
-                f"Received packet from self: {recipient.long_name if recipient else recipient_id} (port {portnum})"
+        if sender == self.my_id and event.to_id is not None:
+            recipient = self.node_db.get_by_id(event.to_id)
+            recipient_name = recipient.long_name if recipient else event.to_id
+            logger.debug(
+                "Received packet from self: %s (port %s)", recipient_name, event.portnum
             )
 
-    def on_node_updated(self, node, interface):
-        if interface.localNode and self.my_nodenum is None:
-            self.my_nodenum = interface.localNode.nodeNum
-            self.my_id = f"!{hex(self.my_nodenum)[2:]}"
+    def _on_text_message(self, message: IncomingTextMessage) -> None:
+        if message.is_dm:
+            self._handle_private_message(message)
+        else:
+            self._handle_public_message(message)
 
-        # Check if the node is a new user
-        if node["user"] is not None:
-            mesh_node = MeshNode.from_dict(node)
-            last_heard_int = node.get("lastHeard", 0)
-            last_heard = datetime.fromtimestamp(last_heard_int, tz=timezone.utc)
-            self.node_db.store_node(mesh_node)
-            self.node_info.update_last_heard(mesh_node.user.id, last_heard)
+    def _on_node_update(self, update: NodeUpdate) -> None:
+        node = update.node
+        self.node_db.store_node(node)
+        self.node_info.update_last_heard(node.user.id, update.last_heard)
 
-            for storage_api in self.storage_apis:
-                try:
-                    storage_api.store_node(mesh_node)
-                except HTTPError as ex:
-                    logging.warning(f"Error storing node: {ex.response.text}")
-                    pass
-                except Exception as ex:
-                    logging.warning(f"Error storing node: {ex}")
-                    pass
+        for storage_api in self.storage_apis:
+            call_safely(
+                "bot.store_node",
+                storage_api.store_node,
+                node,
+                counter=self._error_counter,
+            )
 
-            if self.init_complete:
-                last_heard_str = pretty_print_last_heard(last_heard)
-                logging.info(
-                    f"New user: {mesh_node.user.long_name} (last heard {last_heard_str})"
-                )
+        if self.init_complete:
+            last_heard_str = pretty_print_last_heard(update.last_heard)
+            logger.info("New user: %s (last heard %s)", node.user.long_name, last_heard_str)
 
-    def print_nodes(self):
-        # filter nodes where last heard is more than 2 hours ago
+    # --- private message dispatch ----------------------------------------
+
+    def _handle_private_message(self, message: IncomingTextMessage) -> None:
+        sender = self.node_db.get_by_id(message.from_id)
+        sender_name = sender.long_name if sender else message.from_id
+        logger.info("Received private message: '%s' from %s", message.text, sender_name)
+
+        words = message.text.split()
+        if not words:
+            return
+        command_name = words[0]
+        command_instance = CommandFactory.create_command(command_name, self)
+        if command_instance:
+            self.command_logger.log_command(message.from_id, command_instance, message.text)
+            call_safely(
+                "bot.handle_command",
+                command_instance.handle_packet,
+                message,
+                counter=self._error_counter,
+            )
+        else:
+            self.command_logger.log_unknown_request(message.from_id, message.text)
+
+    def _handle_public_message(self, message: IncomingTextMessage) -> None:
+        responder = ResponderFactory.match_responder(message.text, self)
+        if responder is None:
+            return
+
+        outcome = call_safely(
+            "bot.handle_responder",
+            responder.handle_packet,
+            message,
+            counter=self._error_counter,
+        )
+        if outcome:
+            sender = self.node_db.get_by_id(message.from_id)
+            sender_name = sender.long_name if sender else message.from_id
+            logger.info(
+                "Handled message from %s with responder %s: %s",
+                sender_name,
+                responder.__class__.__name__,
+                message.text,
+            )
+            self.command_logger.log_responder_handled(
+                message.from_id, responder, message.text
+            )
+
+    # --- introspection / scheduler ---------------------------------------
+
+    def print_nodes(self) -> None:
         online_nodes = self.node_info.get_online_nodes()
         offline_nodes = self.node_info.get_offline_nodes()
-
-        # print all nodes, sorted by last heard descending
-        logging.info(f"Online nodes: ({len(online_nodes)})")
+        logger.info("Online nodes: (%s)", len(online_nodes))
         sorted_nodes = sorted(online_nodes, key=lambda x: online_nodes[x], reverse=True)
         for node_id in sorted_nodes:
             if node_id == self.my_id:
                 continue
             node = self.node_db.get_by_id(node_id)
             last_heard = self.node_info.get_last_heard(node_id)
-            last_heard = pretty_print_last_heard(last_heard)
-            encoded_name = safe_encode_node_name(node.long_name)
-            logging.info(f"- {encoded_name} (last heard {last_heard})")
+            last_heard_str = pretty_print_last_heard(last_heard)
+            encoded_name = safe_encode_node_name(node.long_name) if node else node_id
+            logger.info("- %s (last heard %s)", encoded_name, last_heard_str)
+        logger.info("- Plus %s offline nodes", len(offline_nodes))
 
-        logging.info(f"- Plus {len(offline_nodes)} offline nodes")
-
-    def get_global_context(self):
+    def get_global_context(self) -> dict:
         return {
             "nodes": self.node_db.list_nodes(),
             "online_nodes": self.node_info.get_online_nodes(),
             "offline_nodes": self.node_info.get_offline_nodes(),
         }
 
-    def start_scheduler(self):
+    def get_node_by_short_name(self, short_name: str) -> MeshNode.User | None:
+        for node in self.node_db.list_nodes():
+            if node.short_name.lower() == short_name.lower():
+                return node
+        return None
+
+    def metrics(self) -> dict[str, int]:
+        """Snapshot of in-process error counters. Useful for admin diagnostics."""
+        return self._error_counter.snapshot()
+
+    def start_scheduler(self) -> None:
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
         while True:
             schedule.run_pending()
@@ -308,8 +269,7 @@ class MeshtasticBot:
             except KeyboardInterrupt:
                 return
 
-    def get_node_by_short_name(self, short_name: str) -> MeshNode.User | None:
-        for node in self.node_db.list_nodes():
-            if node.short_name.lower() == short_name.lower():
-                return node
-        return None
+
+# Backward-compatible alias so anything importing the old name keeps working
+# during the migration period. New code should import :class:`MeshflowBot`.
+MeshtasticBot = MeshflowBot
