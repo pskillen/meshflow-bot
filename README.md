@@ -1,6 +1,6 @@
-# Meshtastic Bot
+# Meshflow Bot
 
-Meshtastic Bot is a Python-based bot for interacting with Meshtastic devices. It listens for messages, processes commands, and responds with appropriate actions. This guide is focused on helping you run the bot as-is, with minimal setup.
+Meshflow Bot is a Python-based bot for interacting with Meshtastic devices. It listens for messages, processes commands, and responds with appropriate actions. This guide is focused on helping you run the bot as-is, with minimal setup.
 
 ## Quick Start: Run with Docker
 
@@ -28,8 +28,8 @@ version: '3.8'
 
 services:
   bot:
-    image: ghcr.io/pskillen/meshtastic-bot:latest
-    container_name: meshtastic-bot
+    image: ghcr.io/pskillen/meshflow-bot:latest
+    container_name: meshflow-bot
     restart: unless-stopped
     environment:
       - MESHTASTIC_IP=${MESHTASTIC_NODE_IP}
@@ -63,8 +63,8 @@ If you prefer to run the bot natively (e.g., for development or customization):
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/yourusername/meshtastic-bot.git
-    cd meshtastic-bot
+    git clone https://github.com/pskillen/meshflow-bot.git
+    cd meshflow-bot
     ```
 2. **Install dependencies:**
     ```sh

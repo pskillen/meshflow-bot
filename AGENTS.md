@@ -1,6 +1,6 @@
-# Meshtastic Bot – Agent Context
+# Meshflow Bot – Agent Context
 
-Python bot for interacting with Meshtastic devices. Connects to a Meshtastic node over TCP, listens for messages, processes commands, and reports packets to the Meshflow API. Part of the Meshflow system alongside meshflow-api and meshtastic-bot-ui.
+Python bot for interacting with Meshtastic devices. Connects to a Meshtastic node over TCP, listens for messages, processes commands, and reports packets to the Meshflow API. Part of the Meshflow system alongside meshflow-api and meshflow-ui.
 
 ## Project Structure
 
