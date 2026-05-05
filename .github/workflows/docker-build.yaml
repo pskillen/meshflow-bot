@@ -107,11 +107,14 @@ jobs:
             VERSION="${{ inputs.VERSION_LABEL }}"
             MAJOR=$(echo "${VERSION}" | cut -d. -f1)
             MINOR=$(echo "${VERSION}" | cut -d. -f2)
+            LEGACY_IMAGE="ghcr.io/${{ github.repository_owner }}/meshtastic-bot"
             docker buildx imagetools create \
               -t ${{ env.IMAGE }}:${VERSION} \
               -t ${{ env.IMAGE }}:latest \
               -t ${{ env.IMAGE }}:${MAJOR} \
               -t ${{ env.IMAGE }}:${MAJOR}.${MINOR} \
+              -t ${LEGACY_IMAGE}:${VERSION} \
+              -t ${LEGACY_IMAGE}:latest \
               ${DIGEST_REFS}
           fi
 

@@ -30,6 +30,8 @@ services:
   bot:
     image: ghcr.io/pskillen/meshflow-bot:latest
     container_name: meshflow-bot
+    # Note: the legacy image name ghcr.io/pskillen/meshtastic-bot is deprecated
+    # and will be removed in a future release. Please update to meshflow-bot.
     restart: unless-stopped
     environment:
       - MESHTASTIC_IP=${MESHTASTIC_NODE_IP}
