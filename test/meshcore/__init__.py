@@ -1,0 +1,1 @@
+# MeshCore adapter tests

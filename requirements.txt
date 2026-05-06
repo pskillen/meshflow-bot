@@ -1,4 +1,5 @@
 meshtastic>=2.5.0,<3.0.0
+meshcore>=2.3.7,<3.0.0
 websockets>=14.0
 Pypubsub~=4.0.3
 jinja2~=3.1.6

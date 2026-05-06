@@ -1,17 +1,38 @@
 ---
 
 services:
-  meshtastic-bot:
-    image: ghcr.io/pskillen/meshtastic-bot:latest
+  meshflow-bot-meshtastic:
+    image: ghcr.io/pskillen/meshflow-bot:latest
     build:
       context: "./"
-    container_name: meshtastic-bot
+    container_name: meshflow-bot-meshtastic
     restart: unless-stopped
     environment:
+      - RADIO_PROTOCOL=meshtastic
       - MESHTASTIC_IP=meshtastic.local
-      - ADMIN_NODES='!aae8900d'  # Change this, unless you want me to be the admin of your bot
+      - ADMIN_NODES='!aae8900d' # Change this, unless you want me to be the admin of your bot
     volumes:
       - ./data:/app/data
+    depends_on:
+      - watchtower
+
+  meshflow-bot-meshcore:
+    image: ghcr.io/pskillen/meshflow-bot:latest
+    build:
+      context: "./"
+    container_name: meshflow-bot-meshcore
+    restart: unless-stopped
+    environment:
+      - RADIO_PROTOCOL=meshcore
+      - MESHCORE_SERIAL_DEVICE=/dev/ttyUSB0
+      # Optional: BLE instead of serial (set only one of serial or BLE)
+      # - MESHCORE_BLE_ADDRESS=AA:BB:CC:DD:EE:FF
+      # - MESHCORE_BLE_PIN=
+      - ADMIN_NODES='!aae8900d'
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    volumes:
+      - ./data-meshcore:/app/data
     depends_on:
       - watchtower
 
@@ -21,4 +42,4 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 3600 meshtastic-bot  # Check for updates every hour
+    command: --interval 3600 meshflow-bot-meshtastic meshflow-bot-meshcore

@@ -1,67 +1,43 @@
 # Meshflow Bot
 
-Meshflow Bot is a Python-based bot for interacting with Meshtastic devices. It listens for messages, processes commands, and responds with appropriate actions. This guide is focused on helping you run the bot as-is, with minimal setup.
+Meshflow Bot is a Python bot that connects to **mesh radios** and integrates with [meshflow-api](https://github.com/pskillen/meshflow-api). It listens for traffic, handles `!` commands, optional responders, and (for Meshtastic) uploads packets to the API.
+
+**Protocols**
+
+- **[Meshtastic](docs/MESHTASTIC.md)** — TCP to a Meshtastic node; full API upload + WebSocket traceroute today.
+- **[MeshCore](docs/MESHCORE.md)** — USB serial or BLE via [`meshcore`](https://github.com/meshcore-dev/meshcore_py); **Phase 0.3** adds capture-only connectivity (JSON dumps under `data/meshcore_packets/`, no API ingest yet).
+
+Select the radio with `RADIO_PROTOCOL=meshtastic` (default) or `RADIO_PROTOCOL=meshcore`. See the linked docs for environment variables.
 
 ## Quick Start: Run with Docker
 
-The easiest way to run Meshtastic Bot is using Docker. This method requires minimal setup and keeps your environment clean.
+The easiest way to run the bot is Docker Compose. Two services are defined: `meshflow-bot-meshtastic` and `meshflow-bot-meshcore` (adjust devices, env, and image tags for your environment).
 
 ### 1. Prepare Your Environment
 
 - Ensure you have [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed.
-- Create a `.env` file in your project directory with the required environment variables:
+- Create a `.env` file in the project directory (see [`.env.example`](.env.example)).
 
-```
-MESHTASTIC_NODE_IP=your_meshtastic_node_ip
-ADMIN_NODES=comma_separated_admin_node_ids
-STORAGE_API_ROOT=your_storage_api_url
-STORAGE_API_TOKEN=your_storage_api_token
-# Optionally, you can upload to a second API as well
-STORAGE_API_2_ROOT=your_storage_api_2_url
-STORAGE_API_2_TOKEN=your_storage_api_2_token
-```
+### 2. Use `docker-compose.yaml`
 
-### 2. Use This `docker-compose.yaml`
-
-```yaml
-version: '3.8'
-
-services:
-  bot:
-    image: ghcr.io/pskillen/meshflow-bot:latest
-    container_name: meshflow-bot
-    # Note: the legacy image name ghcr.io/pskillen/meshtastic-bot is deprecated
-    # and will be removed in a future release. Please update to meshflow-bot.
-    restart: unless-stopped
-    environment:
-      - MESHTASTIC_IP=${MESHTASTIC_NODE_IP}
-      - ADMIN_NODES=${ADMIN_NODES}
-      - STORAGE_API_ROOT=${STORAGE_API_ROOT}
-      - STORAGE_API_TOKEN=${STORAGE_API_TOKEN}
-      - STORAGE_API_VERSION=2
-      - STORAGE_API_2_ROOT=${STORAGE_API_2_ROOT}
-      - STORAGE_API_2_TOKEN=${STORAGE_API_2_TOKEN}
-      - STORAGE_API_2_VERSION=2
-    volumes:
-      - mesh_bot_data:/app/data
-
-volumes:
-  mesh_bot_data:
-```
-
-### 3. Start the Bot
+From the repo root:
 
 ```sh
-docker compose up -d
+docker compose up -d meshflow-bot-meshtastic
+# or, for MeshCore over USB (Linux device pass-through):
+docker compose up -d meshflow-bot-meshcore
 ```
 
-The bot will now run in the background. Data will be persisted locally in the `mesh_bot_data` Docker volume.
+Images are published as `ghcr.io/pskillen/meshflow-bot` (the legacy `meshtastic-bot` image name is deprecated).
+
+### 3. Data directories
+
+- Meshtastic service mounts `./data`.
+- MeshCore service mounts `./data-meshcore` so captures do not clash with the MT bot.
 
 ---
 
 ## Native Installation (Advanced/Development)
-
-If you prefer to run the bot natively (e.g., for development or customization):
 
 1. **Clone the repository:**
     ```sh
@@ -77,17 +53,17 @@ If you prefer to run the bot natively (e.g., for development or customization):
     sudo apt-get install libopenblas-dev
     ```
 4. **Configure environment:**
-    - Copy `.env.example` to `.env` and fill in the required values.
+    - Copy `.env.example` to `.env` and fill in the required values (see [Meshtastic](docs/MESHTASTIC.md) / [MeshCore](docs/MESHCORE.md)).
 5. **Run the bot:**
     ```sh
-    python main.py
+    python -m src.main
     ```
 
 ---
 
 ## Usage
 
-The bot listens for messages and responds to commands. You can interact with it via supported Meshtastic channels.
+The bot listens for traffic and responds to `!` commands where the underlying protocol exposes text (Meshtastic today; MeshCore in capture mode still runs command dispatch for local testing).
 
 ### Supported Commands
 
