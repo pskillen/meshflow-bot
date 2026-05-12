@@ -59,7 +59,16 @@ Each JSON file:
 
 High-frequency types `no_more_messages` and `command_ok` are **not** written to disk (still processed for the live session).
 
+## Phase 0.4 — capture campaign (complete)
+
+Real-world JSON captures and capture-verified field tables live under **[docs/meshcore_packets/](meshcore_packets/README.md)**:
+
+- [README.md](meshcore_packets/README.md) — duration, geography, feeder setup, sample index.
+- [MESHCORE_PACKET_FIELDS.md](meshcore_packets/MESHCORE_PACKET_FIELDS.md) — field-by-field tables from those files.
+
+Tracked in [meshflow-api#275](https://github.com/pskillen/meshflow-api/issues/275).
+
 ## Next phases
 
-- **0.4:** Long capture campaign to inform API schema.
+- **0.5:** ADRs (identity, channel, broadcast, dedup) informed by 0.4 data — [meshflow-api#276](https://github.com/pskillen/meshflow-api/issues/276).
 - **1.x:** `MeshCorePacketSerializer` + `POST /api/meshcore/.../ingest/` and opt-in `MESHCORE_UPLOAD_ENABLED`.

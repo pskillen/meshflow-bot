@@ -1,0 +1,17 @@
+{
+  "protocol": "meshcore",
+  "event_type": "channel_message",
+  "payload": {
+    "type": "CHAN",
+    "channel_idx": 0,
+    "path_hash_mode": 2,
+    "path_len": 2,
+    "txt_type": 0,
+    "sender_timestamp": 1778147355,
+    "text": "tinker_tam base: LoftPi: Galloway telemetry failed; mesh amber; power GRID; CPU 51.5'C"
+  },
+  "attributes": {
+    "channel_idx": 0,
+    "txt_type": 0
+  }
+}

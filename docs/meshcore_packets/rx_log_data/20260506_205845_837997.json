@@ -1,0 +1,30 @@
+{
+  "protocol": "meshcore",
+  "event_type": "rx_log_data",
+  "payload": {
+    "raw_hex": "36d50a401ae554d4abf1bc5ca60abf0cf86cac8eeed19fae",
+    "recv_time": 1778101125,
+    "snr": 13.5,
+    "rssi": -43,
+    "payload": "0a401ae554d4abf1bc5ca60abf0cf86cac8eeed19fae",
+    "payload_length": 22,
+    "header": 10,
+    "route_type": 2,
+    "route_typename": "DIRECT",
+    "payload_type": 2,
+    "payload_typename": "TEXT_MSG",
+    "payload_ver": 0,
+    "path_len": 0,
+    "path_hash_size": 2,
+    "path": "",
+    "pkt_payload": "1ae554d4abf1bc5ca60abf0cf86cac8eeed19fae",
+    "pkt_hash": 726184765
+  },
+  "attributes": {
+    "recv_time": 1778101125,
+    "route_type": 2,
+    "payload_type": 2,
+    "path_len": 0,
+    "path": ""
+  }
+}

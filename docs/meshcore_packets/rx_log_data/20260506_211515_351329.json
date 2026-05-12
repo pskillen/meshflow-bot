@@ -1,0 +1,31 @@
+{
+  "protocol": "meshcore",
+  "event_type": "rx_log_data",
+  "payload": {
+    "raw_hex": "0090201c33000081f3bcf19670d51ac9b0808be3f0caca2a3243fe80e92372",
+    "recv_time": 1778102115,
+    "snr": 0.0,
+    "rssi": -112,
+    "payload": "201c33000081f3bcf19670d51ac9b0808be3f0caca2a3243fe80e92372",
+    "payload_length": 29,
+    "header": 32,
+    "route_type": 0,
+    "route_typename": "TC_FLOOD",
+    "payload_type": 8,
+    "payload_typename": "PATH",
+    "payload_ver": 0,
+    "transport_code": "1c330000",
+    "path_len": 1,
+    "path_hash_size": 3,
+    "path": "f3bcf1",
+    "pkt_payload": "9670d51ac9b0808be3f0caca2a3243fe80e92372",
+    "pkt_hash": 3138934464
+  },
+  "attributes": {
+    "recv_time": 1778102115,
+    "route_type": 0,
+    "payload_type": 8,
+    "path_len": 1,
+    "path": "f3bcf1"
+  }
+}

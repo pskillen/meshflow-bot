@@ -1,0 +1,10 @@
+{
+  "protocol": "meshcore",
+  "event_type": "advertisement",
+  "payload": {
+    "public_key": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc"
+  },
+  "attributes": {
+    "public_key": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc"
+  }
+}
