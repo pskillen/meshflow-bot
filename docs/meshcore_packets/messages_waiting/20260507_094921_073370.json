@@ -1,0 +1,6 @@
+{
+  "protocol": "meshcore",
+  "event_type": "messages_waiting",
+  "payload": {},
+  "attributes": {}
+}

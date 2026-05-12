@@ -1,0 +1,14 @@
+{
+  "protocol": "meshcore",
+  "event_type": "control_data",
+  "payload": {
+    "SNR": -2.75,
+    "RSSI": -112,
+    "path_len": 0,
+    "payload_type": 146,
+    "payload": "92fd2a0770a7f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc"
+  },
+  "attributes": {
+    "payload_type": 146
+  }
+}

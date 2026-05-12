@@ -1,0 +1,30 @@
+{
+  "protocol": "meshcore",
+  "event_type": "rx_log_data",
+  "payload": {
+    "raw_hex": "31d509401ae56383d7fa65703f498a938926a544d4edd5cb",
+    "recv_time": 1778101078,
+    "snr": 12.25,
+    "rssi": -43,
+    "payload": "09401ae56383d7fa65703f498a938926a544d4edd5cb",
+    "payload_length": 22,
+    "header": 9,
+    "route_type": 1,
+    "route_typename": "FLOOD",
+    "payload_type": 2,
+    "payload_typename": "TEXT_MSG",
+    "payload_ver": 0,
+    "path_len": 0,
+    "path_hash_size": 2,
+    "path": "",
+    "pkt_payload": "1ae56383d7fa65703f498a938926a544d4edd5cb",
+    "pkt_hash": 808099514
+  },
+  "attributes": {
+    "recv_time": 1778101078,
+    "route_type": 1,
+    "payload_type": 2,
+    "path_len": 0,
+    "path": ""
+  }
+}

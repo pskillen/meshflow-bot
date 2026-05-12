@@ -1,0 +1,18 @@
+{
+  "protocol": "meshcore",
+  "event_type": "discover_response",
+  "payload": {
+    "SNR": -2.25,
+    "RSSI": -113,
+    "path_len": 0,
+    "node_type": 2,
+    "SNR_in": 1.75,
+    "tag": "70a5f892",
+    "pubkey": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc"
+  },
+  "attributes": {
+    "node_type": 2,
+    "tag": "70a5f892",
+    "pubkey": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc"
+  }
+}

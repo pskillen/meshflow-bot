@@ -1,0 +1,17 @@
+{
+  "protocol": "meshcore",
+  "event_type": "contact_message",
+  "payload": {
+    "type": "PRIV",
+    "pubkey_prefix": "e563a2e933ce",
+    "path_hash_mode": 1,
+    "path_len": 0,
+    "txt_type": 0,
+    "sender_timestamp": 1778101079,
+    "text": "Hi"
+  },
+  "attributes": {
+    "pubkey_prefix": "e563a2e933ce",
+    "txt_type": 0
+  }
+}

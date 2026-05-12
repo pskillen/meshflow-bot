@@ -1,0 +1,23 @@
+{
+  "protocol": "meshcore",
+  "event_type": "trace_data",
+  "payload": {
+    "tag": 1967766342,
+    "auth": 0,
+    "flags": 0,
+    "path_len": 1,
+    "path": [
+      {
+        "hash": "f3",
+        "snr": 3.25
+      },
+      {
+        "snr": -0.75
+      }
+    ]
+  },
+  "attributes": {
+    "tag": 1967766342,
+    "auth_code": 0
+  }
+}

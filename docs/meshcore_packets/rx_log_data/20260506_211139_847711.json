@@ -1,0 +1,38 @@
+{
+  "protocol": "meshcore",
+  "event_type": "rx_log_data",
+  "payload": {
+    "raw_hex": "fa911100f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc51aefb69dc7feaf8068c7d7006da6fec99f3f70b34113470e6e34e7cf1f2c696c6dfd64b6bcafc650411c4402a7462920b7351d223744bb1bd9d78eb539082ef74ec740292846d5603b692c1ff574d46",
+    "recv_time": 1778101899,
+    "snr": -1.5,
+    "rssi": -111,
+    "payload": "1100f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc51aefb69dc7feaf8068c7d7006da6fec99f3f70b34113470e6e34e7cf1f2c696c6dfd64b6bcafc650411c4402a7462920b7351d223744bb1bd9d78eb539082ef74ec740292846d5603b692c1ff574d46",
+    "payload_length": 114,
+    "header": 17,
+    "route_type": 1,
+    "route_typename": "FLOOD",
+    "payload_type": 4,
+    "payload_typename": "ADVERT",
+    "payload_ver": 0,
+    "path_len": 0,
+    "path_hash_size": 1,
+    "path": "",
+    "pkt_payload": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc51aefb69dc7feaf8068c7d7006da6fec99f3f70b34113470e6e34e7cf1f2c696c6dfd64b6bcafc650411c4402a7462920b7351d223744bb1bd9d78eb539082ef74ec740292846d5603b692c1ff574d46",
+    "pkt_hash": 3654312717,
+    "adv_name": "WMF",
+    "adv_key": "f3bcf18b78deee33596d29d49aa6891d30ac6e2c97e7e6a9b81907f1470afcfc",
+    "adv_timestamp": 1778101841,
+    "signature": "dc7feaf8068c7d7006da6fec99f3f70b34113470e6e34e7cf1f2c696c6dfd64b6bcafc650411c4402a7462920b7351d223744bb1bd9d78eb539082ef74ec7402",
+    "adv_flags": 146,
+    "adv_type": 2,
+    "adv_lat": 55.99578,
+    "adv_lon": -4.09121
+  },
+  "attributes": {
+    "recv_time": 1778101899,
+    "route_type": 1,
+    "payload_type": 4,
+    "path_len": 0,
+    "path": ""
+  }
+}

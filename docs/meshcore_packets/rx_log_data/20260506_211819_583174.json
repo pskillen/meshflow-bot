@@ -1,0 +1,39 @@
+{
+  "protocol": "meshcore",
+  "event_type": "rx_log_data",
+  "payload": {
+    "raw_hex": "fd901014170000866f82ef610e706a88206edc9b4cd741f3bcf176cb8acf637a617782a677716218a5dcb2964f3c852df100e647aab943f1620902b0fb69fe7ece37c5b56f78d82da3a9b9843bba7826ebfb307c4b96126da1451310659449f0d76b901162081be084d39e7cdf11ed6eab17a221ef0f05f6a7d51ed78a0d9200000000000000006268642d746573742d66726f6f64",
+    "recv_time": 1778102299,
+    "snr": -0.75,
+    "rssi": -112,
+    "payload": "1014170000866f82ef610e706a88206edc9b4cd741f3bcf176cb8acf637a617782a677716218a5dcb2964f3c852df100e647aab943f1620902b0fb69fe7ece37c5b56f78d82da3a9b9843bba7826ebfb307c4b96126da1451310659449f0d76b901162081be084d39e7cdf11ed6eab17a221ef0f05f6a7d51ed78a0d9200000000000000006268642d746573742d66726f6f64",
+    "payload_length": 147,
+    "header": 16,
+    "route_type": 0,
+    "route_typename": "TC_FLOOD",
+    "payload_type": 4,
+    "payload_typename": "ADVERT",
+    "payload_ver": 0,
+    "transport_code": "14170000",
+    "path_len": 6,
+    "path_hash_size": 3,
+    "path": "6f82ef610e706a88206edc9b4cd741f3bcf1",
+    "pkt_payload": "76cb8acf637a617782a677716218a5dcb2964f3c852df100e647aab943f1620902b0fb69fe7ece37c5b56f78d82da3a9b9843bba7826ebfb307c4b96126da1451310659449f0d76b901162081be084d39e7cdf11ed6eab17a221ef0f05f6a7d51ed78a0d9200000000000000006268642d746573742d66726f6f64",
+    "pkt_hash": 2361064815,
+    "adv_name": "bhd-test-frood",
+    "adv_key": "76cb8acf637a617782a677716218a5dcb2964f3c852df100e647aab943f16209",
+    "adv_timestamp": 1778102274,
+    "signature": "fe7ece37c5b56f78d82da3a9b9843bba7826ebfb307c4b96126da1451310659449f0d76b901162081be084d39e7cdf11ed6eab17a221ef0f05f6a7d51ed78a0d",
+    "adv_flags": 146,
+    "adv_type": 2,
+    "adv_lat": 0.0,
+    "adv_lon": 0.0
+  },
+  "attributes": {
+    "recv_time": 1778102299,
+    "route_type": 0,
+    "payload_type": 4,
+    "path_len": 6,
+    "path": "6f82ef610e706a88206edc9b4cd741f3bcf1"
+  }
+}

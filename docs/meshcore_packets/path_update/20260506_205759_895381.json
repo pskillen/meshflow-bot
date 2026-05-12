@@ -1,0 +1,10 @@
+{
+  "protocol": "meshcore",
+  "event_type": "path_update",
+  "payload": {
+    "public_key": "e563a2e933ce8c930d8e2a6b80d648b4993fdb2536181eb8202d7bf9bfff880e"
+  },
+  "attributes": {
+    "public_key": "e563a2e933ce8c930d8e2a6b80d648b4993fdb2536181eb8202d7bf9bfff880e"
+  }
+}
