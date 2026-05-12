@@ -117,7 +117,10 @@ class MeshflowBot:
 
     def _on_packet(self, event: IncomingPacket) -> None:
         if event.raw is not None:
-            dump_packet(event.raw)
+            if isinstance(event.raw, dict) and event.raw.get("meshcore"):
+                pass  # MeshCore JSON dumps live under data/meshcore_packets/ (see MeshCoreRadio)
+            elif isinstance(event.raw, dict) and "decoded" in event.raw:
+                dump_packet(event.raw)
 
         if self.ignore_portnums and event.portnum in self.ignore_portnums:
             logger.info(
