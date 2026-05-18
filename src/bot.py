@@ -23,12 +23,8 @@ from src.persistence.node_info import AbstractNodeInfoStore
 from src.persistence.packet_dump import dump_packet
 from src.persistence.user_prefs import AbstractUserPrefsPersistence
 from src.radio.errors import call_safely, get_global_error_counter
-from src.radio.events import (
-    ConnectionEstablished,
-    IncomingPacket,
-    IncomingTextMessage,
-    NodeUpdate,
-)
+from src.radio.events import (ConnectionEstablished, IncomingPacket,
+                              IncomingTextMessage, NodeUpdate)
 from src.radio.interface import RadioHandlers, RadioInterface
 from src.responders.responder_factory import ResponderFactory
 
@@ -105,7 +101,9 @@ class MeshflowBot:
 
     def _on_connection_established(self, event: ConnectionEstablished) -> None:
         self.init_complete = True
-        logger.info("Connected as %s (nodenum=%s)", event.local_node_id, event.local_nodenum)
+        logger.info(
+            "Connected as %s (nodenum=%s)", event.local_node_id, event.local_nodenum
+        )
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()
@@ -132,13 +130,22 @@ class MeshflowBot:
         elif event.is_self_telemetry:
             pass  # self device-metrics; another bot will capture over the air
         else:
+            raw = event.raw if event.raw is not None else event
             for storage_api in self.storage_apis:
-                call_safely(
-                    "bot.store_raw_packet",
-                    storage_api.store_raw_packet,
-                    event.raw if event.raw is not None else event,
-                    counter=self._error_counter,
-                )
+                if isinstance(raw, dict) and raw.get("meshcore"):
+                    call_safely(
+                        "bot.store_raw_meshcore_packet",
+                        storage_api.store_raw_meshcore_packet,
+                        raw,
+                        counter=self._error_counter,
+                    )
+                else:
+                    call_safely(
+                        "bot.store_raw_packet",
+                        storage_api.store_raw_packet,
+                        raw,
+                        counter=self._error_counter,
+                    )
 
         sender = event.from_id
         if not sender:
@@ -180,7 +187,9 @@ class MeshflowBot:
 
         if self.init_complete:
             last_heard_str = pretty_print_last_heard(update.last_heard)
-            logger.info("New user: %s (last heard %s)", node.user.long_name, last_heard_str)
+            logger.info(
+                "New user: %s (last heard %s)", node.user.long_name, last_heard_str
+            )
 
     # --- private message dispatch ----------------------------------------
 
@@ -195,7 +204,9 @@ class MeshflowBot:
         command_name = words[0]
         command_instance = CommandFactory.create_command(command_name, self)
         if command_instance:
-            self.command_logger.log_command(message.from_id, command_instance, message.text)
+            self.command_logger.log_command(
+                message.from_id, command_instance, message.text
+            )
             call_safely(
                 "bot.handle_command",
                 command_instance.handle_packet,
