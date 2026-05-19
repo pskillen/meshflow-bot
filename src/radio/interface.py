@@ -11,12 +11,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from src.radio.events import (
-    ConnectionEstablished,
-    IncomingPacket,
-    IncomingTextMessage,
-    NodeUpdate,
-)
+from src.radio.events import (ConnectionEstablished, IncomingPacket,
+                              IncomingTextMessage, NodeUpdate)
 
 
 @dataclass
@@ -75,7 +71,10 @@ class RadioInterface(ABC):
     @property
     @abstractmethod
     def local_nodenum(self) -> Optional[int]:
-        """Local node id as an unsigned int, or ``None`` pre-connect."""
+        """Meshtastic local node id as an unsigned int, or ``None`` pre-connect.
+
+        MeshCore radios return ``None``; use ``local_node_id`` (``mc:…``) instead.
+        """
 
     # --- send-side ---------------------------------------------------------
 
@@ -113,8 +112,8 @@ class RadioInterface(ABC):
         *,
         channel_index: int = 0,
     ) -> None:
-        """Send a protocol-appropriate traceroute / route-discovery probe.
+        """Send a Meshtastic traceroute (``target_node_id`` is numeric nodenum).
 
-        Adapters that don't support traceroute should raise
+        MeshCore and other adapters that do not support traceroute should raise
         :class:`~src.radio.errors.RadioError`.
         """
