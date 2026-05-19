@@ -20,6 +20,7 @@ from requests import HTTPError, RequestException
 from src.api.BaseAPIWrapper import BaseAPIWrapper
 from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
+from src.meshcore.serializers import MeshCoreSkipUpload
 from src.radio.errors import get_global_error_counter
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,43 @@ class StorageAPIWrapper(BaseAPIWrapper):
         return api_paths[path]
 
     # --- raw packets ------------------------------------------------------
+
+    def store_raw_meshcore_packet(self, packet: Any) -> Optional[dict]:
+        """Upload a MeshCore capture envelope to ``/api/meshcore/packets/ingest/``."""
+        try:
+            payload = self._serializer.serialise_raw_packet(packet)
+        except MeshCoreSkipUpload as exc:
+            logger.debug("Skipping MeshCore upload: %s", exc)
+            return None
+        except Exception as exc:
+            self._error_counter.increment("storage.serialise_raw_meshcore_packet")
+            logger.exception(
+                "StorageAPIWrapper: serialise_raw_meshcore_packet failed: %s", exc
+            )
+            return None
+
+        logger.debug("Storing MeshCore packet: %s", payload.get("payload_type"))
+        try:
+            response = self._post("/api/meshcore/packets/ingest/", json=payload)
+            return response.json()
+        except HTTPError as exc:
+            self._error_counter.increment("storage.store_raw_meshcore_packet.http")
+            logger.error("HTTP error storing MeshCore packet: %s", exc.response.text)
+            if self.failed_packets_dir:
+                self._dump_failed_packet(payload, exc, original_packet=packet)
+        except RequestException as exc:
+            self._error_counter.increment("storage.store_raw_meshcore_packet.network")
+            logger.error("Network error storing MeshCore packet: %s", exc)
+            if self.failed_packets_dir:
+                self._dump_failed_packet(payload, exc, original_packet=packet)
+        except Exception as exc:
+            self._error_counter.increment(
+                "storage.store_raw_meshcore_packet.unexpected"
+            )
+            logger.exception("Unexpected error storing MeshCore packet: %s", exc)
+            if self.failed_packets_dir:
+                self._dump_failed_packet(payload, exc, original_packet=packet)
+        return None
 
     def store_raw_packet(self, packet: Any) -> Optional[dict]:
         """Sanitise and upload a received packet. Returns the api response or
@@ -167,27 +205,31 @@ class StorageAPIWrapper(BaseAPIWrapper):
                     url=response.url,
                     headers=dict(response.headers),
                 )
-            with (self.failed_packets_dir / f"failed_packet_{timestamp}_error.json").open("w") as f:
+            with (
+                self.failed_packets_dir / f"failed_packet_{timestamp}_error.json"
+            ).open("w") as f:
                 json.dump(error_info, f, indent=4)
         except Exception as dump_exc:
             logger.error("Failed to dump error info: %s", dump_exc)
 
         # Sanitised payload (always JSON-safe)
         try:
-            with (self.failed_packets_dir / f"failed_packet_{timestamp}.json").open("w") as f:
+            with (self.failed_packets_dir / f"failed_packet_{timestamp}.json").open(
+                "w"
+            ) as f:
                 json.dump(payload, f, indent=4)
         except Exception as dump_exc:
             logger.error("Failed to dump packet payload: %s", dump_exc)
 
         # Underlying protobuf (best-effort)
         raw_proto = (
-            original_packet.get("raw")
-            if isinstance(original_packet, dict)
-            else None
+            original_packet.get("raw") if isinstance(original_packet, dict) else None
         )
         if raw_proto:
             try:
-                with (self.failed_packets_dir / f"failed_packet_{timestamp}_raw.txt").open("w") as f:
+                with (
+                    self.failed_packets_dir / f"failed_packet_{timestamp}_raw.txt"
+                ).open("w") as f:
                     f.write(str(raw_proto))
             except Exception as dump_exc:
                 logger.error("Failed to dump raw protobuf: %s", dump_exc)

@@ -27,9 +27,9 @@ logging.getLogger("tcp_interface").setLevel(logging.WARNING)
 logging.getLogger("stream_interface").setLevel(logging.WARNING)
 logging.getLogger("mesh_interface").setLevel(logging.WARNING)
 
+from src.api.packet_serializer import PacketSerializer
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
-from src.api.packet_serializer import PacketSerializer
 from src.bot import MeshflowBot
 from src.meshcore.radio import MeshCoreRadio
 from src.meshcore.serializers import MeshCorePacketSerializer
@@ -49,6 +49,11 @@ MESHCORE_BLE_ADDRESS = os.getenv("MESHCORE_BLE_ADDRESS")
 MESHCORE_BLE_PIN = os.getenv("MESHCORE_BLE_PIN")
 MESHCORE_SERIAL_BAUD = int(os.getenv("MESHCORE_SERIAL_BAUD", "115200"))
 MESHCORE_DEBUG = os.getenv("MESHCORE_DEBUG", "false").lower() in ("1", "true", "yes")
+MESHCORE_UPLOAD_ENABLED = os.getenv("MESHCORE_UPLOAD_ENABLED", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 ADMIN_NODES = os.getenv("ADMIN_NODES", "").split(",")
 DATA_DIR = os.getenv("DATA_DIR", "data")
 STORAGE_API_ROOT = os.getenv("STORAGE_API_ROOT")
@@ -70,7 +75,9 @@ def build_radio(data_dir: Path) -> tuple[RadioInterface, PacketSerializer]:
     :class:`PacketSerializer` for the storage uploader."""
     if RADIO_PROTOCOL == "meshtastic":
         if not MESHTASTIC_IP:
-            raise RuntimeError("MESHTASTIC_IP must be set when RADIO_PROTOCOL=meshtastic")
+            raise RuntimeError(
+                "MESHTASTIC_IP must be set when RADIO_PROTOCOL=meshtastic"
+            )
         return MeshtasticRadio(MESHTASTIC_IP), MeshtasticPacketSerializer()
     if RADIO_PROTOCOL == "meshcore":
         serial = MESHCORE_SERIAL_DEVICE
@@ -124,10 +131,20 @@ def main() -> None:
                 local_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
+    elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED:
+        bot.storage_apis.append(
+            StorageAPIWrapper(
+                STORAGE_API_ROOT,
+                STORAGE_API_TOKEN,
+                api_version=2,
+                failed_packets_dir=failed_packets_dir,
+                serializer=serializer,
+                local_nodenum_provider=lambda: bot.my_nodenum,
+            )
+        )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore":
         logging.info(
-            "RADIO_PROTOCOL=meshcore: API upload disabled in Phase 0.3 (capture-only); "
-            "ignoring STORAGE_API_ROOT"
+            "RADIO_PROTOCOL=meshcore: capture-only (set MESHCORE_UPLOAD_ENABLED=true to upload)"
         )
     if STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshtastic":
         bot.storage_apis.append(
@@ -140,15 +157,30 @@ def main() -> None:
                 local_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
+    elif (
+        STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED
+    ):
+        bot.storage_apis.append(
+            StorageAPIWrapper(
+                STORAGE_API_2_ROOT,
+                STORAGE_API_2_TOKEN,
+                STORAGE_API_2_VERSION,
+                failed_packets_dir,
+                serializer=serializer,
+                local_nodenum_provider=lambda: bot.my_nodenum,
+            )
+        )
     elif STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshcore":
-        logging.info("RADIO_PROTOCOL=meshcore: ignoring STORAGE_API_2_ROOT (capture-only)")
+        logging.info(
+            "RADIO_PROTOCOL=meshcore: ignoring STORAGE_API_2_ROOT (upload disabled)"
+        )
 
     # WebSocket client (e.g. for remote traceroute commands)
     ws_url = MESHFLOW_WS_URL
     ws_token = None
     if not ws_url and STORAGE_API_ROOT:
-        ws_url = (
-            STORAGE_API_ROOT.replace("http://", "ws://").replace("https://", "wss://")
+        ws_url = STORAGE_API_ROOT.replace("http://", "ws://").replace(
+            "https://", "wss://"
         )
     if STORAGE_API_ROOT and STORAGE_API_TOKEN:
         ws_token = STORAGE_API_TOKEN
