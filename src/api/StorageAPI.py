@@ -1,8 +1,14 @@
 """HTTP client for the meshflow-api ingest endpoints.
 
-Protocol-agnostic: takes a :class:`PacketSerializer` to shape outgoing data,
-and a ``local_nodenum_provider`` callable so it can lazily look up the local
-nodenum for v2 endpoints (which are scoped per-node).
+Meshtastic uploads use v2 paths scoped by local nodenum:
+``POST /api/packets/{nodenum}/ingest/`` and ``…/nodes/`` (see ``_get_url`` when
+``api_version == 2``). v1 ``POST /api/raw-packet/`` is legacy.
+
+MeshCore uploads use ``POST /api/meshcore/packets/ingest/`` via
+:meth:`store_raw_meshcore_packet` (not the Meshtastic packet paths).
+
+Takes a :class:`PacketSerializer` to shape outgoing data and a
+``local_nodenum_provider`` for Meshtastic v2 URL construction.
 """
 
 from __future__ import annotations
@@ -109,9 +115,10 @@ class StorageAPIWrapper(BaseAPIWrapper):
         return None
 
     def store_raw_packet(self, packet: Any) -> Optional[dict]:
-        """Sanitise and upload a received packet. Returns the api response or
-        ``None`` if upload failed; never raises (errors are dumped to disk
-        when ``failed_packets_dir`` is configured)."""
+        """Sanitise and upload a Meshtastic packet to v2 ``/api/packets/{nodenum}/ingest/``
+        (or v1 ``/api/raw-packet/``). Returns the api response or ``None`` if upload failed;
+        never raises (errors are dumped to disk when ``failed_packets_dir`` is configured).
+        For MeshCore captures use :meth:`store_raw_meshcore_packet` instead."""
         try:
             payload = self._serializer.serialise_raw_packet(packet)
         except Exception as exc:

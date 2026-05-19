@@ -17,13 +17,18 @@ class IncomingPacket:
     """A packet received from the radio, in protocol-agnostic form."""
 
     portnum: str
-    """Portnum / message-type as an upper-case string (e.g. ``TEXT_MESSAGE_APP``)."""
+    """Portnum / message-type as an upper-case string (e.g. ``TEXT_MESSAGE_APP``).
+
+    Meshtastic-specific today; MeshCore adapters map native payload types to a
+    comparable label for logging and routing.
+    """
 
     from_id: Optional[str]
-    """Sender node id in canonical hex form (``!aabbccdd``) or ``None`` if unknown."""
+    """Sender node id in canonical form (``!aabbccdd`` Meshtastic, ``mc:deadbeefcafe`` MeshCore)
+    or ``None`` if unknown."""
 
     to_id: Optional[str]
-    """Destination node id, or ``None`` for unaddressed broadcasts."""
+    """Destination node id (same canonical forms as ``from_id``), or ``None`` for broadcasts."""
 
     channel: int = 0
 
@@ -54,7 +59,11 @@ class IncomingTextMessage:
     channel: int = 0
     message_id: int = 0
     hop_start: int = 0
+    """Meshtastic hop budget at send (MeshCore adapters may leave 0)."""
+
     hop_limit: int = 0
+    """Meshtastic hops remaining at receive (MeshCore adapters may leave 0)."""
+
     is_dm: bool = False
     raw: Any = None
     """The protocol-native packet that produced this message, kept opaque
