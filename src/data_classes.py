@@ -25,7 +25,11 @@ class MeshNode:
             macaddr: str = "",
             hw_model: str = "",
             public_key: str = "",
+            *,
+            canonical_id: str | None = None,
         ):
+            if canonical_id is not None:
+                node_id = canonical_id
             self.id = node_id
             self.long_name = long_name
             self.short_name = short_name

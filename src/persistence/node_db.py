@@ -16,7 +16,7 @@ class AbstractNodeDB(abc.ABC):
             self.store_device_metrics(node.user.id, node.device_metrics)
 
     @abc.abstractmethod
-    def get_by_id(self, node_id: str) -> MeshNode.User | None:
+    def get_by_radio_id(self, node_id: str) -> MeshNode.User | None:
         pass
 
     @abc.abstractmethod
@@ -79,7 +79,7 @@ class InMemoryNodeDB(AbstractNodeDB):
             self.device_metrics[node_id] = []
         self.device_metrics[node_id].append(device_metrics)
 
-    def get_by_id(self, node_id: str) -> MeshNode.User | None:
+    def get_by_radio_id(self, node_id: str) -> MeshNode.User | None:
         return self.nodes.get(node_id)
 
     def get_by_short_name(self, short_name: str) -> MeshNode.User | None:
@@ -185,7 +185,7 @@ class SqliteNodeDB(BaseSqlitePersistenceStore, AbstractNodeDB):
                   device_metrics.channel_utilization, device_metrics.air_util_tx, device_metrics.uptime_seconds))
             conn.commit()
 
-    def get_by_id(self, node_id: str) -> MeshNode.User | None:
+    def get_by_radio_id(self, node_id: str) -> MeshNode.User | None:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT id, short_name, long_name, macaddr, hw_model, public_key FROM nodes WHERE id = ?',

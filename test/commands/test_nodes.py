@@ -49,7 +49,7 @@ class TestNodesCommand(CommandWSCTestCase):
 
         expected_response = f"{self.online_count} nodes online.\nBusy nodes:\n"
         for node_id, packet_count in sorted_nodes[:5]:
-            node = self.bot.node_db.get_by_id(node_id)
+            node = self.bot.node_db.get_by_radio_id(node_id)
             expected_response += f"- {node.short_name} ({packet_count} pkts)\n"
 
         last_reset_time = self.bot.node_info.packet_counter_reset_time.strftime("%H:%M:%S")

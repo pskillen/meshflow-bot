@@ -21,7 +21,7 @@ class AdminCommand(AbstractCommandWithSubcommands):
     def handle_packet(self, message: IncomingTextMessage) -> None:
         sender = message.from_id
         if sender not in self.bot.admin_nodes:
-            node = self.bot.node_db.get_by_id(sender)
+            node = self.bot.node_db.get_by_radio_id(sender)
             response = (
                 f"Sorry {node.long_name}, you are not authorized to use this command"
             )
@@ -132,7 +132,7 @@ class AdminCommand(AbstractCommandWithSubcommands):
 
         response = f"Users: {len(user_ids)}\n"
         for user_id in user_ids:
-            node = self.bot.node_db.get_by_id(user_id)
+            node = self.bot.node_db.get_by_radio_id(user_id)
             user_name = node.short_name if node else f"Unknown user {user_id}"
             known_request_count = len(_rows_for_sender(command_history, user_id))
             unknown_request_count = len(
