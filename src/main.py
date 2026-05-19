@@ -128,7 +128,7 @@ def main() -> None:
                 STORAGE_API_VERSION,
                 failed_packets_dir,
                 serializer=serializer,
-                local_nodenum_provider=lambda: bot.my_nodenum,
+                local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED:
@@ -139,7 +139,7 @@ def main() -> None:
                 api_version=2,
                 failed_packets_dir=failed_packets_dir,
                 serializer=serializer,
-                local_nodenum_provider=lambda: bot.my_nodenum,
+                local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore":
@@ -154,7 +154,7 @@ def main() -> None:
                 STORAGE_API_2_VERSION,
                 failed_packets_dir,
                 serializer=serializer,
-                local_nodenum_provider=lambda: bot.my_nodenum,
+                local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
     elif (
@@ -167,7 +167,7 @@ def main() -> None:
                 STORAGE_API_2_VERSION,
                 failed_packets_dir,
                 serializer=serializer,
-                local_nodenum_provider=lambda: bot.my_nodenum,
+                local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
             )
         )
     elif STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshcore":

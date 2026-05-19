@@ -17,7 +17,7 @@ class TestInMemoryNodeDB(unittest.TestCase):
 
     def test_store_and_get_user(self):
         self.db.store_user(self.node_user)
-        retrieved_user = self.db.get_by_id(self.node_user.id)
+        retrieved_user = self.db.get_by_radio_id(self.node_user.id)
         self.assertEqual(retrieved_user.id, self.node_user.id)
         self.assertEqual(retrieved_user.short_name, self.node_user.short_name)
         self.assertEqual(retrieved_user.long_name, self.node_user.long_name)
@@ -73,7 +73,7 @@ class TestSqliteNodeDB(unittest.TestCase):
 
     def test_store_and_get_user(self):
         self.db.store_user(self.node_user)
-        retrieved_user = self.db.get_by_id(self.node_user.id)
+        retrieved_user = self.db.get_by_radio_id(self.node_user.id)
         self.assertEqual(retrieved_user.id, self.node_user.id)
         self.assertEqual(retrieved_user.short_name, self.node_user.short_name)
         self.assertEqual(retrieved_user.long_name, self.node_user.long_name)

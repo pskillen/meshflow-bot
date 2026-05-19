@@ -20,7 +20,7 @@ class TemplateCommand(AbstractCommand):
         if not text.startswith(f"!{self.base_command}"):
             return
 
-        sender = self.bot.node_db.get_by_id(sender_id)
+        sender = self.bot.node_db.get_by_radio_id(sender_id)
 
         template = Template(self.template)
         local_context = {

@@ -151,7 +151,7 @@ class MeshflowBot:
         if not sender:
             return
 
-        node = self.node_db.get_by_id(sender)
+        node = self.node_db.get_by_radio_id(sender)
         if not node:
             return
 
@@ -160,7 +160,7 @@ class MeshflowBot:
             self.node_info.node_packet_received(sender, event.portnum)
 
         if sender == self.my_id and event.to_id is not None:
-            recipient = self.node_db.get_by_id(event.to_id)
+            recipient = self.node_db.get_by_radio_id(event.to_id)
             recipient_name = recipient.long_name if recipient else event.to_id
             logger.debug(
                 "Received packet from self: %s (port %s)", recipient_name, event.portnum
@@ -194,7 +194,7 @@ class MeshflowBot:
     # --- private message dispatch ----------------------------------------
 
     def _handle_private_message(self, message: IncomingTextMessage) -> None:
-        sender = self.node_db.get_by_id(message.from_id)
+        sender = self.node_db.get_by_radio_id(message.from_id)
         sender_name = sender.long_name if sender else message.from_id
         logger.info("Received private message: '%s' from %s", message.text, sender_name)
 
@@ -228,7 +228,7 @@ class MeshflowBot:
             counter=self._error_counter,
         )
         if outcome:
-            sender = self.node_db.get_by_id(message.from_id)
+            sender = self.node_db.get_by_radio_id(message.from_id)
             sender_name = sender.long_name if sender else message.from_id
             logger.info(
                 "Handled message from %s with responder %s: %s",
@@ -250,7 +250,7 @@ class MeshflowBot:
         for node_id in sorted_nodes:
             if node_id == self.my_id:
                 continue
-            node = self.node_db.get_by_id(node_id)
+            node = self.node_db.get_by_radio_id(node_id)
             last_heard = self.node_info.get_last_heard(node_id)
             last_heard_str = pretty_print_last_heard(last_heard)
             encoded_name = safe_encode_node_name(node.long_name) if node else node_id

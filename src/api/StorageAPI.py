@@ -8,7 +8,7 @@ MeshCore uploads use ``POST /api/meshcore/packets/ingest/`` via
 :meth:`store_raw_meshcore_packet` (not the Meshtastic packet paths).
 
 Takes a :class:`PacketSerializer` to shape outgoing data and a
-``local_nodenum_provider`` for Meshtastic v2 URL construction.
+``local_meshtastic_nodenum_provider`` for Meshtastic v2 URL construction.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         failed_packets_dir: Optional[Union[str, Path]] = None,
         *,
         serializer: PacketSerializer,
-        local_nodenum_provider: Callable[[], Optional[int]],
+        local_meshtastic_nodenum_provider: Callable[[], Optional[int]],
     ):
         super().__init__(base_url, token)
         self.api_version = api_version
@@ -53,7 +53,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
             Path(failed_packets_dir) if failed_packets_dir else None
         )
         self._serializer = serializer
-        self._local_nodenum_provider = local_nodenum_provider
+        self._local_meshtastic_nodenum_provider = local_meshtastic_nodenum_provider
         self._error_counter = get_global_error_counter()
 
     def _get_url(self, path: str, args: Optional[dict] = None) -> str:
@@ -67,7 +67,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 "node_by_id": f"/api/nodes/{args.get('node_id', '')}",
             }
         else:
-            local_nodenum = self._local_nodenum_provider()
+            local_nodenum = self._local_meshtastic_nodenum_provider()
             api_paths = {
                 "raw_packet": f"/api/packets/{local_nodenum}/ingest/",
                 "nodes": f"/api/packets/{local_nodenum}/nodes/",

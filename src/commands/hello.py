@@ -9,7 +9,7 @@ class HelloCommand(AbstractCommand):
 
     def handle_packet(self, message: IncomingTextMessage) -> None:
         sender_id = message.from_id
-        sender = self.bot.node_db.get_by_id(sender_id)
+        sender = self.bot.node_db.get_by_radio_id(sender_id)
         sender_name = sender.long_name if sender else sender_id
 
         response = (

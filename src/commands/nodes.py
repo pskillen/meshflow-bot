@@ -78,7 +78,7 @@ class NodesCommand(AbstractCommandWithSubcommands):
         self.reply_to(sender, response)
 
     def send_detailed_nodeinfo(self, sender: str, node_id: str) -> None:
-        node = self.bot.node_db.get_by_id(node_id)
+        node = self.bot.node_db.get_by_radio_id(node_id)
         if not node:
             return
 

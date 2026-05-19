@@ -14,7 +14,7 @@ def test_store_raw_meshcore_packet_posts_to_ingest() -> None:
         token="secret",
         api_version=2,
         serializer=MeshCorePacketSerializer(),
-        local_nodenum_provider=lambda: None,
+        local_meshtastic_nodenum_provider=lambda: None,
     )
     envelope = {
         "meshcore": True,
