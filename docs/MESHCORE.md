@@ -30,7 +30,16 @@ TCP is supported by `meshcore` but not wired in this bot build (add later if nee
 | `ADMIN_NODES` | Same as Meshtastic: comma-separated admin ids (format may evolve for MC). |
 | `DATA_DIR` | Base data directory (default `data/`). |
 
-Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored. The MeshCore WebSocket command channel is not started (traceroute is Meshtastic-only today).
+Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored.
+
+## Channel sync and WebSocket (Phase 2.2)
+
+When `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, the bot also:
+
+1. **On connect** — reads the device channel table (`meshcore.commands.get_channel`) and `POST`s ` /api/meshcore/feeder/mc-channel-sync/` (device is source of truth for names/types).
+2. **WebSocket** — connects to `ws/nodes/?api_key=…` for `apply_mc_channel_config` (UI “apply to radio”); writes channels via `set_channel`, then re-syncs to the API.
+
+Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS messages.
 
 ## Meshflow upload event types
 

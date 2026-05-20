@@ -26,6 +26,7 @@ class MeshflowWSClient:
         ws_url: str,
         api_key: str,
         on_traceroute: Callable[[int], None],
+        on_apply_mc_channel_config: Optional[Callable[[list], None]] = None,
         on_connect: Optional[Callable[[], None]] = None,
         on_disconnect: Optional[Callable[[], None]] = None,
     ):
@@ -40,6 +41,7 @@ class MeshflowWSClient:
         self.ws_url = ws_url.rstrip("/")
         self.api_key = api_key
         self.on_traceroute = on_traceroute
+        self.on_apply_mc_channel_config = on_apply_mc_channel_config
         self.on_connect = on_connect
         self.on_disconnect = on_disconnect
 
@@ -102,7 +104,9 @@ class MeshflowWSClient:
                 break
 
             await asyncio.sleep(backoff)
-            backoff = getattr(self, "_backoff", backoff)  # Use reset value from successful connect
+            backoff = getattr(
+                self, "_backoff", backoff
+            )  # Use reset value from successful connect
             backoff = min(backoff * 1.5, max_backoff)
 
         logger.info("MeshflowWSClient: run loop ended")
@@ -113,7 +117,9 @@ class MeshflowWSClient:
             import websockets
             from websockets.exceptions import ConnectionClosed
         except ImportError:
-            raise ImportError("websockets package required. Install with: pip install websockets")
+            raise ImportError(
+                "websockets package required. Install with: pip install websockets"
+            )
 
         endpoint = self._get_ws_endpoint()
         # Django Channels AllowedHostsOriginValidator requires Origin header.
@@ -141,7 +147,9 @@ class MeshflowWSClient:
                     continue
                 except ConnectionClosed as e:
                     code = getattr(getattr(e, "rcvd", None), "code", None)
-                    logger.info(f"MeshflowWSClient: connection closed by server (code={code})")
+                    logger.info(
+                        f"MeshflowWSClient: connection closed by server (code={code})"
+                    )
                     raise
 
                 try:
@@ -156,22 +164,58 @@ class MeshflowWSClient:
                     if target is not None:
                         try:
                             target_id = int(target)
-                            logger.info(f"MeshflowWSClient: received traceroute command, target={target_id}")
+                            logger.info(
+                                f"MeshflowWSClient: received traceroute command, target={target_id}"
+                            )
                             # Run in thread so a blocking/long-running TR doesn't block receiving
                             # further commands (e.g. multiple TRs in quick succession, or TR that never returns)
-                            task = asyncio.create_task(asyncio.to_thread(self.on_traceroute, target_id))
+                            task = asyncio.create_task(
+                                asyncio.to_thread(self.on_traceroute, target_id)
+                            )
 
                             def _task_done(t):
                                 if t.cancelled():
                                     return
                                 exc = t.exception()
                                 if exc:
-                                    logger.warning(f"MeshflowWSClient: traceroute task failed: {exc}")
+                                    logger.warning(
+                                        f"MeshflowWSClient: traceroute task failed: {exc}"
+                                    )
 
                             task.add_done_callback(_task_done)
                         except (TypeError, ValueError):
-                            logger.warning(f"MeshflowWSClient: invalid traceroute target: {target}")
+                            logger.warning(
+                                f"MeshflowWSClient: invalid traceroute target: {target}"
+                            )
                     else:
-                        logger.warning("MeshflowWSClient: traceroute command missing target")
+                        logger.warning(
+                            "MeshflowWSClient: traceroute command missing target"
+                        )
+                elif cmd_type == "apply_mc_channel_config":
+                    channels = data.get("channels")
+                    if channels is not None and self.on_apply_mc_channel_config:
+                        logger.info(
+                            "MeshflowWSClient: received apply_mc_channel_config (%s channels)",
+                            len(channels),
+                        )
+                        task = asyncio.create_task(
+                            asyncio.to_thread(self.on_apply_mc_channel_config, channels)
+                        )
+
+                        def _apply_done(t):
+                            if t.cancelled():
+                                return
+                            exc = t.exception()
+                            if exc:
+                                logger.warning(
+                                    "MeshflowWSClient: apply_mc_channel_config failed: %s",
+                                    exc,
+                                )
+
+                        task.add_done_callback(_apply_done)
+                    else:
+                        logger.warning(
+                            "MeshflowWSClient: apply_mc_channel_config missing channels or handler"
+                        )
                 else:
                     logger.debug(f"MeshflowWSClient: ignored command type: {cmd_type}")
