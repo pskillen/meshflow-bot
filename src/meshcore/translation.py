@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from meshcore.events import Event, EventType
-
 from src.data_classes import MeshNode
 from src.radio.events import IncomingPacket, IncomingTextMessage, NodeUpdate
 
@@ -108,6 +107,17 @@ def event_to_incoming_packet(event: Event) -> Optional[IncomingPacket]:
         )
 
     if et == EventType.RAW_DATA:
+        return IncomingPacket(
+            portnum=event_type_to_portnum(et),
+            from_id=None,
+            to_id=None,
+            channel=0,
+            has_decoded=True,
+            is_self_telemetry=False,
+            raw=_raw_envelope(event),
+        )
+
+    if et == EventType.RX_LOG_DATA:
         return IncomingPacket(
             portnum=event_type_to_portnum(et),
             from_id=None,
