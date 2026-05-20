@@ -2,7 +2,9 @@
 
 [MeshCore](https://meshcore.co.uk) is a mesh radio protocol and companion firmware family. This bot integrates via the [`meshcore` PyPI package](https://github.com/meshcore-dev/meshcore_py) (Python bindings).
 
-**Phase 0.3 scope:** connect, receive events, translate them into the bot’s generic `RadioInterface` events, and write JSON captures under `data/meshcore_packets/<event_type>/`. **No** Meshflow API upload (`StorageAPIWrapper` is disabled when `RADIO_PROTOCOL=meshcore`).
+**Phase 0.3 scope:** connect, receive events, translate them into the bot’s generic `RadioInterface` events, and write JSON captures under `data/meshcore_packets/<event_type>/`.
+
+**Phase 1 upload:** when `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, selected events upload to `POST /api/meshcore/packets/ingest/`.
 
 ## Transports
 
@@ -28,7 +30,18 @@ TCP is supported by `meshcore` but not wired in this bot build (add later if nee
 | `ADMIN_NODES` | Same as Meshtastic: comma-separated admin ids (format may evolve for MC). |
 | `DATA_DIR` | Base data directory (default `data/`). |
 
-`STORAGE_API_*` is ignored with a log line in Phase 0.3. The MeshCore WebSocket command channel is not started (traceroute is Meshtastic-only today).
+Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored. The MeshCore WebSocket command channel is not started (traceroute is Meshtastic-only today).
+
+## Meshflow upload event types
+
+| `event_type` (capture / wire) | Upload | GPS / name in API |
+|------------------------------|--------|-------------------|
+| `advertisement` | Yes (`payload_type: advert`) | Identity only (`public_key`) |
+| **`rx_log_data`** + `payload_typename: ADVERT` | Yes | **`adv_lat` / `adv_lon` / `adv_name`** (map coordinates in Meshflow UI) |
+| `contact_message`, `channel_message` | Yes (text) | N/A |
+| `rx_log_data` (TEXT_MSG, PATH, …) | No (`MeshCoreSkipUpload`) | N/A |
+
+Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://github.com/pskillen/meshflow-bot/issues/102) and **API** [meshflow-api#330](https://github.com/pskillen/meshflow-api/issues/330) / [#298](https://github.com/pskillen/meshflow-api/issues/298) deployed on feeders.
 
 ## Local identity
 
