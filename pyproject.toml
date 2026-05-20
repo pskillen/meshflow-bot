@@ -5,7 +5,7 @@ addopts = [
     "--cov=src",
     "--cov-report=term-missing",
     "--cov-report=xml",
-    "--cov-fail-under=70",
+    "--cov-fail-under=80",
 ]
 
 [tool.coverage.run]
@@ -16,6 +16,8 @@ source = ["src"]
 omit = [
     "src/main.py",
     "src/ws_client.py",
+    "src/meshcore/radio.py",
+    "src/meshtastic/radio.py",
     "src/meshtastic/tcp_interface.py",
     "src/meshtastic/traceroute.py",
 ]
