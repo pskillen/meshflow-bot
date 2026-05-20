@@ -104,6 +104,8 @@ class MeshflowBot:
         logger.info(
             "Connected as %s (nodenum=%s)", event.local_node_id, event.local_nodenum
         )
+        for storage_api in self.storage_apis:
+            storage_api.report_bot_version()
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()
