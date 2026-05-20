@@ -28,6 +28,7 @@ from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
 from src.meshcore.serializers import MeshCoreSkipUpload
 from src.radio.errors import get_global_error_counter
+from src.version import get_bot_version
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +72,37 @@ class StorageAPIWrapper(BaseAPIWrapper):
             api_paths = {
                 "raw_packet": f"/api/packets/{local_nodenum}/ingest/",
                 "nodes": f"/api/packets/{local_nodenum}/nodes/",
+                "bot_version": f"/api/packets/{local_nodenum}/bot-version/",
                 "node_by_id": f"/api/nodes/{args.get('node_id', '')}",
             }
         return api_paths[path]
+
+    def report_bot_version(self) -> bool:
+        """Report meshflow-bot version (``APP_VERSION``) to the API (v2 path only). Returns True on success."""
+        if self.api_version != 2:
+            logger.debug(
+                "Skipping bot version report (api_version=%s)", self.api_version
+            )
+            return False
+        local_nodenum = self._local_meshtastic_nodenum_provider()
+        if local_nodenum is None:
+            logger.warning("Cannot report bot version: local nodenum not available yet")
+            return False
+        version = get_bot_version()
+        try:
+            self._put(self._get_url("bot_version"), json={"bot_version": version})
+            logger.info("Reported bot version %s to API", version)
+            return True
+        except HTTPError as exc:
+            self._error_counter.increment("storage.report_bot_version.http")
+            logger.error("HTTP error reporting bot version: %s", exc.response.text)
+        except RequestException as exc:
+            self._error_counter.increment("storage.report_bot_version.network")
+            logger.error("Network error reporting bot version: %s", exc)
+        except Exception as exc:
+            self._error_counter.increment("storage.report_bot_version.unexpected")
+            logger.exception("Unexpected error reporting bot version: %s", exc)
+        return False
 
     # --- raw packets ------------------------------------------------------
 

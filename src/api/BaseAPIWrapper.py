@@ -33,3 +33,9 @@ class BaseAPIWrapper(ABC):
         response = requests.post(full_url, json=json, headers=self._get_headers())
         response.raise_for_status()
         return response
+
+    def _put(self, url: str, json: dict) -> requests.Response:
+        full_url = f"{self.base_url}/{url.lstrip('/')}"
+        response = requests.put(full_url, json=json, headers=self._get_headers())
+        response.raise_for_status()
+        return response
