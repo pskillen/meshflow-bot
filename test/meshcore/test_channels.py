@@ -10,6 +10,7 @@ from meshcore.events import Event, EventType
 from src.meshcore.channels import (
     _channel_entry_from_info,
     apply_device_channels,
+    log_device_channels,
     read_device_channels,
     snapshot_sync_body,
 )
@@ -25,6 +26,35 @@ def test_channel_entry_hashtag():
     entry = _channel_entry_from_info(1, {"channel_name": "#galloway"})
     assert entry["mc_channel_type"] == "HASHTAG"
     assert entry["mc_hashtag"] == "galloway"
+
+
+def test_log_device_channels(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO)
+    log_device_channels(
+        [
+            {"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"},
+            {
+                "mc_channel_idx": 1,
+                "name": "galloway",
+                "mc_channel_type": "HASHTAG",
+                "mc_hashtag": "galloway",
+            },
+        ]
+    )
+    text = caplog.text
+    assert "MeshCore device channels (2):" in text
+    assert "Public" in text
+    assert "galloway" in text
+
+
+def test_log_device_channels_empty(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO)
+    log_device_channels([])
+    assert "none configured" in caplog.text
 
 
 def test_snapshot_sync_body():

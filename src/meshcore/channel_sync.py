@@ -5,7 +5,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from src.meshcore.channels import read_device_channels, snapshot_sync_body
+from src.meshcore.channels import (
+    log_device_channels,
+    read_device_channels,
+    snapshot_sync_body,
+)
 
 if TYPE_CHECKING:
     from src.api.StorageAPI import StorageAPIWrapper
@@ -32,8 +36,20 @@ async def sync_channels_to_api_async(
             logger.exception("MeshCore read_device_channels failed: %s", exc)
             return False
 
+    log_device_channels(channels)
     body = snapshot_sync_body(channels)
-    return storage.post_mc_channel_sync(body)
+    ok = storage.post_mc_channel_sync(body)
+    if ok:
+        logger.info(
+            "MeshCore channel sync posted to API (%s channel(s))",
+            len(channels),
+        )
+    else:
+        logger.warning(
+            "MeshCore channel sync to API failed (%s channel(s) read from device)",
+            len(channels),
+        )
+    return ok
 
 
 def sync_channels_to_api(radio: "MeshCoreRadio", storage: "StorageAPIWrapper") -> bool:

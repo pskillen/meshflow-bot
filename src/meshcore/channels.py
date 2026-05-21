@@ -67,6 +67,29 @@ async def apply_device_channels(meshcore: MeshCore, channels: list[dict]) -> Non
             logger.warning("set_channel(%s) failed: %s", idx, evt.payload)
 
 
+def log_device_channels(channels: list[dict]) -> None:
+    """Log the device channel table at INFO (visible in docker logs on connect)."""
+    if not channels:
+        logger.info("MeshCore device channels: (none configured on device)")
+        return
+    logger.info("MeshCore device channels (%s):", len(channels))
+    for ch in sorted(channels, key=lambda c: int(c["mc_channel_idx"])):
+        idx = ch["mc_channel_idx"]
+        typ = ch.get("mc_channel_type", "?")
+        name = ch.get("name", "")
+        tag = ch.get("mc_hashtag")
+        if tag:
+            logger.info(
+                "  [%s] %s name=%r hashtag=%r",
+                idx,
+                typ,
+                name,
+                tag,
+            )
+        else:
+            logger.info("  [%s] %s name=%r", idx, typ, name)
+
+
 def snapshot_sync_body(channels: list[dict]) -> dict:
     return {
         "channels": channels,
