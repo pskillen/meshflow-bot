@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 from typing import Callable, Optional
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class MeshflowWSClient:
         on_apply_mc_channel_config: Optional[Callable[[list], None]] = None,
         on_connect: Optional[Callable[[], None]] = None,
         on_disconnect: Optional[Callable[[], None]] = None,
+        feeder_pubkey_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
     ):
         """
         Args:
@@ -44,6 +46,7 @@ class MeshflowWSClient:
         self.on_apply_mc_channel_config = on_apply_mc_channel_config
         self.on_connect = on_connect
         self.on_disconnect = on_disconnect
+        self._feeder_pubkey_prefix_provider = feeder_pubkey_prefix_provider
 
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -51,7 +54,12 @@ class MeshflowWSClient:
         self._backoff = 1.0  # Reset on successful connect so reconnects start fast
 
     def _get_ws_endpoint(self) -> str:
-        return f"{self.ws_url}/ws/nodes/?api_key={self.api_key}"
+        url = f"{self.ws_url}/ws/nodes/?api_key={self.api_key}"
+        if self._feeder_pubkey_prefix_provider:
+            prefix = self._feeder_pubkey_prefix_provider()
+            if prefix:
+                url += f"&feeder_pubkey_prefix={quote(prefix, safe='')}"
+        return url
 
     def start(self):
         """Start the WebSocket client in a background thread."""
@@ -133,7 +141,15 @@ class MeshflowWSClient:
             ping_timeout=10,
         ) as ws:
             self._backoff = 1.0  # Reset so next reconnect starts with short delay
-            logger.info("MeshflowWSClient: connected")
+            prefix = (
+                self._feeder_pubkey_prefix_provider()
+                if self._feeder_pubkey_prefix_provider
+                else None
+            )
+            logger.info(
+                "MeshflowWSClient: connected (feeder_pubkey_prefix=%s)",
+                prefix or "none",
+            )
             if self.on_connect:
                 try:
                     self.on_connect()

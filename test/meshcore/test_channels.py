@@ -69,6 +69,20 @@ def test_channel_entry_empty_name_returns_none() -> None:
     assert _channel_entry_from_info(0, {"channel_name": "   "}) is None
 
 
+def test_read_device_channels_logs_scan_when_empty(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.WARNING)
+    mc = MagicMock()
+    mc.commands.get_channel = AsyncMock(
+        return_value=Event(EventType.ERROR, {"reason": "not_found"}, {})
+    )
+    channels = asyncio.run(read_device_channels(mc, max_channels=2))
+    assert channels == []
+    assert "get_channel scan found 0 named channels" in caplog.text
+    assert "[0] ERROR" in caplog.text
+
+
 def test_read_device_channels_collects_public_and_skips_errors() -> None:
     mc = MagicMock()
     mc.commands.get_channel = AsyncMock(

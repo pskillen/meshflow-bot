@@ -205,6 +205,11 @@ def main() -> None:
             on_apply_mc_channel_config=(
                 bot.on_apply_mc_channel_config if RADIO_PROTOCOL == "meshcore" else None
             ),
+            feeder_pubkey_prefix_provider=(
+                (lambda: getattr(radio, "feeder_mc_pubkey_prefix", None))
+                if RADIO_PROTOCOL == "meshcore"
+                else None
+            ),
         )
 
     try:

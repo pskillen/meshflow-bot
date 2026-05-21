@@ -33,6 +33,17 @@ def _channel_entry_from_info(idx: int, payload: dict) -> Optional[dict]:
     }
 
 
+def _describe_channel_event(idx: int, evt: Any) -> str:
+    if evt.type == EventType.ERROR:
+        payload = evt.payload if isinstance(evt.payload, dict) else {}
+        return f"[{idx}] ERROR {payload.get('reason', payload)}"
+    if evt.type == EventType.CHANNEL_INFO:
+        payload = evt.payload if isinstance(evt.payload, dict) else {}
+        name = payload.get("channel_name", "")
+        return f"[{idx}] CHANNEL_INFO name={name!r}"
+    return f"[{idx}] {evt.type}"
+
+
 async def read_device_channels(
     meshcore: MeshCore,
     *,
@@ -40,8 +51,10 @@ async def read_device_channels(
 ) -> list[dict]:
     """Return channel snapshot rows for API mc-channel-sync."""
     channels: list[dict] = []
+    scan_lines: list[str] = []
     for idx in range(max_channels):
         evt = await meshcore.commands.get_channel(idx)
+        scan_lines.append(_describe_channel_event(idx, evt))
         if evt.type == EventType.ERROR:
             continue
         if evt.type != EventType.CHANNEL_INFO:
@@ -50,6 +63,17 @@ async def read_device_channels(
         entry = _channel_entry_from_info(idx, payload)
         if entry:
             channels.append(entry)
+        elif str(payload.get("channel_name", "") or "").strip():
+            logger.info(
+                "MeshCore channel [%s] has name %r but was not mapped",
+                idx,
+                payload.get("channel_name"),
+            )
+    if not channels:
+        logger.warning(
+            "MeshCore get_channel scan found 0 named channels: %s",
+            "; ".join(scan_lines) or "(no responses)",
+        )
     return channels
 
 
