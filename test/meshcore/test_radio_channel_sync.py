@@ -1,0 +1,51 @@
+"""Regression: channel sync must not block the MeshCore asyncio loop."""
+
+from __future__ import annotations
+
+import asyncio
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from src.meshcore.radio import MeshCoreRadio
+from src.radio.errors import RadioError
+
+
+def test_run_coroutine_rejects_call_from_radio_loop() -> None:
+    async def _runner():
+        radio = MeshCoreRadio.__new__(MeshCoreRadio)
+        loop = asyncio.get_running_loop()
+        radio._loop = loop  # noqa: SLF001
+
+        async def _noop():
+            return None
+
+        with pytest.raises(RadioError, match="radio event loop"):
+            radio.run_coroutine(_noop())
+
+    asyncio.run(_runner())
+
+
+def test_schedule_channel_sync_runs_on_loop() -> None:
+    async def _runner():
+        radio = MeshCoreRadio.__new__(MeshCoreRadio)
+        loop = asyncio.get_running_loop()
+        radio._loop = loop  # noqa: SLF001
+        radio._meshcore = MagicMock()
+        radio._meshcore.is_connected = True
+
+        storage = MagicMock()
+        done = asyncio.Event()
+
+        async def _fake_sync(_radio, _storage):
+            done.set()
+            return True
+
+        with patch(
+            "src.meshcore.channel_sync.sync_channels_to_api_async",
+            side_effect=_fake_sync,
+        ):
+            radio.schedule_channel_sync([storage])
+            await asyncio.wait_for(done.wait(), timeout=1.0)
+
+    asyncio.run(_runner())

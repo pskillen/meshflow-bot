@@ -143,6 +143,22 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 self._dump_failed_packet(payload, exc, original_packet=packet)
         return None
 
+    def post_mc_channel_sync(self, body: dict) -> bool:
+        """POST device channel snapshot to ``/api/meshcore/feeder/mc-channel-sync/``."""
+        try:
+            response = self._post("/api/meshcore/feeder/mc-channel-sync/", json=body)
+            return response.status_code in (200, 201)
+        except HTTPError as exc:
+            self._error_counter.increment("storage.post_mc_channel_sync.http")
+            logger.error("HTTP error posting MC channel sync: %s", exc.response.text)
+        except RequestException as exc:
+            self._error_counter.increment("storage.post_mc_channel_sync.network")
+            logger.error("Network error posting MC channel sync: %s", exc)
+        except Exception as exc:
+            self._error_counter.increment("storage.post_mc_channel_sync.unexpected")
+            logger.exception("Unexpected error posting MC channel sync: %s", exc)
+        return False
+
     def store_raw_packet(self, packet: Any) -> Optional[dict]:
         """Sanitise and upload a Meshtastic packet to v2 ``/api/packets/{nodenum}/ingest/``
         (or v1 ``/api/raw-packet/``). Returns the api response or ``None`` if upload failed;

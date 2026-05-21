@@ -20,11 +20,16 @@ from src.helpers import pretty_print_last_heard, safe_encode_node_name
 from src.persistence.commands_logger import AbstractCommandLogger
 from src.persistence.node_db import AbstractNodeDB
 from src.persistence.node_info import AbstractNodeInfoStore
+from src.packet_log import log_incoming_packet
 from src.persistence.packet_dump import dump_packet
 from src.persistence.user_prefs import AbstractUserPrefsPersistence
 from src.radio.errors import call_safely, get_global_error_counter
-from src.radio.events import (ConnectionEstablished, IncomingPacket,
-                              IncomingTextMessage, NodeUpdate)
+from src.radio.events import (
+    ConnectionEstablished,
+    IncomingPacket,
+    IncomingTextMessage,
+    NodeUpdate,
+)
 from src.radio.interface import RadioHandlers, RadioInterface
 from src.responders.responder_factory import ResponderFactory
 
@@ -90,6 +95,23 @@ class MeshflowBot:
     def disconnect(self) -> None:
         self.radio.disconnect()
 
+    def on_apply_mc_channel_config(self, channels: list) -> None:
+        """Handle apply_mc_channel_config from WebSocket (MeshCore feeders)."""
+        from src.meshcore.channel_sync import (
+            apply_channels_on_device,
+            sync_channels_to_api,
+        )
+
+        if not hasattr(self.radio, "run_coroutine"):
+            logger.warning(
+                "apply_mc_channel_config ignored: radio does not support MeshCore channel IO"
+            )
+            return
+        if not apply_channels_on_device(self.radio, channels):
+            return
+        for storage_api in self.storage_apis:
+            sync_channels_to_api(self.radio, storage_api)
+
     def on_traceroute_command(self, target_node_id: int) -> None:
         """Handle a traceroute command (e.g. delivered via WebSocket)."""
         if not self.radio.is_connected:
@@ -106,6 +128,10 @@ class MeshflowBot:
         )
         for storage_api in self.storage_apis:
             storage_api.report_bot_version()
+        if event.extras.get("meshcore") and hasattr(
+            self.radio, "schedule_channel_sync"
+        ):
+            self.radio.schedule_channel_sync(self.storage_apis)
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()
@@ -116,6 +142,7 @@ class MeshflowBot:
             logger.warning("Radio disconnected: %s", error)
 
     def _on_packet(self, event: IncomingPacket) -> None:
+        log_incoming_packet(event)
         if event.raw is not None:
             if isinstance(event.raw, dict) and event.raw.get("meshcore"):
                 pass  # MeshCore JSON dumps live under data/meshcore_packets/ (see MeshCoreRadio)

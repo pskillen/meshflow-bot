@@ -81,12 +81,16 @@ class MeshCoreRadio(RadioInterface):
         self._shutdown.clear()
         self._started.clear()
         self._startup_error = None
-        self._thread = threading.Thread(target=self._thread_main, name="meshcore-radio", daemon=True)
+        self._thread = threading.Thread(
+            target=self._thread_main, name="meshcore-radio", daemon=True
+        )
         self._thread.start()
         if not self._started.wait(timeout=60.0):
             raise RadioError("MeshCoreRadio: timed out waiting for background connect")
         if self._startup_error is not None:
-            raise RadioError(f"MeshCoreRadio: connect failed: {self._startup_error!r}") from self._startup_error
+            raise RadioError(
+                f"MeshCoreRadio: connect failed: {self._startup_error!r}"
+            ) from self._startup_error
 
     def disconnect(self) -> None:
         self._shutdown.set()
@@ -114,8 +118,8 @@ class MeshCoreRadio(RadioInterface):
 
     @property
     def local_nodenum(self) -> Optional[int]:
-        """MeshCore nodes are pubkey-keyed; no Meshtastic-style nodenum."""
-        return None
+        """Feeder nodenum for API paths that still use ``/api/packets/{id}/…`` (MC uses 0)."""
+        return 0
 
     def send_text(
         self,
@@ -160,7 +164,9 @@ class MeshCoreRadio(RadioInterface):
                 for t in pending:
                     t.cancel()
                 if pending:
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
             except Exception:
                 logger.exception("MeshCoreRadio: error cancelling pending tasks")
             loop.close()
@@ -250,6 +256,44 @@ class MeshCoreRadio(RadioInterface):
     def dispatch_meshcore_event_for_tests(self, event: Event) -> None:
         """Synchronous hook for unit tests (same path as async subscriber)."""
         self._dispatch_meshcore_event(event)
+
+    def schedule_channel_sync(self, storage_apis: list) -> None:
+        """Schedule channel sync on the radio loop (must run on that loop's thread)."""
+        if not storage_apis:
+            return
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            logger.warning(
+                "MeshCore channel sync not scheduled: event loop not running"
+            )
+            return
+
+        async def _task() -> None:
+            from src.meshcore.channel_sync import sync_channels_to_api_async
+
+            for storage in storage_apis:
+                await sync_channels_to_api_async(self, storage)
+
+        asyncio.create_task(_task())
+
+    def run_coroutine(self, coro, *, timeout: float = 30.0):
+        """Run a coroutine on the MeshCore asyncio loop from another thread."""
+        import asyncio
+
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            raise RadioError("MeshCoreRadio: event loop not running")
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if running is loop:
+            raise RadioError(
+                "MeshCoreRadio.run_coroutine called from the radio event loop; "
+                "use schedule_channel_sync or await the async helper instead"
+            )
+        fut = asyncio.run_coroutine_threadsafe(coro, loop)
+        return fut.result(timeout=timeout)
 
     def _dispatch_meshcore_event(self, event: Event) -> None:
         et = event.type

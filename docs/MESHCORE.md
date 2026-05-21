@@ -30,7 +30,16 @@ TCP is supported by `meshcore` but not wired in this bot build (add later if nee
 | `ADMIN_NODES` | Same as Meshtastic: comma-separated admin ids (format may evolve for MC). |
 | `DATA_DIR` | Base data directory (default `data/`). |
 
-Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored. The MeshCore WebSocket command channel is not started (traceroute is Meshtastic-only today).
+Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored.
+
+## Channel sync and WebSocket (Phase 2.2)
+
+When `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, the bot also:
+
+1. **On connect** — reads the device channel table (`meshcore.commands.get_channel`) and `POST`s ` /api/meshcore/feeder/mc-channel-sync/` (device is source of truth for names/types).
+2. **WebSocket** — connects to `ws/nodes/?api_key=…` for `apply_mc_channel_config` (UI “apply to radio”); writes channels via `set_channel`, then re-syncs to the API.
+
+Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS messages.
 
 ## Meshflow upload event types
 
@@ -48,7 +57,7 @@ Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://gi
 MeshCore nodes are identified by **Ed25519 public keys** (64 hex chars), not Meshtastic-style 32-bit node numbers.
 
 - `MeshCoreRadio.local_node_id` is exposed as `mc:` + the first **12** hex characters of the companion’s public key after `SELF_INFO` (or `mc:unknown` if that event is missing).
-- `local_nodenum` is always `None` for MeshCore. `ConnectionEstablished.local_nodenum` is set to `0` as a placeholder for logging only.
+- `local_nodenum` is `0` for MeshCore feeders (matches `ManagedNode.meshtastic_node_id` on the API). Used for feeder-scoped paths such as `PUT /api/packets/0/bot-version/`. Packet ingest uses `/api/meshcore/packets/ingest/` instead.
 
 Remote senders in DMs use ids like `mc:p:<12-hex-prefix>` when only a short prefix is on the wire.
 

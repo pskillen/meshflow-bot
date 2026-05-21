@@ -75,7 +75,7 @@ See [`.env.example`](.env.example), [docs/MESHTASTIC.md](docs/MESHTASTIC.md), an
 - Responders: `src/responders/`, register in `ResponderFactory`.
 - Use `reply_in_channel` / `reply_in_dm` from `AbstractBaseFeature`.
 - Meshtastic node IDs: `!` + 8 hex nibbles; `my_nodenum` is decimal.
-- MeshCore: pubkey-based ids (`mc:...`); `my_nodenum` is `None` for MC.
+- MeshCore: pubkey-based ids (`mc:...`); `my_nodenum` is `0` for API feeder paths (e.g. bot-version).
 
 ## Source control
 

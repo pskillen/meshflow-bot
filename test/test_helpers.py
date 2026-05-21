@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from src.helpers import pretty_print_last_heard
+from src.helpers import pretty_print_last_heard, safe_encode_node_name
 
 
 class TestPrettyPrintLastHeard(unittest.TestCase):
@@ -55,6 +55,17 @@ class TestPrettyPrintLastHeard(unittest.TestCase):
         future_time = now + timedelta(seconds=10)
         self.assertEqual(pretty_print_last_heard(future_time), "0s ago")
 
+    def test_never_when_none(self):
+        self.assertEqual(pretty_print_last_heard(None), "never")
 
-if __name__ == '__main__':
+
+class TestSafeEncodeNodeName(unittest.TestCase):
+    def test_ascii_unchanged(self):
+        self.assertEqual(safe_encode_node_name("Node A"), "Node A")
+
+    def test_non_ascii_percent_encoded(self):
+        self.assertEqual(safe_encode_node_name("café"), "caf%C3%A9")
+
+
+if __name__ == "__main__":
     unittest.main()

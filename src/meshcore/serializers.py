@@ -14,6 +14,17 @@ logger = logging.getLogger(__name__)
 UPLOADABLE_PAYLOAD_TYPES = frozenset({"advert", "channel_text", "contact_text"})
 
 
+def _json_safe(value: Any) -> Any:
+    """Recursively coerce meshcore event payloads to JSON-serialisable values."""
+    if isinstance(value, bytes):
+        return value.hex()
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 class MeshCoreSkipUpload(Exception):
     """Raised when a frame should not be uploaded (capture-only path)."""
 
@@ -76,7 +87,7 @@ def _build_from_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
         "route_typename": payload.get("route_typename"),
         "path_hashes": _path_hashes(payload),
         "pkt_hash": payload.get("pkt_hash"),
-        "raw": envelope,
+        "raw": _json_safe(envelope),
     }
 
     if event_type == "advertisement":

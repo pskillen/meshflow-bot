@@ -28,6 +28,7 @@ logging.getLogger("stream_interface").setLevel(logging.WARNING)
 logging.getLogger("mesh_interface").setLevel(logging.WARNING)
 
 from src.api.packet_serializer import PacketSerializer
+
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
 from src.bot import MeshflowBot
@@ -184,11 +185,14 @@ def main() -> None:
         )
     if STORAGE_API_ROOT and STORAGE_API_TOKEN:
         ws_token = STORAGE_API_TOKEN
-    if ws_url and ws_token and RADIO_PROTOCOL == "meshtastic":
+    if ws_url and ws_token and RADIO_PROTOCOL in ("meshtastic", "meshcore"):
         bot.ws_client = MeshflowWSClient(
             ws_url=ws_url,
             api_key=ws_token,
             on_traceroute=bot.on_traceroute_command,
+            on_apply_mc_channel_config=(
+                bot.on_apply_mc_channel_config if RADIO_PROTOCOL == "meshcore" else None
+            ),
         )
 
     try:

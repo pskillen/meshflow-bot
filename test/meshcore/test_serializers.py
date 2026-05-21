@@ -8,8 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.data_classes import MeshNode
-from src.meshcore.serializers import (MeshCorePacketSerializer,
-                                      MeshCoreSkipUpload)
+from src.meshcore.serializers import MeshCorePacketSerializer, MeshCoreSkipUpload
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "meshcore_packets"
 
@@ -83,6 +82,21 @@ def test_skip_rx_log_text() -> None:
     }
     with pytest.raises(MeshCoreSkipUpload):
         MeshCorePacketSerializer().serialise_raw_packet(raw)
+
+
+def test_rx_log_data_serialises_bytes_in_raw_payload() -> None:
+    dump = _load("rx_log_data/20260506_211139_847711.json")
+    payload = dict(dump["payload"])
+    payload["pkt_payload"] = b"\x00\xd5h\x00\x00\x82p"
+    raw = {
+        "meshcore": True,
+        "type": "rx_log_data",
+        "payload": payload,
+        "attributes": {},
+    }
+    out = MeshCorePacketSerializer().serialise_raw_packet(raw)
+    assert isinstance(out["raw"]["payload"]["pkt_payload"], str)
+    assert out["raw"]["payload"]["pkt_payload"] == payload["pkt_payload"].hex()
 
 
 def test_node_methods_not_implemented() -> None:
