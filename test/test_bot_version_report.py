@@ -35,6 +35,21 @@ def test_report_bot_version_puts_v2_path() -> None:
     assert put.call_args[1]["json"]["bot_version"] == get_bot_version()
 
 
+def test_report_bot_version_accepts_meshcore_feeder_nodenum_zero() -> None:
+    """MeshCore radios expose nodenum 0 for API feeder paths (not None)."""
+    wrapper = StorageAPIWrapper(
+        "http://api.test",
+        token="secret",
+        api_version=2,
+        serializer=MeshtasticPacketSerializer(),
+        local_meshtastic_nodenum_provider=lambda: 0,
+    )
+    mock_response = MagicMock()
+    with patch.object(wrapper, "_put", return_value=mock_response) as put:
+        assert wrapper.report_bot_version() is True
+    assert put.call_args[0][0] == "/api/packets/0/bot-version/"
+
+
 def test_report_bot_version_skipped_for_v1() -> None:
     wrapper = StorageAPIWrapper(
         "http://api.test",

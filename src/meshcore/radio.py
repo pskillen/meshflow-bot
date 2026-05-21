@@ -118,8 +118,8 @@ class MeshCoreRadio(RadioInterface):
 
     @property
     def local_nodenum(self) -> Optional[int]:
-        """MeshCore nodes are pubkey-keyed; no Meshtastic-style nodenum."""
-        return None
+        """Feeder nodenum for API paths that still use ``/api/packets/{id}/…`` (MC uses 0)."""
+        return 0
 
     def send_text(
         self,

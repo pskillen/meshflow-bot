@@ -57,7 +57,7 @@ Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://gi
 MeshCore nodes are identified by **Ed25519 public keys** (64 hex chars), not Meshtastic-style 32-bit node numbers.
 
 - `MeshCoreRadio.local_node_id` is exposed as `mc:` + the first **12** hex characters of the companion’s public key after `SELF_INFO` (or `mc:unknown` if that event is missing).
-- `local_nodenum` is always `None` for MeshCore. `ConnectionEstablished.local_nodenum` is set to `0` as a placeholder for logging only.
+- `local_nodenum` is `0` for MeshCore feeders (matches `ManagedNode.meshtastic_node_id` on the API). Used for feeder-scoped paths such as `PUT /api/packets/0/bot-version/`. Packet ingest uses `/api/meshcore/packets/ingest/` instead.
 
 Remote senders in DMs use ids like `mc:p:<12-hex-prefix>` when only a short prefix is on the wire.
 
