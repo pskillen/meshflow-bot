@@ -21,13 +21,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-async def sync_channels_to_api_async(
-    radio: "MeshCoreRadio", storage: "StorageAPIWrapper"
-) -> bool:
-    """Read channels on the MeshCore asyncio loop and POST mc-channel-sync."""
+async def read_channel_snapshot_async(radio: "MeshCoreRadio") -> Optional[dict]:
+    """Read the device channel table once; return mc-channel-sync body or None."""
     if not radio.is_connected:
-        logger.warning("MeshCore channel sync skipped: radio not connected")
-        return False
+        logger.warning("MeshCore channel read skipped: radio not connected")
+        return None
 
     mc = radio._meshcore  # noqa: SLF001 — intentional coupling for sync
     if mc is None:
@@ -38,22 +36,52 @@ async def sync_channels_to_api_async(
             channels = await read_device_channels(mc)
         except Exception as exc:
             logger.exception("MeshCore read_device_channels failed: %s", exc)
-            return False
+            return None
 
     log_device_channels(channels)
-    body = snapshot_sync_body(channels)
+    return snapshot_sync_body(channels)
+
+
+def post_channel_snapshot(storage: "StorageAPIWrapper", body: dict) -> bool:
+    """POST a pre-built snapshot to one API destination."""
     ok = storage.post_mc_channel_sync(body)
+    label = getattr(storage, "base_url", "storage")
     if ok:
         logger.info(
-            "MeshCore channel sync posted to API (%s channel(s))",
-            len(channels),
+            "MeshCore channel sync posted to %s (%s channel(s))",
+            label,
+            len(body.get("channels") or []),
         )
     else:
         logger.warning(
-            "MeshCore channel sync to API failed (%s channel(s) read from device)",
-            len(channels),
+            "MeshCore channel sync to %s failed (%s channel(s) in snapshot)",
+            label,
+            len(body.get("channels") or []),
         )
     return ok
+
+
+async def sync_channels_to_storage_apis_async(
+    radio: "MeshCoreRadio", storage_apis: list["StorageAPIWrapper"]
+) -> None:
+    """Read device channels once and POST the same snapshot to every configured API."""
+    if not storage_apis:
+        return
+    body = await read_channel_snapshot_async(radio)
+    if body is None:
+        return
+    for storage in storage_apis:
+        post_channel_snapshot(storage, body)
+
+
+async def sync_channels_to_api_async(
+    radio: "MeshCoreRadio", storage: "StorageAPIWrapper"
+) -> bool:
+    """Read channels on the MeshCore asyncio loop and POST mc-channel-sync to one API."""
+    body = await read_channel_snapshot_async(radio)
+    if body is None:
+        return False
+    return post_channel_snapshot(storage, body)
 
 
 def sync_channels_to_api(radio: "MeshCoreRadio", storage: "StorageAPIWrapper") -> bool:

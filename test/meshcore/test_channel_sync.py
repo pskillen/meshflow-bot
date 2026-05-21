@@ -9,6 +9,7 @@ from src.meshcore.channel_sync import (
     apply_channels_on_device,
     sync_channels_to_api,
     sync_channels_to_api_async,
+    sync_channels_to_storage_apis_async,
 )
 
 
@@ -50,6 +51,31 @@ def test_sync_channels_to_api_async_posts_snapshot() -> None:
     storage.post_mc_channel_sync.assert_called_once()
 
 
+def test_sync_channels_to_storage_apis_posts_once_reads_once() -> None:
+    radio = _MeshCoreRadioStub(connected=True, meshcore=MagicMock())
+    storage_a = MagicMock()
+    storage_a.base_url = "http://api-one"
+    storage_a.post_mc_channel_sync.return_value = True
+    storage_b = MagicMock()
+    storage_b.base_url = "http://api-two"
+    storage_b.post_mc_channel_sync.return_value = True
+    channels = [{"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"}]
+    body = {"channels": channels, "synced_at": "2026-01-01T00:00:00Z"}
+
+    async def _run():
+        with patch(
+            "src.meshcore.channel_sync.read_channel_snapshot_async",
+            new_callable=AsyncMock,
+            return_value=body,
+        ) as read_mock:
+            await sync_channels_to_storage_apis_async(radio, [storage_a, storage_b])
+        read_mock.assert_awaited_once()
+
+    asyncio.run(_run())
+    storage_a.post_mc_channel_sync.assert_called_once_with(body)
+    storage_b.post_mc_channel_sync.assert_called_once_with(body)
+
+
 def test_sync_channels_logs_and_reports_api_failure(caplog) -> None:
     import logging
 
@@ -61,15 +87,15 @@ def test_sync_channels_logs_and_reports_api_failure(caplog) -> None:
 
     async def _run():
         with patch(
-            "src.meshcore.channel_sync.read_device_channels",
+            "src.meshcore.channel_sync.read_channel_snapshot_async",
             new_callable=AsyncMock,
-            return_value=channels,
+            return_value={"channels": channels, "synced_at": "2026-01-01T00:00:00Z"},
         ):
+            storage.base_url = "http://api.test"
             return await sync_channels_to_api_async(radio, storage)
 
     assert asyncio.run(_run()) is False
-    assert "MeshCore device channels (1):" in caplog.text
-    assert "channel sync to API failed" in caplog.text
+    assert "channel sync to http://api.test failed" in caplog.text
 
 
 def test_sync_channels_skipped_when_disconnected() -> None:

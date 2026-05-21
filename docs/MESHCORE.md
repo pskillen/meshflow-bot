@@ -36,7 +36,7 @@ Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored.
 
 When `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, the bot also:
 
-1. **On connect** — reads the device channel table (`meshcore.commands.get_channel`) and `POST`s `/api/meshcore/feeders/{prefix}/mc-channel-sync/` (device is source of truth for names/types).
+1. **On connect** — reads the device channel table once (`meshcore.commands.get_channel`) and `POST`s the same snapshot to `/api/meshcore/feeders/{prefix}/mc-channel-sync/` on **each** configured API (`STORAGE_API_ROOT` and optional `STORAGE_API_2_ROOT` when `MESHCORE_UPLOAD_ENABLED=true`). Uses `STORAGE_API_2_TOKEN` if set, otherwise the primary `STORAGE_API_TOKEN`.
 2. **WebSocket** — connects to `ws/nodes/?api_key=…` (URL derived from `STORAGE_API_ROOT` when `MESHFLOW_WS_URL` is unset). MeshCore feeders automatically append `feeder_pubkey_prefix` from the device pubkey after connect (no env var). Used for UI **apply to radio** (`apply_mc_channel_config`): the REST endpoint only dispatches to the bot over WS; the bot writes the device via `set_channel`, then re-syncs to the API.
 
 Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS messages.

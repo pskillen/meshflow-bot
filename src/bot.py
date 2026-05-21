@@ -109,8 +109,11 @@ class MeshflowBot:
             return
         if not apply_channels_on_device(self.radio, channels):
             return
-        for storage_api in self.storage_apis:
-            sync_channels_to_api(self.radio, storage_api)
+        if hasattr(self.radio, "schedule_channel_sync"):
+            self.radio.schedule_channel_sync(self.storage_apis)
+        else:
+            for storage_api in self.storage_apis:
+                sync_channels_to_api(self.radio, storage_api)
 
     def on_traceroute_command(self, target_node_id: int) -> None:
         """Handle a traceroute command (e.g. delivered via WebSocket)."""

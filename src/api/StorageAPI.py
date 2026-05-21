@@ -199,7 +199,11 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return response.status_code in (200, 201)
         except HTTPError as exc:
             self._error_counter.increment("storage.post_mc_channel_sync.http")
-            logger.error("HTTP error posting MC channel sync: %s", exc.response.text)
+            logger.error(
+                "HTTP error posting MC channel sync to %s: %s",
+                self.base_url,
+                exc.response.text,
+            )
         except RequestException as exc:
             self._error_counter.increment("storage.post_mc_channel_sync.network")
             logger.error("Network error posting MC channel sync: %s", exc)

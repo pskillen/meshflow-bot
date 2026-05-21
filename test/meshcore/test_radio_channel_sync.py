@@ -35,14 +35,14 @@ def test_schedule_channel_sync_runs_on_loop() -> None:
         radio._meshcore.is_connected = True
 
         storage = MagicMock()
+        storage.base_url = "http://api.test"
         done = asyncio.Event()
 
-        async def _fake_sync(_radio, _storage):
+        async def _fake_sync(_radio, _storages):
             done.set()
-            return True
 
         with patch(
-            "src.meshcore.channel_sync.sync_channels_to_api_async",
+            "src.meshcore.channel_sync.sync_channels_to_storage_apis_async",
             side_effect=_fake_sync,
         ):
             radio.schedule_channel_sync([storage])
