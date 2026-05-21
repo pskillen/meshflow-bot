@@ -257,6 +257,25 @@ class MeshCoreRadio(RadioInterface):
         """Synchronous hook for unit tests (same path as async subscriber)."""
         self._dispatch_meshcore_event(event)
 
+    def schedule_channel_sync(self, storage_apis: list) -> None:
+        """Schedule channel sync on the radio loop (must run on that loop's thread)."""
+        if not storage_apis:
+            return
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            logger.warning(
+                "MeshCore channel sync not scheduled: event loop not running"
+            )
+            return
+
+        async def _task() -> None:
+            from src.meshcore.channel_sync import sync_channels_to_api_async
+
+            for storage in storage_apis:
+                await sync_channels_to_api_async(self, storage)
+
+        asyncio.create_task(_task())
+
     def run_coroutine(self, coro, *, timeout: float = 30.0):
         """Run a coroutine on the MeshCore asyncio loop from another thread."""
         import asyncio
@@ -264,6 +283,15 @@ class MeshCoreRadio(RadioInterface):
         loop = self._loop
         if loop is None or not loop.is_running():
             raise RadioError("MeshCoreRadio: event loop not running")
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if running is loop:
+            raise RadioError(
+                "MeshCoreRadio.run_coroutine called from the radio event loop; "
+                "use schedule_channel_sync or await the async helper instead"
+            )
         fut = asyncio.run_coroutine_threadsafe(coro, loop)
         return fut.result(timeout=timeout)
 

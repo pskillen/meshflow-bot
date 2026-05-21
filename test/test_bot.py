@@ -50,24 +50,21 @@ class TestMeshflowBot(unittest.TestCase):
         apply_mock.assert_called_once_with(mc_radio, channels)
         self.assertEqual(sync_mock.call_count, 2)
 
-    def test_meshcore_connection_triggers_channel_sync(self):
+    def test_meshcore_connection_schedules_channel_sync(self):
         mc_radio = MagicMock()
-        mc_radio.run_coroutine = MagicMock()
+        mc_radio.schedule_channel_sync = MagicMock()
         bot = MeshflowBot(radio=mc_radio)
         bot.storage_apis = [MagicMock()]
         bot.print_nodes = MagicMock()
         bot.ws_client = None
-        with patch(
-            "src.meshcore.channel_sync.sync_channels_to_api", return_value=True
-        ) as sync_mock:
-            bot._on_connection_established(
-                ConnectionEstablished(
-                    local_node_id="mc:abc",
-                    local_nodenum=0,
-                    extras={"meshcore": True},
-                )
+        bot._on_connection_established(
+            ConnectionEstablished(
+                local_node_id="mc:abc",
+                local_nodenum=0,
+                extras={"meshcore": True},
             )
-        sync_mock.assert_called_once()
+        )
+        mc_radio.schedule_channel_sync.assert_called_once_with(bot.storage_apis)
 
 
 if __name__ == "__main__":

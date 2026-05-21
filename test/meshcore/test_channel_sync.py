@@ -5,7 +5,11 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.meshcore.channel_sync import apply_channels_on_device, sync_channels_to_api
+from src.meshcore.channel_sync import (
+    apply_channels_on_device,
+    sync_channels_to_api,
+    sync_channels_to_api_async,
+)
 
 
 class _MeshCoreRadioStub:
@@ -26,6 +30,24 @@ class _MeshCoreRadioStub:
         if asyncio.iscoroutine(coro):
             return asyncio.run(coro)
         return None
+
+
+def test_sync_channels_to_api_async_posts_snapshot() -> None:
+    radio = _MeshCoreRadioStub(connected=True, meshcore=MagicMock())
+    storage = MagicMock()
+    storage.post_mc_channel_sync.return_value = True
+    channels = [{"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"}]
+
+    async def _run():
+        with patch(
+            "src.meshcore.channel_sync.read_device_channels",
+            new_callable=AsyncMock,
+            return_value=channels,
+        ):
+            return await sync_channels_to_api_async(radio, storage)
+
+    assert asyncio.run(_run()) is True
+    storage.post_mc_channel_sync.assert_called_once()
 
 
 def test_sync_channels_skipped_when_disconnected() -> None:
