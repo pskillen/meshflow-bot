@@ -61,7 +61,7 @@ STORAGE_API_ROOT = os.getenv("STORAGE_API_ROOT")
 STORAGE_API_TOKEN = os.getenv("STORAGE_API_TOKEN", None)
 STORAGE_API_VERSION = int(os.getenv("STORAGE_API_VERSION", 1))
 STORAGE_API_2_ROOT = os.getenv("STORAGE_API_2_ROOT")
-STORAGE_API_2_TOKEN = os.getenv("STORAGE_API_2_TOKEN", None)
+STORAGE_API_2_TOKEN = os.getenv("STORAGE_API_2_TOKEN") or STORAGE_API_TOKEN
 STORAGE_API_2_VERSION = int(os.getenv("STORAGE_API_2_VERSION", 1))
 MESHFLOW_WS_URL = os.getenv("MESHFLOW_WS_URL")
 
@@ -171,8 +171,8 @@ def main() -> None:
             StorageAPIWrapper(
                 STORAGE_API_2_ROOT,
                 STORAGE_API_2_TOKEN,
-                STORAGE_API_2_VERSION,
-                failed_packets_dir,
+                api_version=2,
+                failed_packets_dir=failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
                 meshcore_feeder_prefix_provider=lambda: getattr(
@@ -186,6 +186,14 @@ def main() -> None:
     elif STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshcore":
         logging.info(
             "RADIO_PROTOCOL=meshcore: ignoring STORAGE_API_2_ROOT (upload disabled)"
+        )
+
+    if bot.storage_apis:
+        destinations = [api.base_url for api in bot.storage_apis]
+        logging.info(
+            "API upload destinations (%s): %s",
+            len(destinations),
+            ", ".join(destinations),
         )
 
     # WebSocket client (e.g. for remote traceroute commands)

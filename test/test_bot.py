@@ -41,14 +41,13 @@ class TestMeshflowBot(unittest.TestCase):
         bot = MeshflowBot(radio=mc_radio)
         bot.storage_apis = [MagicMock(), MagicMock()]
         channels = [{"mc_channel_idx": 0, "name": "Public"}]
+        mc_radio.schedule_channel_sync = MagicMock()
         with patch(
             "src.meshcore.channel_sync.apply_channels_on_device", return_value=True
-        ) as apply_mock, patch(
-            "src.meshcore.channel_sync.sync_channels_to_api", return_value=True
-        ) as sync_mock:
+        ) as apply_mock:
             bot.on_apply_mc_channel_config(channels)
         apply_mock.assert_called_once_with(mc_radio, channels)
-        self.assertEqual(sync_mock.call_count, 2)
+        mc_radio.schedule_channel_sync.assert_called_once_with(bot.storage_apis)
 
     def test_meshcore_connection_schedules_channel_sync(self):
         mc_radio = MagicMock()
