@@ -11,7 +11,6 @@ from typing import Optional
 
 from meshcore import MeshCore
 from meshcore.events import Event, EventType
-
 from src.meshcore.dump import dump_meshcore_event
 from src.meshcore.translation import (
     event_to_incoming_packet,
@@ -64,6 +63,7 @@ class MeshCoreRadio(RadioInterface):
         self._startup_error: Optional[BaseException] = None
         self._connected_once = False
         self._local_node_id: Optional[str] = None
+        self._feeder_mc_pubkey: Optional[str] = None
         self._error_counter = get_global_error_counter()
 
         self._dump_enabled = os.getenv("MESHCORE_DUMP_ENABLED", "true").lower() in (
@@ -117,9 +117,21 @@ class MeshCoreRadio(RadioInterface):
         return self._local_node_id
 
     @property
+    def feeder_mc_pubkey(self) -> Optional[str]:
+        """Full 64-char lowercase hex device pubkey after SELF_INFO."""
+        return self._feeder_mc_pubkey
+
+    @property
+    def feeder_mc_pubkey_prefix(self) -> Optional[str]:
+        """First 12 hex chars of feeder pubkey (MeshCore API URL segment)."""
+        if self._feeder_mc_pubkey and len(self._feeder_mc_pubkey) >= 12:
+            return self._feeder_mc_pubkey[:12]
+        return None
+
+    @property
     def local_nodenum(self) -> Optional[int]:
-        """Feeder nodenum for API paths that still use ``/api/packets/{id}/…`` (MC uses 0)."""
-        return 0
+        """Meshtastic-only; MeshCore uses feeder-scoped meshcore API paths."""
+        return None
 
     def send_text(
         self,
@@ -213,7 +225,14 @@ class MeshCoreRadio(RadioInterface):
             pubkey = str(self_info_evt.payload.get("public_key", "") or "")
         if not pubkey and mc.self_info:
             pubkey = str(mc.self_info.get("public_key", "") or "")
-        self._local_node_id = f"mc:{pubkey[:12]}" if pubkey else "mc:unknown"
+        pubkey_clean = pubkey.strip().lower().replace("0x", "") if pubkey else ""
+        if len(pubkey_clean) == 64:
+            int(pubkey_clean, 16)
+            self._feeder_mc_pubkey = pubkey_clean
+            self._local_node_id = f"mc:{pubkey_clean[:12]}"
+        else:
+            self._feeder_mc_pubkey = None
+            self._local_node_id = "mc:unknown" if pubkey else "mc:unknown"
 
         if not self._connected_once:
             self._connected_once = True
