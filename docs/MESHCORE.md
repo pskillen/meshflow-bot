@@ -4,7 +4,7 @@
 
 **Phase 0.3 scope:** connect, receive events, translate them into the bot’s generic `RadioInterface` events, and write JSON captures under `data/meshcore_packets/<event_type>/`.
 
-**Phase 1 upload:** when `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, selected events upload to `POST /api/meshcore/packets/ingest/`.
+**Phase 1 upload:** when `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, selected events upload to `POST /api/meshcore/feeders/{prefix}/packets/ingest/` (12-hex pubkey prefix from `SELF_INFO`).
 
 ## Transports
 
@@ -36,7 +36,7 @@ Without `MESHCORE_UPLOAD_ENABLED`, `STORAGE_API_*` is ignored.
 
 When `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, the bot also:
 
-1. **On connect** — reads the device channel table (`meshcore.commands.get_channel`) and `POST`s ` /api/meshcore/feeder/mc-channel-sync/` (device is source of truth for names/types).
+1. **On connect** — reads the device channel table (`meshcore.commands.get_channel`) and `POST`s `/api/meshcore/feeders/{prefix}/mc-channel-sync/` (device is source of truth for names/types).
 2. **WebSocket** — connects to `ws/nodes/?api_key=…` for `apply_mc_channel_config` (UI “apply to radio”); writes channels via `set_channel`, then re-syncs to the API.
 
 Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS messages.
@@ -56,8 +56,9 @@ Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://gi
 
 MeshCore nodes are identified by **Ed25519 public keys** (64 hex chars), not Meshtastic-style 32-bit node numbers.
 
-- `MeshCoreRadio.local_node_id` is exposed as `mc:` + the first **12** hex characters of the companion’s public key after `SELF_INFO` (or `mc:unknown` if that event is missing).
-- `local_nodenum` is `0` for MeshCore feeders (matches `ManagedNode.meshtastic_node_id` on the API). Used for feeder-scoped paths such as `PUT /api/packets/0/bot-version/`. Packet ingest uses `/api/meshcore/packets/ingest/` instead.
+- `MeshCoreRadio.local_node_id` is `mc:` + the first **12** hex characters of the companion’s public key after `SELF_INFO` (or `mc:unknown` if that event is missing).
+- `feeder_mc_pubkey` (64 hex) and `feeder_mc_pubkey_prefix` (12 hex) are sent on all MeshCore API calls: URL prefix plus optional header `X-MeshCore-Feeder-Pubkey`. Configure the same full pubkey on `ManagedNode.mc_pubkey` in Django admin (see meshflow-api `docs/features/meshcore/feeder-bootstrap.md`).
+- `local_nodenum` is `None` for MeshCore; do not use `/api/packets/0/bot-version/`. Bot version uses `PUT /api/meshcore/feeders/{prefix}/bot-version/`.
 
 Remote senders in DMs use ids like `mc:p:<12-hex-prefix>` when only a short prefix is on the wire.
 
