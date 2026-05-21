@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Optional
+
+CHANNEL_READ_DELAY_S = 2.0
 
 from src.meshcore.channels import (
     log_device_channels,
@@ -31,6 +34,7 @@ async def sync_channels_to_api_async(
         channels: list[dict] = []
     else:
         try:
+            await asyncio.sleep(CHANNEL_READ_DELAY_S)
             channels = await read_device_channels(mc)
         except Exception as exc:
             logger.exception("MeshCore read_device_channels failed: %s", exc)
