@@ -141,6 +141,12 @@ def main() -> None:
                 failed_packets_dir=failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshcore_feeder_prefix_provider=lambda: getattr(
+                    radio, "feeder_mc_pubkey_prefix", None
+                ),
+                meshcore_feeder_pubkey_provider=lambda: getattr(
+                    radio, "feeder_mc_pubkey", None
+                ),
             )
         )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore":
@@ -169,6 +175,12 @@ def main() -> None:
                 failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshcore_feeder_prefix_provider=lambda: getattr(
+                    radio, "feeder_mc_pubkey_prefix", None
+                ),
+                meshcore_feeder_pubkey_provider=lambda: getattr(
+                    radio, "feeder_mc_pubkey", None
+                ),
             )
         )
     elif STORAGE_API_2_ROOT and RADIO_PROTOCOL == "meshcore":

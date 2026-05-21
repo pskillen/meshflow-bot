@@ -4,11 +4,11 @@ Meshtastic uploads use v2 paths scoped by local nodenum:
 ``POST /api/packets/{nodenum}/ingest/`` and ``…/nodes/`` (see ``_get_url`` when
 ``api_version == 2``). v1 ``POST /api/raw-packet/`` is legacy.
 
-MeshCore uploads use ``POST /api/meshcore/packets/ingest/`` via
-:meth:`store_raw_meshcore_packet` (not the Meshtastic packet paths).
+MeshCore uploads use feeder-scoped paths:
+``POST /api/meshcore/feeders/{prefix}/packets/ingest/`` (and channel sync / bot-version).
 
-Takes a :class:`PacketSerializer` to shape outgoing data and a
-``local_meshtastic_nodenum_provider`` for Meshtastic v2 URL construction.
+Takes a :class:`PacketSerializer` to shape outgoing data, optional Meshtastic nodenum
+provider, and optional MeshCore feeder identity providers.
 """
 
 from __future__ import annotations
@@ -32,6 +32,8 @@ from src.version import get_bot_version
 
 logger = logging.getLogger(__name__)
 
+MESHCORE_FEEDER_PUBKEY_HEADER = "X-MeshCore-Feeder-Pubkey"
+
 
 class StorageAPIWrapper(BaseAPIWrapper):
     """Uploads packets and node data to a meshflow-api instance."""
@@ -47,6 +49,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
         *,
         serializer: PacketSerializer,
         local_meshtastic_nodenum_provider: Callable[[], Optional[int]],
+        meshcore_feeder_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
+        meshcore_feeder_pubkey_provider: Optional[Callable[[], Optional[str]]] = None,
     ):
         super().__init__(base_url, token)
         self.api_version = api_version
@@ -55,7 +59,28 @@ class StorageAPIWrapper(BaseAPIWrapper):
         )
         self._serializer = serializer
         self._local_meshtastic_nodenum_provider = local_meshtastic_nodenum_provider
+        self._meshcore_feeder_prefix_provider = meshcore_feeder_prefix_provider
+        self._meshcore_feeder_pubkey_provider = meshcore_feeder_pubkey_provider
         self._error_counter = get_global_error_counter()
+
+    def _get_headers(self) -> dict:
+        headers = super()._get_headers()
+        if self._meshcore_feeder_pubkey_provider:
+            pubkey = self._meshcore_feeder_pubkey_provider()
+            if pubkey:
+                headers[MESHCORE_FEEDER_PUBKEY_HEADER] = pubkey
+        return headers
+
+    def _meshcore_feeder_prefix(self) -> Optional[str]:
+        if not self._meshcore_feeder_prefix_provider:
+            return None
+        return self._meshcore_feeder_prefix_provider()
+
+    def _meshcore_feeder_url(self, suffix: str) -> str:
+        prefix = self._meshcore_feeder_prefix()
+        if not prefix:
+            raise ValueError("MeshCore feeder pubkey prefix not available yet")
+        return f"/api/meshcore/feeders/{prefix}/{suffix}"
 
     def _get_url(self, path: str, args: Optional[dict] = None) -> str:
         if args is None:
@@ -78,19 +103,28 @@ class StorageAPIWrapper(BaseAPIWrapper):
         return api_paths[path]
 
     def report_bot_version(self) -> bool:
-        """Report meshflow-bot version (``APP_VERSION``) to the API (v2 path only). Returns True on success."""
+        """Report meshflow-bot version to the API (v2 only). Returns True on success."""
         if self.api_version != 2:
             logger.debug(
                 "Skipping bot version report (api_version=%s)", self.api_version
             )
             return False
-        local_nodenum = self._local_meshtastic_nodenum_provider()
-        if local_nodenum is None:
-            logger.warning("Cannot report bot version: local nodenum not available yet")
-            return False
+
         version = get_bot_version()
+        prefix = self._meshcore_feeder_prefix()
+        if prefix:
+            url = self._meshcore_feeder_url("bot-version/")
+        else:
+            local_nodenum = self._local_meshtastic_nodenum_provider()
+            if local_nodenum is None:
+                logger.warning(
+                    "Cannot report bot version: nodenum and MeshCore prefix unavailable"
+                )
+                return False
+            url = self._get_url("bot_version")
+
         try:
-            self._put(self._get_url("bot_version"), json={"bot_version": version})
+            self._put(url, json={"bot_version": version})
             logger.info("Reported bot version %s to API", version)
             return True
         except HTTPError as exc:
@@ -107,7 +141,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
     # --- raw packets ------------------------------------------------------
 
     def store_raw_meshcore_packet(self, packet: Any) -> Optional[dict]:
-        """Upload a MeshCore capture envelope to ``/api/meshcore/packets/ingest/``."""
+        """Upload a MeshCore capture envelope to the feeder-scoped ingest path."""
         try:
             payload = self._serializer.serialise_raw_packet(packet)
         except MeshCoreSkipUpload as exc:
@@ -120,9 +154,17 @@ class StorageAPIWrapper(BaseAPIWrapper):
             )
             return None
 
+        try:
+            url = self._meshcore_feeder_url("packets/ingest/")
+        except ValueError:
+            logger.warning(
+                "Cannot store MeshCore packet: feeder pubkey prefix not available yet"
+            )
+            return None
+
         logger.debug("Storing MeshCore packet: %s", payload.get("payload_type"))
         try:
-            response = self._post("/api/meshcore/packets/ingest/", json=payload)
+            response = self._post(url, json=payload)
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_raw_meshcore_packet.http")
@@ -144,9 +186,16 @@ class StorageAPIWrapper(BaseAPIWrapper):
         return None
 
     def post_mc_channel_sync(self, body: dict) -> bool:
-        """POST device channel snapshot to ``/api/meshcore/feeder/mc-channel-sync/``."""
+        """POST device channel snapshot to the feeder-scoped mc-channel-sync path."""
         try:
-            response = self._post("/api/meshcore/feeder/mc-channel-sync/", json=body)
+            url = self._meshcore_feeder_url("mc-channel-sync/")
+        except ValueError:
+            logger.warning(
+                "Cannot post MC channel sync: feeder pubkey prefix not available yet"
+            )
+            return False
+        try:
+            response = self._post(url, json=body)
             return response.status_code in (200, 201)
         except HTTPError as exc:
             self._error_counter.increment("storage.post_mc_channel_sync.http")
