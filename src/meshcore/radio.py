@@ -290,8 +290,10 @@ class MeshCoreRadio(RadioInterface):
         async def _task() -> None:
             from src.meshcore.channel_sync import sync_channels_to_api_async
 
+            logger.info("MeshCore channel sync starting")
             for storage in storage_apis:
                 await sync_channels_to_api_async(self, storage)
+            logger.info("MeshCore channel sync finished")
 
         asyncio.create_task(_task())
 
