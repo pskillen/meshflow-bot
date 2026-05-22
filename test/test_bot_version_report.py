@@ -50,6 +50,32 @@ def test_report_bot_version_skipped_when_meshcore_prefix_missing() -> None:
     put.assert_not_called()
 
 
+def test_report_bot_version_puts_v3_path() -> None:
+    wrapper = StorageAPIWrapper(
+        "http://api.test",
+        token="secret",
+        api_version=3,
+        serializer=MeshtasticPacketSerializer(),
+        local_meshtastic_nodenum_provider=lambda: 42424242,
+    )
+    mock_response = MagicMock()
+    with patch.object(wrapper, "_put", return_value=mock_response) as put:
+        assert wrapper.report_bot_version() is True
+    put.assert_called_once()
+    assert put.call_args[0][0] == "/api/v3/packets/42424242/bot-version/"
+
+
+def test_get_url_v3_ingest_and_nodes() -> None:
+    wrapper = StorageAPIWrapper(
+        "http://api.test",
+        api_version=3,
+        serializer=MeshtasticPacketSerializer(),
+        local_meshtastic_nodenum_provider=lambda: 12345,
+    )
+    assert wrapper._get_url("raw_packet") == "/api/v3/packets/12345/ingest/"
+    assert wrapper._get_url("nodes") == "/api/v3/packets/12345/nodes/"
+
+
 def test_report_bot_version_skipped_for_v1() -> None:
     wrapper = StorageAPIWrapper(
         "http://api.test",

@@ -45,6 +45,38 @@ class TestMeshtasticPacketSerializer(unittest.TestCase):
         self.assertEqual(node2.user.id, "!12345678")
         self.assertEqual(node2.user.long_name, "Alice")
 
+    def test_serialise_node_uses_meshtastic_api_field_names(self):
+        import datetime
+
+        node = MeshNode()
+        node.user = MeshNode.User(node_id="!abcdef12", long_name="Bob", short_name="B")
+        node.position = MeshNode.Position(
+            logged_time=datetime.datetime(
+                2026, 5, 22, 7, 0, 0, tzinfo=datetime.timezone.utc
+            ),
+            reported_time=datetime.datetime(
+                2026, 5, 22, 7, 0, 0, tzinfo=datetime.timezone.utc
+            ),
+            latitude=51.5,
+            longitude=-0.1,
+            altitude=10,
+            location_source="",
+        )
+        node.device_metrics = MeshNode.DeviceMetrics(
+            logged_time=datetime.datetime(
+                2026, 5, 22, 7, 0, 0, tzinfo=datetime.timezone.utc
+            ),
+            channel_utilization=None,
+            air_util_tx=None,
+        )
+        out = self.serializer.serialise_node(node)
+        self.assertEqual(out["position"]["meshtastic_location_source"], "UNSET")
+        self.assertNotIn("location_source", out["position"])
+        self.assertEqual(out["device_metrics"]["meshtastic_channel_utilization"], 0.0)
+        self.assertEqual(out["device_metrics"]["meshtastic_air_util_tx"], 0.0)
+        self.assertNotIn("channel_utilization", out["device_metrics"])
+        self.assertNotIn("air_util_tx", out["device_metrics"])
+
 
 if __name__ == "__main__":
     unittest.main()

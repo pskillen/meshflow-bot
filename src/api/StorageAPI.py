@@ -94,17 +94,21 @@ class StorageAPIWrapper(BaseAPIWrapper):
             }
         else:
             local_nodenum = self._local_meshtastic_nodenum_provider()
+            if self.api_version == 3:
+                prefix = f"/api/v3/packets/{local_nodenum}"
+            else:
+                prefix = f"/api/packets/{local_nodenum}"
             api_paths = {
-                "raw_packet": f"/api/packets/{local_nodenum}/ingest/",
-                "nodes": f"/api/packets/{local_nodenum}/nodes/",
-                "bot_version": f"/api/packets/{local_nodenum}/bot-version/",
+                "raw_packet": f"{prefix}/ingest/",
+                "nodes": f"{prefix}/nodes/",
+                "bot_version": f"{prefix}/bot-version/",
                 "node_by_id": f"/api/nodes/{args.get('node_id', '')}",
             }
         return api_paths[path]
 
     def report_bot_version(self) -> bool:
-        """Report meshflow-bot version to the API (v2 only). Returns True on success."""
-        if self.api_version != 2:
+        """Report meshflow-bot version to the API (v2/v3). Returns True on success."""
+        if self.api_version not in (2, 3):
             logger.debug(
                 "Skipping bot version report (api_version=%s)", self.api_version
             )
@@ -258,7 +262,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_node.http")
-            logger.error("HTTP error storing node: %s", exc.response.text)
+            node_id = getattr(getattr(node, "user", None), "id", None)
+            logger.error("HTTP error storing node %s: %s", node_id, exc.response.text)
         except RequestException as exc:
             self._error_counter.increment("storage.store_node.network")
             logger.error("Network error storing node: %s", exc)
