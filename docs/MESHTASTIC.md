@@ -15,14 +15,15 @@ The concrete radio implementation is `MeshtasticRadio` in [`src/meshtastic/radio
 
 When `STORAGE_API_ROOT` is set and `RADIO_PROTOCOL=meshtastic`:
 
-- **v2:** `POST /api/packets/{my_nodenum}/ingest/` for raw packets.
+- **v3 (default):** `POST /api/v3/packets/{my_nodenum}/ingest/` for raw packets; node upsert uses strict `meshtastic_*` field names.
+- **v2:** `POST /api/packets/{my_nodenum}/ingest/` (legacy URL prefix; server accepts legacy nested field aliases on node upsert).
 - **v1:** `POST /api/raw-packet/`.
 
 | Variable | Description |
 |----------|-------------|
 | `STORAGE_API_ROOT` | Base URL of meshflow-api |
 | `STORAGE_API_TOKEN` | Bearer / API token |
-| `STORAGE_API_VERSION` | `1` or `2` |
+| `STORAGE_API_VERSION` | `1`, `2`, or `3` (default `3` for new installs; use `2` only with older API builds) |
 | `STORAGE_API_2_*` | Optional second destination |
 
 Failed uploads can be retained under `data/failed_packets/` when configured.
