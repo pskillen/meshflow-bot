@@ -258,7 +258,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_node.http")
-            logger.error("HTTP error storing node: %s", exc.response.text)
+            node_id = getattr(getattr(node, "user", None), "id", None)
+            logger.error("HTTP error storing node %s: %s", node_id, exc.response.text)
         except RequestException as exc:
             self._error_counter.increment("storage.store_node.network")
             logger.error("Network error storing node: %s", exc)

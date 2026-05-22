@@ -19,6 +19,15 @@ from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
 
 
+def _meshtastic_location_source_for_api(source: str | None) -> str:
+    """Map bot/Meshtastic location source strings to meshflow-api labels."""
+    if not source:
+        return "UNSET"
+    if source in ("LOC_UNSET", "LOC_UNKNOWN"):
+        return "UNSET"
+    return source
+
+
 class AbstractModelSerializer(ABC):
     @classmethod
     def to_api_dict(cls, model) -> dict:
@@ -41,23 +50,32 @@ class PositionSerializer(AbstractModelSerializer):
     @classmethod
     def to_api_dict(cls, position: MeshNode.Position) -> dict:
         return {
-            "logged_time": cls.date_to_api(position.logged_time),  # api v1 compatibility
-            "reported_time": cls.date_to_api(position.reported_time),  # api v2 compatibility
+            "logged_time": cls.date_to_api(
+                position.logged_time
+            ),  # api v1 compatibility
+            "reported_time": cls.date_to_api(
+                position.reported_time
+            ),  # api v2 compatibility
             "latitude": position.latitude,
             "longitude": position.longitude,
             "altitude": position.altitude,
-            "location_source": position.location_source or "LOC_UNKNOWN",
+            "meshtastic_location_source": _meshtastic_location_source_for_api(
+                position.location_source
+            ),
         }
 
     @classmethod
     def from_api_dict(cls, position_data: dict) -> MeshNode.Position:
         return MeshNode.Position(
-            logged_time=cls.date_from_api(position_data['logged_time']),
-            reported_time=cls.date_from_api(position_data['reported_time']),
-            latitude=position_data['latitude'],
-            longitude=position_data['longitude'],
-            altitude=position_data['altitude'],
-            location_source=position_data['location_source']
+            logged_time=cls.date_from_api(position_data["logged_time"]),
+            reported_time=cls.date_from_api(position_data["reported_time"]),
+            latitude=position_data["latitude"],
+            longitude=position_data["longitude"],
+            altitude=position_data["altitude"],
+            location_source=position_data.get(
+                "meshtastic_location_source",
+                position_data.get("location_source", ""),
+            ),
         )
 
 
@@ -65,24 +83,34 @@ class DeviceMetricsSerializer(AbstractModelSerializer):
     @classmethod
     def to_api_dict(cls, device_metrics: MeshNode.DeviceMetrics) -> dict:
         return {
-            "logged_time": cls.date_to_api(device_metrics.logged_time),  # api v1 compatibility
-            "reported_time": cls.date_to_api(device_metrics.logged_time),  # api v2 compatibility
+            "logged_time": cls.date_to_api(
+                device_metrics.logged_time
+            ),  # api v1 compatibility
+            "reported_time": cls.date_to_api(
+                device_metrics.logged_time
+            ),  # api v2 compatibility
             "battery_level": device_metrics.battery_level,
             "voltage": device_metrics.voltage,
-            "channel_utilization": device_metrics.channel_utilization,
-            "air_util_tx": device_metrics.air_util_tx,
-            "uptime_seconds": device_metrics.uptime_seconds
+            "meshtastic_channel_utilization": device_metrics.channel_utilization or 0.0,
+            "meshtastic_air_util_tx": device_metrics.air_util_tx or 0.0,
+            "uptime_seconds": device_metrics.uptime_seconds,
         }
 
     @classmethod
     def from_api_dict(cls, device_metrics_data: dict) -> MeshNode.DeviceMetrics:
         return MeshNode.DeviceMetrics(
-            logged_time=cls.date_from_api(device_metrics_data['logged_time']),
-            battery_level=device_metrics_data['battery_level'],
-            voltage=device_metrics_data['voltage'],
-            channel_utilization=device_metrics_data['channel_utilization'],
-            air_util_tx=device_metrics_data['air_util_tx'],
-            uptime_seconds=device_metrics_data['uptime_seconds']
+            logged_time=cls.date_from_api(device_metrics_data["logged_time"]),
+            battery_level=device_metrics_data["battery_level"],
+            voltage=device_metrics_data["voltage"],
+            channel_utilization=device_metrics_data.get(
+                "meshtastic_channel_utilization",
+                device_metrics_data.get("channel_utilization", 0.0),
+            ),
+            air_util_tx=device_metrics_data.get(
+                "meshtastic_air_util_tx",
+                device_metrics_data.get("air_util_tx", 0.0),
+            ),
+            uptime_seconds=device_metrics_data["uptime_seconds"],
         )
 
 
@@ -96,40 +124,45 @@ class MeshNodeSerializer(AbstractModelSerializer):
             "macaddr": node.user.macaddr,
             "hw_model": node.user.hw_model,
             "public_key": node.user.public_key,
-            'user': {
+            "user": {
                 "long_name": node.user.long_name,
-                "short_name": node.user.short_name
-            }
+                "short_name": node.user.short_name,
+            },
         }
 
         # only log a position if it's actually set
-        if node.position and not \
-                (node.position.latitude == 0 and node.position.longitude == 0 and node.position.altitude == 0):
-            node_data['position'] = PositionSerializer.to_api_dict(node.position)
+        if node.position and not (
+            node.position.latitude == 0
+            and node.position.longitude == 0
+            and node.position.altitude == 0
+        ):
+            node_data["position"] = PositionSerializer.to_api_dict(node.position)
 
         if node.device_metrics:
-            node_data['device_metrics'] = DeviceMetricsSerializer.to_api_dict(node.device_metrics)
+            node_data["device_metrics"] = DeviceMetricsSerializer.to_api_dict(
+                node.device_metrics
+            )
 
         return node_data
 
     @classmethod
     def from_api_dict(cls, node_data: dict) -> MeshNode:
-        user_data = node_data['user']
+        user_data = node_data["user"]
         user = MeshNode.User(
-            node_id=node_data['id'],
-            macaddr=node_data['macaddr'],
-            hw_model=node_data['hw_model'],
-            public_key=node_data['public_key'],
-            long_name=user_data['long_name'],
-            short_name=user_data['short_name']
+            node_id=node_data["id"],
+            macaddr=node_data["macaddr"],
+            hw_model=node_data["hw_model"],
+            public_key=node_data["public_key"],
+            long_name=user_data["long_name"],
+            short_name=user_data["short_name"],
         )
 
-        position_data = node_data.get('position')
+        position_data = node_data.get("position")
         position = None
         if position_data:
             position = PositionSerializer.from_api_dict(position_data)
 
-        device_metrics_data = node_data.get('device_metrics')
+        device_metrics_data = node_data.get("device_metrics")
         device_metrics = None
         if device_metrics_data:
             device_metrics = DeviceMetricsSerializer.from_api_dict(device_metrics_data)
