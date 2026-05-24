@@ -28,6 +28,11 @@ services:
       # Optional: BLE instead of serial (set only one of serial or BLE)
       # - MESHCORE_BLE_ADDRESS=AA:BB:CC:DD:EE:FF
       # - MESHCORE_BLE_PIN=
+      # Upload + channel sync (see docs/MESHCORE.md and meshflow-api feeder-bootstrap.md)
+      - MESHCORE_UPLOAD_ENABLED=true
+      - STORAGE_API_ROOT=http://host.docker.internal:8000/api
+      - STORAGE_API_TOKEN=replace-me
+      - STORAGE_API_VERSION=2
       - ADMIN_NODES='!aae8900d'
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
