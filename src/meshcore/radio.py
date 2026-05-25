@@ -23,6 +23,10 @@ from src.radio.interface import RadioHandlers, RadioInterface
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS = 6.0
+MIN_MC_FLOOD_ADVERT_INTERVAL_HOURS = 2.0
+MAX_MC_FLOOD_ADVERT_INTERVAL_HOURS = 24.0
+
 # Do not JSON-dump high-frequency command plumbing (still forwarded to handlers).
 _SKIP_MESHCORE_DUMP_TYPES = frozenset(
     {
@@ -64,6 +68,7 @@ class MeshCoreRadio(RadioInterface):
         self._connected_once = False
         self._local_node_id: Optional[str] = None
         self._feeder_mc_pubkey: Optional[str] = None
+        self._flood_advert_task: Optional[asyncio.Task] = None
         self._error_counter = get_global_error_counter()
 
         self._dump_enabled = os.getenv("MESHCORE_DUMP_ENABLED", "true").lower() in (
@@ -257,6 +262,7 @@ class MeshCoreRadio(RadioInterface):
             await asyncio.sleep(0.25)
 
     async def _async_shutdown(self) -> None:
+        self.cancel_flood_advert_periodic()
         mc = self._meshcore
         if mc:
             try:
@@ -277,8 +283,40 @@ class MeshCoreRadio(RadioInterface):
         """Synchronous hook for unit tests (same path as async subscriber)."""
         self._dispatch_meshcore_event(event)
 
+    @staticmethod
+    def parse_flood_advert_interval_hours(config: Optional[dict]) -> float:
+        """Clamp API config interval to 2–24 hours; default 6."""
+        if not config:
+            return DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
+        try:
+            hours = float(config.get("mc_flood_advert_interval_hours", DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS))
+        except (TypeError, ValueError):
+            return DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
+        return max(
+            MIN_MC_FLOOD_ADVERT_INTERVAL_HOURS,
+            min(MAX_MC_FLOOD_ADVERT_INTERVAL_HOURS, hours),
+        )
+
+    async def _send_flood_advert_once(self, *, log_label: str = "flood advert") -> None:
+        mc = self._meshcore
+        if mc is None or not mc.is_connected:
+            return
+        try:
+            result = await mc.commands.send_advert(flood=True)
+            if result.type == EventType.ERROR:
+                logger.warning(
+                    "MeshCore send_advert(flood=True) failed (%s): %s",
+                    log_label,
+                    result.payload,
+                )
+            else:
+                logger.info("MeshCore sent %s", log_label)
+        except Exception:
+            self._error_counter.increment("meshcore.send_flood_advert")
+            logger.exception("MeshCore %s failed", log_label)
+
     def schedule_initial_flood_advert(self) -> None:
-        """Send one flood-routed advert after first connect (stop-gap until API-driven interval)."""
+        """Send one flood-routed advert after first connect."""
         loop = self._loop
         if loop is None or not loop.is_running():
             logger.warning(
@@ -287,23 +325,56 @@ class MeshCoreRadio(RadioInterface):
             return
 
         async def _task() -> None:
-            mc = self._meshcore
-            if mc is None or not mc.is_connected:
-                return
-            try:
-                result = await mc.commands.send_advert(flood=True)
-                if result.type == EventType.ERROR:
-                    logger.warning(
-                        "MeshCore send_advert(flood=True) failed: %s",
-                        result.payload,
-                    )
-                else:
-                    logger.info("MeshCore sent initial flood advert")
-            except Exception:
-                self._error_counter.increment("meshcore.send_initial_flood_advert")
-                logger.exception("MeshCore initial flood advert failed")
+            await self._send_flood_advert_once(log_label="initial flood advert")
 
         asyncio.create_task(_task())
+
+    def cancel_flood_advert_periodic(self) -> None:
+        task = getattr(self, "_flood_advert_task", None)
+        self._flood_advert_task = None
+        if task is not None and not task.done():
+            task.cancel()
+
+    def schedule_flood_advert_periodic(self, interval_hours: float) -> None:
+        """Schedule recurring flood adverts on the radio asyncio loop."""
+        self.cancel_flood_advert_periodic()
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            logger.warning(
+                "MeshCore periodic flood advert not scheduled: event loop not running"
+            )
+            return
+
+        hours = max(
+            MIN_MC_FLOOD_ADVERT_INTERVAL_HOURS,
+            min(MAX_MC_FLOOD_ADVERT_INTERVAL_HOURS, float(interval_hours)),
+        )
+        logger.info(
+            "MeshCore scheduling periodic flood advert every %s hour(s)",
+            hours,
+        )
+
+        async def _periodic() -> None:
+            try:
+                while not self._shutdown.is_set():
+                    await asyncio.sleep(hours * 3600.0)
+                    if self._shutdown.is_set():
+                        break
+                    await self._send_flood_advert_once(log_label="periodic flood advert")
+            except asyncio.CancelledError:
+                pass
+
+        self._flood_advert_task = asyncio.create_task(_periodic())
+
+    def schedule_flood_advert_from_config(self, storage_api) -> None:
+        """Fetch feeder bot-config from API and start periodic flood adverts."""
+        config = storage_api.fetch_bot_config()
+        hours = self.parse_flood_advert_interval_hours(config)
+        self.schedule_flood_advert_periodic(hours)
+
+    def reschedule_flood_advert_from_config(self, storage_api) -> None:
+        """Re-fetch bot-config and reschedule periodic flood adverts."""
+        self.schedule_flood_advert_from_config(storage_api)
 
     def schedule_channel_sync(self, storage_apis: list) -> None:
         """Schedule channel sync on the radio loop (must run on that loop's thread)."""

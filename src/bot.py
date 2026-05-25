@@ -122,6 +122,18 @@ class MeshflowBot:
             return
         self.radio.send_traceroute(target_node_id)
 
+    def on_refresh_feeder_config(self) -> None:
+        """Re-fetch feeder bot-config from API and reschedule periodic flood adverts."""
+        if not hasattr(self.radio, "reschedule_flood_advert_from_config"):
+            logger.warning(
+                "refresh_feeder_config ignored: radio does not support MeshCore config"
+            )
+            return
+        if not self.storage_apis:
+            logger.warning("refresh_feeder_config ignored: no storage API configured")
+            return
+        self.radio.reschedule_flood_advert_from_config(self.storage_apis[0])
+
     # --- radio event handlers --------------------------------------------
 
     def _on_connection_established(self, event: ConnectionEstablished) -> None:
@@ -135,6 +147,11 @@ class MeshflowBot:
             self.radio, "schedule_channel_sync"
         ):
             self.radio.schedule_channel_sync(self.storage_apis)
+        if event.extras.get("meshcore") and hasattr(
+            self.radio, "schedule_flood_advert_from_config"
+        ):
+            if self.storage_apis:
+                self.radio.schedule_flood_advert_from_config(self.storage_apis[0])
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()

@@ -142,6 +142,27 @@ class StorageAPIWrapper(BaseAPIWrapper):
             logger.exception("Unexpected error reporting bot version: %s", exc)
         return False
 
+    def fetch_bot_config(self) -> Optional[dict]:
+        """Fetch operator config for this MeshCore feeder (interval hours, etc.)."""
+        prefix = self._meshcore_feeder_prefix()
+        if not prefix:
+            logger.debug("Skipping bot config fetch: MeshCore prefix unavailable")
+            return None
+        try:
+            url = self._meshcore_feeder_url("bot-config/")
+            response = self._get(url)
+            return response.json()
+        except HTTPError as exc:
+            self._error_counter.increment("storage.fetch_bot_config.http")
+            logger.error("HTTP error fetching bot config: %s", exc.response.text)
+        except RequestException as exc:
+            self._error_counter.increment("storage.fetch_bot_config.network")
+            logger.error("Network error fetching bot config: %s", exc)
+        except Exception as exc:
+            self._error_counter.increment("storage.fetch_bot_config.unexpected")
+            logger.exception("Unexpected error fetching bot config: %s", exc)
+        return None
+
     # --- raw packets ------------------------------------------------------
 
     def store_raw_meshcore_packet(self, packet: Any) -> Optional[dict]:
