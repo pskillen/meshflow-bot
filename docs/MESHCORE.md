@@ -6,6 +6,8 @@
 
 **Phase 1 upload:** when `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, selected events upload to `POST /api/meshcore/feeders/{prefix}/packets/ingest/` (12-hex pubkey prefix from `SELF_INFO`).
 
+On first connect to the device, the bot sends one **flood-routed advert** (`send_advert(flood=True)`) so the feeder appears on the mesh without waiting for firmware timing. Periodic API-driven intervals are planned ([#116](https://github.com/pskillen/meshflow-bot/issues/116)).
+
 ## Transports
 
 | Transport | Env vars | Notes |
