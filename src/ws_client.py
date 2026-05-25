@@ -28,6 +28,7 @@ class MeshflowWSClient:
         api_key: str,
         on_traceroute: Callable[[int], None],
         on_apply_mc_channel_config: Optional[Callable[[list], None]] = None,
+        on_refresh_feeder_config: Optional[Callable[[], None]] = None,
         on_connect: Optional[Callable[[], None]] = None,
         on_disconnect: Optional[Callable[[], None]] = None,
         feeder_pubkey_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
@@ -44,6 +45,7 @@ class MeshflowWSClient:
         self.api_key = api_key
         self.on_traceroute = on_traceroute
         self.on_apply_mc_channel_config = on_apply_mc_channel_config
+        self.on_refresh_feeder_config = on_refresh_feeder_config
         self.on_connect = on_connect
         self.on_disconnect = on_disconnect
         self._feeder_pubkey_prefix_provider = feeder_pubkey_prefix_provider
@@ -232,6 +234,30 @@ class MeshflowWSClient:
                     else:
                         logger.warning(
                             "MeshflowWSClient: apply_mc_channel_config missing channels or handler"
+                        )
+                elif cmd_type == "refresh_feeder_config":
+                    if self.on_refresh_feeder_config:
+                        logger.info(
+                            "MeshflowWSClient: received refresh_feeder_config"
+                        )
+                        task = asyncio.create_task(
+                            asyncio.to_thread(self.on_refresh_feeder_config)
+                        )
+
+                        def _refresh_done(t):
+                            if t.cancelled():
+                                return
+                            exc = t.exception()
+                            if exc:
+                                logger.warning(
+                                    "MeshflowWSClient: refresh_feeder_config failed: %s",
+                                    exc,
+                                )
+
+                        task.add_done_callback(_refresh_done)
+                    else:
+                        logger.warning(
+                            "MeshflowWSClient: refresh_feeder_config missing handler"
                         )
                 else:
                     logger.debug(f"MeshflowWSClient: ignored command type: {cmd_type}")

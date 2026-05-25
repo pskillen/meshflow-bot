@@ -6,7 +6,7 @@
 
 **Phase 1 upload:** when `MESHCORE_UPLOAD_ENABLED=true` and `STORAGE_API_*` are set, selected events upload to `POST /api/meshcore/feeders/{prefix}/packets/ingest/` (12-hex pubkey prefix from `SELF_INFO`).
 
-On first connect to the device, the bot sends one **flood-routed advert** (`send_advert(flood=True)`) so the feeder appears on the mesh without waiting for firmware timing. Periodic API-driven intervals are planned ([#116](https://github.com/pskillen/meshflow-bot/issues/116)).
+On first connect the bot sends one **flood-routed advert** (`send_advert(flood=True)`), then repeats on a schedule from the API: `ManagedNode.mc_flood_advert_interval_hours` (default **6h**, range **2–24h**), fetched via `GET /api/meshcore/feeders/{prefix}/bot-config/` when `MESHCORE_UPLOAD_ENABLED` is set. Operators change the interval in the API; the bot picks it up on reconnect or immediately via WebSocket `refresh_feeder_config` ([#116](https://github.com/pskillen/meshflow-bot/issues/116)).
 
 ## Transports
 
