@@ -62,16 +62,41 @@ MeshCore nodes are identified by **Ed25519 public keys** (64 hex chars), not Mes
 
 Remote senders in DMs use ids like `mc:p:<12-hex-prefix>` when only a short prefix is on the wire.
 
-## Running
+## Running (local)
 
 ```bash
 source venv/bin/activate
 export RADIO_PROTOCOL=meshcore
 export MESHCORE_SERIAL_DEVICE=/dev/ttyUSB0
+# Required for API upload + channel sync (Phase 1+):
+export MESHCORE_UPLOAD_ENABLED=true
+export STORAGE_API_ROOT=http://localhost:8000/api
+export STORAGE_API_TOKEN=<your Node API key>
+export STORAGE_API_VERSION=2
 python -m src.main
 ```
 
-Docker Compose: use the `meshflow-bot-meshcore` service in `docker-compose.yaml` (pass-through of `/dev/ttyUSB0` is Linux-specific; adjust the device path for your host).
+After connect, confirm logs show `POST /api/meshcore/feeders/{12-hex-prefix}/packets/ingest/` and `.../mc-channel-sync/`. Do **not** point MeshCore at `/api/packets/0/ingest/` or `/api/packets/0/bot-version/`.
+
+Operator setup (Django `ManagedNode`, `mc_pubkey`, API key): **[meshflow-api feeder bootstrap](https://github.com/pskillen/meshflow-api/blob/main/docs/features/meshcore/feeder-bootstrap.md)**.
+
+## Docker Compose
+
+Use the **`meshflow-bot-meshcore`** service in [`docker-compose.yaml`](../docker-compose.yaml). Example overrides (create `.env` beside compose or set under `environment:`):
+
+| Variable | Example | Notes |
+|----------|---------|--------|
+| `RADIO_PROTOCOL` | `meshcore` | Required |
+| `MESHCORE_SERIAL_DEVICE` | `/dev/ttyUSB0` | **Or** `MESHCORE_BLE_ADDRESS` (not both) |
+| `MESHCORE_UPLOAD_ENABLED` | `true` | Without this, `STORAGE_API_*` is ignored |
+| `STORAGE_API_ROOT` | `http://host.docker.internal:8000/api` | Reachable API base (include `/api`) |
+| `STORAGE_API_TOKEN` | `<Node API key>` | From Meshflow admin |
+| `STORAGE_API_VERSION` | `2` | Match your API |
+| `ADMIN_NODES` | `mc:deadbeefcafe` | Optional; MC admin id format may evolve |
+
+The compose file maps `/dev/ttyUSB0` into the container (Linux host). Adjust the device path or use BLE env vars on macOS/Windows. Data captures go to `./data-meshcore` → `/app/data`.
+
+**Smoke test:** with API + bot running, watch ingest logs, then in Meshflow UI open **MeshCore → Nodes** (map) and **MeshCore → Messages** after channel sync.
 
 ## Capture layout
 
