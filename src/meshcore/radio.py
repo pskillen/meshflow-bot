@@ -236,6 +236,7 @@ class MeshCoreRadio(RadioInterface):
 
         if not self._connected_once:
             self._connected_once = True
+            self.schedule_initial_flood_advert()
             if self._handlers.on_connection_established:
                 call_safely(
                     "meshcore.on_connection_established",
@@ -275,6 +276,34 @@ class MeshCoreRadio(RadioInterface):
     def dispatch_meshcore_event_for_tests(self, event: Event) -> None:
         """Synchronous hook for unit tests (same path as async subscriber)."""
         self._dispatch_meshcore_event(event)
+
+    def schedule_initial_flood_advert(self) -> None:
+        """Send one flood-routed advert after first connect (stop-gap until API-driven interval)."""
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            logger.warning(
+                "MeshCore initial flood advert not scheduled: event loop not running"
+            )
+            return
+
+        async def _task() -> None:
+            mc = self._meshcore
+            if mc is None or not mc.is_connected:
+                return
+            try:
+                result = await mc.commands.send_advert(flood=True)
+                if result.type == EventType.ERROR:
+                    logger.warning(
+                        "MeshCore send_advert(flood=True) failed: %s",
+                        result.payload,
+                    )
+                else:
+                    logger.info("MeshCore sent initial flood advert")
+            except Exception:
+                self._error_counter.increment("meshcore.send_initial_flood_advert")
+                logger.exception("MeshCore initial flood advert failed")
+
+        asyncio.create_task(_task())
 
     def schedule_channel_sync(self, storage_apis: list) -> None:
         """Schedule channel sync on the radio loop (must run on that loop's thread)."""
