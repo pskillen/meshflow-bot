@@ -79,6 +79,11 @@ def _build_from_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
     payload = envelope.get("payload") or {}
     attributes = envelope.get("attributes") or {}
 
+    path_hash_size = payload.get("path_hash_size")
+    if path_hash_size is None:
+        path_hash_size = 2
+    path_hash_mode = payload.get("path_hash_mode")
+
     base: dict[str, Any] = {
         "event_type": event_type,
         "rx_time": _rx_time_from_payload(payload, attributes),
@@ -86,6 +91,8 @@ def _build_from_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
         "rx_snr": payload.get("snr"),
         "route_typename": payload.get("route_typename"),
         "path_hashes": _path_hashes(payload),
+        "path_hash_size": int(path_hash_size) if path_hash_size is not None else None,
+        "path_hash_mode": int(path_hash_mode) if path_hash_mode is not None else None,
         "pkt_hash": payload.get("pkt_hash"),
         "raw": _json_safe(envelope),
     }
