@@ -1,6 +1,6 @@
-"""Unit tests for MeshCore path hash splitting (_path_hashes)."""
+"""Unit tests for MeshCore path hash splitting (_path_hashes) and ingest envelope."""
 
-from src.meshcore.serializers import _path_hashes
+from src.meshcore.serializers import MeshCorePacketSerializer, _path_hashes
 
 
 def test_path_hashes_two_byte_default():
@@ -26,3 +26,43 @@ def test_path_hashes_missing_path_returns_none():
 def test_path_hashes_list_passthrough():
     payload = {"path": ["aa", "bb"]}
     assert _path_hashes(payload) == ["aa", "bb"]
+
+
+def test_channel_message_envelope_includes_path_hash_size_and_mode():
+    serializer = MeshCorePacketSerializer()
+    envelope = {
+        "protocol": "meshcore",
+        "event_type": "channel_message",
+        "payload": {
+            "text": "hi",
+            "channel_idx": 0,
+            "path": "aabb",
+            "path_hash_size": 1,
+            "path_hash_mode": 2,
+            "recv_time": 1700000000.0,
+        },
+        "attributes": {},
+    }
+    result = serializer.serialise_raw_packet(envelope)
+    assert result["path_hashes"] == ["aa", "bb"]
+    assert result["path_hash_size"] == 1
+    assert result["path_hash_mode"] == 2
+
+
+def test_contact_message_envelope_defaults_path_hash_size_to_two():
+    serializer = MeshCorePacketSerializer()
+    envelope = {
+        "protocol": "meshcore",
+        "event_type": "contact_message",
+        "payload": {
+            "text": "dm",
+            "pubkey_prefix": "ab" * 6,
+            "channel_idx": 0,
+            "path": "f3bcf1",
+            "recv_time": 1700000000.0,
+        },
+        "attributes": {},
+    }
+    result = serializer.serialise_raw_packet(envelope)
+    assert result["path_hash_size"] == 2
+    assert result["path_hash_mode"] is None
