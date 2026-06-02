@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.data_classes import MeshNode
-from src.meshcore.serializers import MeshCorePacketSerializer, MeshCoreSkipUpload
+from src.meshcore.serializers import MeshCorePacketSerializer
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "meshcore_packets"
 
@@ -72,7 +72,7 @@ def test_serialise_contact_message() -> None:
     assert out["from_pubkey_prefix"] == "e563a2e933ce"
 
 
-def test_skip_rx_log_text() -> None:
+def test_serialise_rx_log_text_msg() -> None:
     dump = _load("rx_log_data/20260506_205845_837997.json")
     raw = {
         "meshcore": True,
@@ -80,8 +80,24 @@ def test_skip_rx_log_text() -> None:
         "payload": dump["payload"],
         "attributes": {},
     }
-    with pytest.raises(MeshCoreSkipUpload):
-        MeshCorePacketSerializer().serialise_raw_packet(raw)
+    out = MeshCorePacketSerializer().serialise_raw_packet(raw)
+    assert out["payload_type"] == "raw"
+    assert out["event_type"] == "rx_log_data"
+    assert out["pkt_hash"] == dump["payload"]["pkt_hash"]
+
+
+def test_serialise_rx_log_path() -> None:
+    dump = _load("rx_log_data/20260506_211515_351329.json")
+    raw = {
+        "meshcore": True,
+        "type": "rx_log_data",
+        "payload": dump["payload"],
+        "attributes": dump.get("attributes", {}),
+    }
+    out = MeshCorePacketSerializer().serialise_raw_packet(raw)
+    assert out["payload_type"] == "raw"
+    assert out["path_hashes"] == ["f3bcf1"]
+    assert out["path_hash_size"] == 3
 
 
 def test_rx_log_data_serialises_bytes_in_raw_payload() -> None:

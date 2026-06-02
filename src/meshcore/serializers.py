@@ -11,7 +11,7 @@ from src.data_classes import MeshNode
 
 logger = logging.getLogger(__name__)
 
-UPLOADABLE_PAYLOAD_TYPES = frozenset({"advert", "channel_text", "contact_text"})
+UPLOADABLE_PAYLOAD_TYPES = frozenset({"advert", "channel_text", "contact_text", "raw"})
 
 
 def _json_safe(value: Any) -> Any:
@@ -140,7 +140,9 @@ def _build_from_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
                 "adv_lat": payload.get("adv_lat"),
                 "adv_lon": payload.get("adv_lon"),
             }
-        raise MeshCoreSkipUpload(f"rx_log_data {typename} not uploaded in Phase 1")
+        if typename in ("TEXT_MSG", "PATH"):
+            return {**base, "payload_type": "raw"}
+        raise MeshCoreSkipUpload(f"rx_log_data {typename} not uploaded")
 
     raise MeshCoreSkipUpload(f"event_type {event_type!r} not uploaded in Phase 1")
 
