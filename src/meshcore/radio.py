@@ -376,8 +376,21 @@ class MeshCoreRadio(RadioInterface):
         """Re-fetch bot-config and reschedule periodic flood adverts."""
         self.schedule_flood_advert_from_config(storage_api)
 
+    def _submit_coro_to_radio_loop(self, coro):
+        """Schedule *coro* on the MeshCore asyncio loop (safe from any thread)."""
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            raise RadioError("MeshCoreRadio: event loop not running")
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if running is loop:
+            return asyncio.create_task(coro)
+        return asyncio.run_coroutine_threadsafe(coro, loop)
+
     def schedule_channel_sync(self, storage_apis: list) -> None:
-        """Schedule channel sync on the radio loop (must run on that loop's thread)."""
+        """Schedule channel sync on the radio asyncio loop (any thread)."""
         if not storage_apis:
             return
         loop = self._loop
@@ -399,7 +412,10 @@ class MeshCoreRadio(RadioInterface):
             await sync_channels_to_storage_apis_async(self, storage_apis)
             logger.info("MeshCore channel sync finished")
 
-        asyncio.create_task(_task())
+        try:
+            self._submit_coro_to_radio_loop(_task())
+        except RadioError as exc:
+            logger.warning("MeshCore channel sync not scheduled: %s", exc)
 
     def run_coroutine(self, coro, *, timeout: float = 30.0):
         """Run a coroutine on the MeshCore asyncio loop from another thread."""
