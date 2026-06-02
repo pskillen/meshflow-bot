@@ -32,6 +32,7 @@ class MeshflowWSClient:
         on_connect: Optional[Callable[[], None]] = None,
         on_disconnect: Optional[Callable[[], None]] = None,
         feeder_pubkey_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
+        feeder_node_id_provider: Optional[Callable[[], Optional[int]]] = None,
     ):
         """
         Args:
@@ -49,6 +50,7 @@ class MeshflowWSClient:
         self.on_connect = on_connect
         self.on_disconnect = on_disconnect
         self._feeder_pubkey_prefix_provider = feeder_pubkey_prefix_provider
+        self._feeder_node_id_provider = feeder_node_id_provider
 
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -61,6 +63,10 @@ class MeshflowWSClient:
             prefix = self._feeder_pubkey_prefix_provider()
             if prefix:
                 url += f"&feeder_pubkey_prefix={quote(prefix, safe='')}"
+        if self._feeder_node_id_provider:
+            node_id = self._feeder_node_id_provider()
+            if node_id is not None:
+                url += f"&feeder_node_id={quote(str(node_id), safe='')}"
         return url
 
     def start(self):
@@ -148,9 +154,15 @@ class MeshflowWSClient:
                 if self._feeder_pubkey_prefix_provider
                 else None
             )
+            node_id = (
+                self._feeder_node_id_provider()
+                if self._feeder_node_id_provider
+                else None
+            )
             logger.info(
-                "MeshflowWSClient: connected (feeder_pubkey_prefix=%s)",
+                "MeshflowWSClient: connected (feeder_pubkey_prefix=%s, feeder_node_id=%s)",
                 prefix or "none",
+                node_id if node_id is not None else "none",
             )
             if self.on_connect:
                 try:
@@ -237,9 +249,7 @@ class MeshflowWSClient:
                         )
                 elif cmd_type == "refresh_feeder_config":
                     if self.on_refresh_feeder_config:
-                        logger.info(
-                            "MeshflowWSClient: received refresh_feeder_config"
-                        )
+                        logger.info("MeshflowWSClient: received refresh_feeder_config")
                         task = asyncio.create_task(
                             asyncio.to_thread(self.on_refresh_feeder_config)
                         )
