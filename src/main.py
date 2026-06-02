@@ -28,7 +28,6 @@ logging.getLogger("stream_interface").setLevel(logging.WARNING)
 logging.getLogger("mesh_interface").setLevel(logging.WARNING)
 
 from src.api.packet_serializer import PacketSerializer
-
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
 from src.bot import MeshflowBot
@@ -220,6 +219,9 @@ def main() -> None:
                 (lambda: getattr(radio, "feeder_mc_pubkey_prefix", None))
                 if RADIO_PROTOCOL == "meshcore"
                 else None
+            ),
+            feeder_node_id_provider=(
+                (lambda: bot.my_nodenum) if RADIO_PROTOCOL == "meshtastic" else None
             ),
         )
 
