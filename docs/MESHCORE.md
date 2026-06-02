@@ -50,7 +50,8 @@ Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS me
 | `advertisement` | Yes (`payload_type: advert`) | Identity only (`public_key`) |
 | **`rx_log_data`** + `payload_typename: ADVERT` | Yes | **`adv_lat` / `adv_lon` / `adv_name`** (map coordinates in Meshflow UI) |
 | `contact_message`, `channel_message` | Yes (text) | N/A |
-| `rx_log_data` (TEXT_MSG, PATH, …) | No (`MeshCoreSkipUpload`) | N/A |
+| `rx_log_data` + `TEXT_MSG` or `PATH` | Yes (`payload_type: raw`) | Path + `pkt_hash` for API twin-merge to channel messages |
+| `rx_log_data` (REQ, CONTROL, …) | No (`MeshCoreSkipUpload`) | N/A |
 
 Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://github.com/pskillen/meshflow-bot/issues/102) and **API** [meshflow-api#330](https://github.com/pskillen/meshflow-api/issues/330) / [#298](https://github.com/pskillen/meshflow-api/issues/298) deployed on feeders.
 
