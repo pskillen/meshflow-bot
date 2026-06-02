@@ -55,6 +55,18 @@ Traceroute commands remain Meshtastic-only; MC feeders ignore `traceroute` WS me
 
 Map coordinates in the Meshflow UI require **bot** [meshflow-bot#102](https://github.com/pskillen/meshflow-bot/issues/102) and **API** [meshflow-api#330](https://github.com/pskillen/meshflow-api/issues/330) / [#298](https://github.com/pskillen/meshflow-api/issues/298) deployed on feeders.
 
+## Claiming a node (ownership proof)
+
+Meshflow users claim MeshCore observed nodes the same way as Meshtastic: the UI shows a **claim key**; you prove ownership by sending that key from **your** radio to a **MeshCore feeder** already in the system.
+
+1. In the Meshflow UI, open your observed node → **Claim Node** → copy the claim key.
+2. On your MeshCore device, open a **contact/DM** to a known MeshCore feeder (not a channel/broadcast message).
+3. Send a message whose body is **only** the claim key (no extra text).
+4. The feeder bot must have `MESHCORE_UPLOAD_ENABLED=true` and upload `contact_message` as `contact_text` (default in Phase 1+).
+5. The UI should show success within a second via WebSocket; otherwise wait for the slow status poll.
+
+The feeder only needs to **receive** your DM; you do not need to operate the feeder yourself. See meshflow-api [node-claims-meshcore.md](https://github.com/pskillen/meshflow-api/blob/main/docs/features/node-lifecycle/node-claims-meshcore.md).
+
 ## Local identity
 
 MeshCore nodes are identified by **Ed25519 public keys** (64 hex chars), not Meshtastic-style 32-bit node numbers.
