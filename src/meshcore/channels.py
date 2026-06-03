@@ -12,24 +12,37 @@ from meshcore.events import EventType
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_CHANNEL_SCAN = 16
+_scope_read_logged = False
+
+
+def _normalize_region_scope(value: Any) -> str | None:
+    if value is None:
+        return None
+    raw = str(value).strip().lower().lstrip("#")
+    if not raw or raw in ("*", "none", "null"):
+        return None
+    return raw[:29]
 
 
 def _channel_entry_from_info(idx: int, payload: dict) -> Optional[dict]:
     name = str(payload.get("channel_name", "") or "").strip()
     if not name:
         return None
+    scope = payload.get("region_scope") or payload.get("flood_scope")
+    region_scope = _normalize_region_scope(scope)
     if name.startswith("#"):
+        tag = name.lstrip("#")[:100] or f"channel {idx}"
         return {
             "mc_channel_idx": idx,
-            "name": name.lstrip("#")[:100] or f"channel {idx}",
+            "name": tag,
             "mc_channel_type": "HASHTAG",
-            "mc_hashtag": name.lstrip("#")[:64],
+            "region_scope": region_scope,
         }
     return {
         "mc_channel_idx": idx,
         "name": name[:100],
         "mc_channel_type": "PUBLIC",
-        "mc_hashtag": None,
+        "region_scope": region_scope,
     }
 
 
@@ -44,12 +57,29 @@ def _describe_channel_event(idx: int, evt: Any) -> str:
     return f"[{idx}] {evt.type}"
 
 
+async def _apply_region_scope(meshcore: MeshCore, region_scope: str | None) -> None:
+    """Best-effort scope write when meshcore_py exposes set_flood_scope."""
+    if not region_scope:
+        return
+    set_scope = getattr(getattr(meshcore, "commands", None), "set_flood_scope", None)
+    if set_scope is None:
+        logger.debug(
+            "meshcore.commands.set_flood_scope not available; region_scope=%r not written to device",
+            region_scope,
+        )
+        return
+    evt = await set_scope(region_scope)
+    if evt.type == EventType.ERROR:
+        logger.warning("set_flood_scope(%r) failed: %s", region_scope, evt.payload)
+
+
 async def read_device_channels(
     meshcore: MeshCore,
     *,
     max_channels: int = DEFAULT_MAX_CHANNEL_SCAN,
 ) -> list[dict]:
     """Return channel snapshot rows for API mc-channel-sync."""
+    global _scope_read_logged
     channels: list[dict] = []
     scan_lines: list[str] = []
     for idx in range(max_channels):
@@ -62,6 +92,11 @@ async def read_device_channels(
         payload = evt.payload if isinstance(evt.payload, dict) else {}
         entry = _channel_entry_from_info(idx, payload)
         if entry:
+            if entry.get("region_scope") is None and not _scope_read_logged:
+                logger.debug(
+                    "Per-channel region_scope not returned by companion CHANNEL_INFO; syncing null"
+                )
+                _scope_read_logged = True
             channels.append(entry)
         elif str(payload.get("channel_name", "") or "").strip():
             logger.info(
@@ -84,11 +119,13 @@ async def apply_device_channels(meshcore: MeshCore, channels: list[dict]) -> Non
         name = str(ch.get("name") or f"channel {idx}")
         ch_type = str(ch.get("mc_channel_type", "PUBLIC")).upper()
         if ch_type == "HASHTAG":
-            tag = str(ch.get("mc_hashtag") or name).lstrip("#")
+            tag = str(ch.get("name") or name).lstrip("#")
             name = f"#{tag}"
         evt = await meshcore.commands.set_channel(idx, name)
         if evt.type == EventType.ERROR:
             logger.warning("set_channel(%s) failed: %s", idx, evt.payload)
+            continue
+        await _apply_region_scope(meshcore, _normalize_region_scope(ch.get("region_scope")))
 
 
 def log_device_channels(channels: list[dict]) -> None:
@@ -101,15 +138,9 @@ def log_device_channels(channels: list[dict]) -> None:
         idx = ch["mc_channel_idx"]
         typ = ch.get("mc_channel_type", "?")
         name = ch.get("name", "")
-        tag = ch.get("mc_hashtag")
-        if tag:
-            logger.info(
-                "  [%s] %s name=%r hashtag=%r",
-                idx,
-                typ,
-                name,
-                tag,
-            )
+        scope = ch.get("region_scope")
+        if scope:
+            logger.info("  [%s] %s name=%r region_scope=%r", idx, typ, name, scope)
         else:
             logger.info("  [%s] %s name=%r", idx, typ, name)
 

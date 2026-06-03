@@ -19,13 +19,22 @@ from src.meshcore.channels import (
 def test_channel_entry_public():
     entry = _channel_entry_from_info(0, {"channel_name": "Public"})
     assert entry["mc_channel_type"] == "PUBLIC"
-    assert entry["mc_hashtag"] is None
+    assert entry["region_scope"] is None
 
 
 def test_channel_entry_hashtag():
     entry = _channel_entry_from_info(1, {"channel_name": "#galloway"})
     assert entry["mc_channel_type"] == "HASHTAG"
-    assert entry["mc_hashtag"] == "galloway"
+    assert entry["name"] == "galloway"
+    assert entry["region_scope"] is None
+
+
+def test_channel_entry_with_region_scope():
+    entry = _channel_entry_from_info(
+        1,
+        {"channel_name": "#galloway", "region_scope": "Sample-West"},
+    )
+    assert entry["region_scope"] == "sample-west"
 
 
 def test_log_device_channels(caplog) -> None:
@@ -39,14 +48,14 @@ def test_log_device_channels(caplog) -> None:
                 "mc_channel_idx": 1,
                 "name": "galloway",
                 "mc_channel_type": "HASHTAG",
-                "mc_hashtag": "galloway",
+                "region_scope": "uk-wide",
             },
         ]
     )
     text = caplog.text
     assert "MeshCore device channels (2):" in text
     assert "Public" in text
-    assert "galloway" in text
+    assert "uk-wide" in text
 
 
 def test_log_device_channels_empty(caplog) -> None:
@@ -106,6 +115,7 @@ def test_apply_device_channels_hashtag_and_error() -> None:
             Event(EventType.ERROR, {"msg": "fail"}, {}),
         ]
     )
+    mc.commands.set_flood_scope = AsyncMock(return_value=Event(EventType.CHANNEL_INFO, {}, {}))
     asyncio.run(
         apply_device_channels(
             mc,
@@ -114,7 +124,7 @@ def test_apply_device_channels_hashtag_and_error() -> None:
                     "mc_channel_idx": 1,
                     "name": "galloway",
                     "mc_channel_type": "HASHTAG",
-                    "mc_hashtag": "galloway",
+                    "region_scope": "sample-west",
                 },
                 {"mc_channel_idx": 2, "name": "two", "mc_channel_type": "PUBLIC"},
             ],
@@ -123,3 +133,4 @@ def test_apply_device_channels_hashtag_and_error() -> None:
     assert mc.commands.set_channel.await_count == 2
     first_call = mc.commands.set_channel.await_args_list[0]
     assert first_call[0] == (1, "#galloway")
+    mc.commands.set_flood_scope.assert_awaited_once_with("sample-west")
