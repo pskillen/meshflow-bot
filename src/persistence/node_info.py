@@ -92,19 +92,29 @@ class InMemoryNodeInfoStore(AbstractNodeInfoStore):
             self.node_packets_today_breakdown[node_id][packet_type] += 1
 
     def update_last_heard(self, node_id: str, last_heard: datetime = None) -> None:
-        self.nodes_last_heard[node_id] = last_heard if last_heard else datetime.now(timezone.utc)
+        self.nodes_last_heard[node_id] = (
+            last_heard if last_heard else datetime.now(timezone.utc)
+        )
 
     def reset_packets_today(self) -> None:
         self.node_packets_today = {}
         self.node_packets_today_breakdown = {}
 
     def get_online_nodes(self) -> dict[str, datetime]:
-        return {node_id: last_heard for node_id, last_heard in self.nodes_last_heard.items()
-                if last_heard > datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
+        return {
+            node_id: last_heard
+            for node_id, last_heard in self.nodes_last_heard.items()
+            if last_heard
+            > datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)
+        }
 
     def get_offline_nodes(self) -> dict[str, datetime]:
-        return {node_id: last_heard for node_id, last_heard in self.nodes_last_heard.items()
-                if last_heard <= datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)}
+        return {
+            node_id: last_heard
+            for node_id, last_heard in self.nodes_last_heard.items()
+            if last_heard
+            <= datetime.now(timezone.utc) - timedelta(seconds=self.online_threshold_sec)
+        }
 
     def get_all_nodes(self) -> dict[str, datetime]:
         return self.nodes_last_heard
@@ -113,18 +123,23 @@ class InMemoryNodeInfoStore(AbstractNodeInfoStore):
         if not os.path.exists(node_info_file):
             return
 
-        with open(node_info_file, 'r') as file:
+        with open(node_info_file, "r") as file:
             data = json.load(file)
-            self.nodes_last_heard = {k: datetime.fromisoformat(v) for k, v in data['nodes_last_heard'].items()}
-            self.node_packets_today = data['node_packets_today']
-            self.node_packets_today_breakdown = data['node_packets_today_breakdown']
+            self.nodes_last_heard = {
+                k: datetime.fromisoformat(v)
+                for k, v in data["nodes_last_heard"].items()
+            }
+            self.node_packets_today = data["node_packets_today"]
+            self.node_packets_today_breakdown = data["node_packets_today_breakdown"]
 
     def persist_to_file(self, node_info_file: str) -> None:
-        with open(node_info_file, 'w') as file:
+        with open(node_info_file, "w") as file:
             data = {
-                'nodes_last_heard': {k: v.isoformat() for k, v in self.nodes_last_heard.items()},
-                'node_packets_today': self.node_packets_today,
-                'node_packets_today_breakdown': self.node_packets_today_breakdown
+                "nodes_last_heard": {
+                    k: v.isoformat() for k, v in self.nodes_last_heard.items()
+                },
+                "node_packets_today": self.node_packets_today,
+                "node_packets_today_breakdown": self.node_packets_today_breakdown,
             }
             json.dump(data, file, indent=4)
         logging.info(f"Node info persisted to {node_info_file}")

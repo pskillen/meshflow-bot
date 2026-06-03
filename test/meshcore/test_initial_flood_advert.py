@@ -19,9 +19,7 @@ def test_schedule_initial_flood_advert_sends_on_loop() -> None:
 
         mc = MagicMock()
         mc.is_connected = True
-        mc.commands.send_advert = AsyncMock(
-            return_value=Event(EventType.OK, {}, {})
-        )
+        mc.commands.send_advert = AsyncMock(return_value=Event(EventType.OK, {}, {}))
         radio._meshcore = mc
 
         radio.schedule_initial_flood_advert()

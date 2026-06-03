@@ -41,7 +41,9 @@ class AbstractBaseFeature(ABC):
         """Reply to ``message`` on the same channel it was received on."""
         self.message_in_channel(message.channel, response, want_ack)
 
-    def message_in_channel(self, channel: int, response: str, want_ack: bool = False) -> None:
+    def message_in_channel(
+        self, channel: int, response: str, want_ack: bool = False
+    ) -> None:
         logging.debug("Sending message: '%s'", response)
         self.bot.radio.send_text(
             response,
@@ -57,7 +59,9 @@ class AbstractBaseFeature(ABC):
     ) -> None:
         self.message_in_dm(message.from_id, response, want_ack)
 
-    def message_in_dm(self, destination_id: str, response: str, want_ack: bool = False) -> None:
+    def message_in_dm(
+        self, destination_id: str, response: str, want_ack: bool = False
+    ) -> None:
         logging.debug("Sending DM: '%s'", response)
         self.bot.radio.send_text(
             response,

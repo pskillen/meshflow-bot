@@ -72,9 +72,7 @@ class NodesCommand(AbstractCommandWithSubcommands):
             packets_today = self.bot.node_info.get_node_packets_today(node.id)
             response += f"- {node.short_name} ({packets_today} pkts)\n"
 
-        response += (
-            f"(last reset at {self.bot.node_info.packet_counter_reset_time.strftime('%H:%M:%S')})"
-        )
+        response += f"(last reset at {self.bot.node_info.packet_counter_reset_time.strftime('%H:%M:%S')})"
         self.reply_to(sender, response)
 
     def send_detailed_nodeinfo(self, sender: str, node_id: str) -> None:

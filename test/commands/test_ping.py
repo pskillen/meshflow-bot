@@ -14,14 +14,14 @@ class TestPingCommand(CommandTestCase):
 
     def test_handle_packet_no_additional_message(self):
         message = build_test_text_message(
-            '!ping', self.test_nodes[1].user.id, self.bot.my_id, max_hops=3, hops_left=3
+            "!ping", self.test_nodes[1].user.id, self.bot.my_id, max_hops=3, hops_left=3
         )
         self.command.handle_packet(message)
         self.assert_message_sent("!pong (ping took 0 hops)", self.test_nodes[1])
 
     def test_handle_packet_with_additional_message(self):
         message = build_test_text_message(
-            '!ping extra message',
+            "!ping extra message",
             self.test_nodes[1].user.id,
             self.bot.my_id,
             max_hops=3,
@@ -34,11 +34,11 @@ class TestPingCommand(CommandTestCase):
 
     def test_handle_packet_with_hop_count(self):
         message = build_test_text_message(
-            '!ping', self.test_nodes[1].user.id, self.bot.my_id, max_hops=3, hops_left=2
+            "!ping", self.test_nodes[1].user.id, self.bot.my_id, max_hops=3, hops_left=2
         )
         self.command.handle_packet(message)
         self.assert_message_sent("!pong (ping took 1 hops)", self.test_nodes[1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

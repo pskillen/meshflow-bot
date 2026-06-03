@@ -27,13 +27,17 @@ _tr_lock = threading.Lock()
 
 TR_HOPS_LIMIT = int(os.getenv("TR_HOPS_LIMIT", "5"))
 if TR_HOPS_LIMIT < 3:
-    logger.warning("TR_HOPS_LIMIT is less than 3, traceroutes are likely to fail. Capping at 3.")
+    logger.warning(
+        "TR_HOPS_LIMIT is less than 3, traceroutes are likely to fail. Capping at 3."
+    )
     TR_HOPS_LIMIT = 3
 elif TR_HOPS_LIMIT < 5:
     logger.warning("TR_HOPS_LIMIT is less than 5, traceroutes are likely to fail")
 
 if TR_HOPS_LIMIT > 7:
-    logger.warning("TR_HOPS_LIMIT is greater than the Meshtastic limit of 7. Capping at 7.")
+    logger.warning(
+        "TR_HOPS_LIMIT is greater than the Meshtastic limit of 7. Capping at 7."
+    )
     TR_HOPS_LIMIT = 7
 
 

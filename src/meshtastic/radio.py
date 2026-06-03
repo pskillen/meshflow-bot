@@ -72,7 +72,9 @@ class MeshtasticRadio(RadioInterface):
             packet_queue=old_packet_queue,
         )
 
-        logger.info("MeshtasticRadio: TCP interface created; awaiting library connect event")
+        logger.info(
+            "MeshtasticRadio: TCP interface created; awaiting library connect event"
+        )
 
     def disconnect(self) -> None:
         self._is_connected = False
@@ -111,7 +113,9 @@ class MeshtasticRadio(RadioInterface):
             kwargs["destinationId"] = destination_id
         if hop_limit is not None:
             kwargs["hopLimit"] = hop_limit
-        logger.debug("MeshtasticRadio: send_text dest=%s ch=%s", destination_id, channel)
+        logger.debug(
+            "MeshtasticRadio: send_text dest=%s ch=%s", destination_id, channel
+        )
         self._interface.sendText(text, **kwargs)
 
     def send_reaction(
@@ -137,7 +141,9 @@ class MeshtasticRadio(RadioInterface):
         channel_index: int = 0,
     ) -> None:
         if not self._interface or not self._is_connected:
-            logger.warning("MeshtasticRadio: send_traceroute called before connect; skipping")
+            logger.warning(
+                "MeshtasticRadio: send_traceroute called before connect; skipping"
+            )
             return
         _send_traceroute(self._interface, target_node_id, channel_index=channel_index)
 
@@ -149,7 +155,9 @@ class MeshtasticRadio(RadioInterface):
         pub.subscribe(self._on_receive, "meshtastic.receive")
         pub.subscribe(self._on_receive_text, "meshtastic.receive.text")
         pub.subscribe(self._on_node_updated, "meshtastic.node.updated")
-        pub.subscribe(self._on_connection_established, "meshtastic.connection.established")
+        pub.subscribe(
+            self._on_connection_established, "meshtastic.connection.established"
+        )
         self._pubsub_subscribed = True
 
     def _require_interface(self) -> None:

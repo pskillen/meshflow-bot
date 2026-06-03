@@ -11,8 +11,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from src.radio.events import (ConnectionEstablished, IncomingPacket,
-                              IncomingTextMessage, NodeUpdate)
+from src.radio.events import (
+    ConnectionEstablished,
+    IncomingPacket,
+    IncomingTextMessage,
+    NodeUpdate,
+)
 
 
 @dataclass

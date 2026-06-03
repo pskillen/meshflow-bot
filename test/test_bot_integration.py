@@ -21,7 +21,7 @@ from test.fake_radio import FakeRadio
 
 
 def _build_bot():
-    radio = FakeRadio(local_node_id="!aabbccdd", local_nodenum=0xaabbccdd)
+    radio = FakeRadio(local_node_id="!aabbccdd", local_nodenum=0xAABBCCDD)
     bot = MeshflowBot(radio=radio)
     bot.node_db = InMemoryNodeDB()
     bot.node_info = InMemoryNodeInfoStore()
@@ -65,7 +65,9 @@ class TestMeshflowBotEventRouting(unittest.TestCase):
 
         node = MeshNode()
         node.user = MeshNode.User(node_id="!11112222", long_name="Alice")
-        radio.deliver_node_update(NodeUpdate(node=node, last_heard=datetime.now(timezone.utc)))
+        radio.deliver_node_update(
+            NodeUpdate(node=node, last_heard=datetime.now(timezone.utc))
+        )
 
         self.assertIsNotNone(bot.node_db.get_by_radio_id("!11112222"))
         storage.store_node.assert_called_once_with(node)

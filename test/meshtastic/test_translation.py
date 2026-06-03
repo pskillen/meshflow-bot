@@ -14,16 +14,16 @@ from src.meshtastic.translation import (
 
 class TestIdConversions(unittest.TestCase):
     def test_round_trip(self):
-        for nodenum in (1, 0xdeadbeef, 0xaabbccdd):
+        for nodenum in (1, 0xDEADBEEF, 0xAABBCCDD):
             self.assertEqual(id_to_nodenum(nodenum_to_id(nodenum)), nodenum)
 
     def test_id_format_is_canonical_hex(self):
-        self.assertEqual(nodenum_to_id(0xaabbccdd), "!aabbccdd")
+        self.assertEqual(nodenum_to_id(0xAABBCCDD), "!aabbccdd")
         self.assertEqual(nodenum_to_id(1), "!00000001")
 
     def test_id_to_nodenum_strips_leading_bang(self):
-        self.assertEqual(id_to_nodenum("!aabbccdd"), 0xaabbccdd)
-        self.assertEqual(id_to_nodenum("aabbccdd"), 0xaabbccdd)
+        self.assertEqual(id_to_nodenum("!aabbccdd"), 0xAABBCCDD)
+        self.assertEqual(id_to_nodenum("aabbccdd"), 0xAABBCCDD)
 
 
 class TestPacketToIncoming(unittest.TestCase):
@@ -106,7 +106,12 @@ class TestNodeUpdate(unittest.TestCase):
                 "hwModel": "T-BEAM",
                 "publicKey": "pk",
             },
-            "position": {"latitude": 1.0, "longitude": 2.0, "altitude": 100, "time": 1700000000},
+            "position": {
+                "latitude": 1.0,
+                "longitude": 2.0,
+                "altitude": 100,
+                "time": 1700000000,
+            },
             "deviceMetrics": {"batteryLevel": 75, "voltage": 3.9},
             "lastHeard": 1700000000,
             "isFavorite": True,

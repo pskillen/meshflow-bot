@@ -39,7 +39,10 @@ class FakeRadio(RadioInterface):
         pass
 
     def __init__(
-        self, *, local_node_id: Optional[str] = None, local_nodenum: Optional[int] = None
+        self,
+        *,
+        local_node_id: Optional[str] = None,
+        local_nodenum: Optional[int] = None,
     ):
         self._local_node_id = local_node_id
         self._local_nodenum = local_nodenum

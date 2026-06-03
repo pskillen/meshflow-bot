@@ -16,7 +16,9 @@ class TestNodesCommand(CommandWSCTestCase):
         self.offline_count = len(self.bot.node_info.get_offline_nodes())
 
     def test_handle_base_command(self):
-        msg = build_test_text_message('!nodes', self.test_nodes[1].user.id, self.bot.my_id)
+        msg = build_test_text_message(
+            "!nodes", self.test_nodes[1].user.id, self.bot.my_id
+        )
         self.command.handle_packet(msg)
 
         expected_response = (
@@ -38,7 +40,9 @@ class TestNodesCommand(CommandWSCTestCase):
         self.assert_message_sent(expected_response, self.test_nodes[1])
 
     def test_handle_busy_command(self):
-        msg = build_test_text_message('!nodes busy', self.test_nodes[1].user.id, self.bot.my_id)
+        msg = build_test_text_message(
+            "!nodes busy", self.test_nodes[1].user.id, self.bot.my_id
+        )
         self.command.handle_packet(msg)
 
         sorted_nodes = sorted(
@@ -52,13 +56,17 @@ class TestNodesCommand(CommandWSCTestCase):
             node = self.bot.node_db.get_by_radio_id(node_id)
             expected_response += f"- {node.short_name} ({packet_count} pkts)\n"
 
-        last_reset_time = self.bot.node_info.packet_counter_reset_time.strftime("%H:%M:%S")
+        last_reset_time = self.bot.node_info.packet_counter_reset_time.strftime(
+            "%H:%M:%S"
+        )
         expected_response += f"(last reset at {last_reset_time})"
 
         self.assert_message_sent(expected_response, self.test_nodes[1])
 
     def test_handle_busy_detailed_command(self):
-        msg = build_test_text_message('!nodes busy detailed', self.test_nodes[1].user.id, self.bot.my_id)
+        msg = build_test_text_message(
+            "!nodes busy detailed", self.test_nodes[1].user.id, self.bot.my_id
+        )
         self.command.handle_packet(msg)
 
         self.fake_radio.send_text.assert_called()
@@ -67,7 +75,7 @@ class TestNodesCommand(CommandWSCTestCase):
     def test_handle_busy_specific_node(self):
         target_node = self.test_nodes[1]
         msg = build_test_text_message(
-            f'!nodes busy {target_node.user.short_name}',
+            f"!nodes busy {target_node.user.short_name}",
             self.test_nodes[1].user.id,
             self.bot.my_id,
         )
@@ -79,16 +87,20 @@ class TestNodesCommand(CommandWSCTestCase):
         )
         last_heard = self.bot.node_info.get_last_heard(target_node.user.id)
 
-        expected_response = f"{target_node.user.long_name} ({target_node.user.short_name})\n"
+        expected_response = (
+            f"{target_node.user.long_name} ({target_node.user.short_name})\n"
+        )
         expected_response += f"Last heard: {pretty_print_last_heard(last_heard)}\n"
         expected_response += f"Pkts today: {packets_today}\n"
 
-        sorted_breakdown = sorted(packet_breakdown_today.items(), key=lambda x: x[1], reverse=True)
+        sorted_breakdown = sorted(
+            packet_breakdown_today.items(), key=lambda x: x[1], reverse=True
+        )
         for packet_type, count in sorted_breakdown:
             expected_response += f"- {packet_type}: {count}\n"
 
         self.assert_message_sent(expected_response, self.test_nodes[1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

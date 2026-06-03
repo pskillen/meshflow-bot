@@ -8,8 +8,11 @@ from typing import TYPE_CHECKING, Optional
 
 CHANNEL_READ_DELAY_S = 2.0
 
-from src.meshcore.channels import (log_device_channels, read_device_channels,
-                                   snapshot_sync_body)
+from src.meshcore.channels import (
+    log_device_channels,
+    read_device_channels,
+    snapshot_sync_body,
+)
 
 if TYPE_CHECKING:
     from src.api.StorageAPI import StorageAPIWrapper

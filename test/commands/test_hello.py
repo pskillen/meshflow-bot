@@ -14,7 +14,7 @@ class TestHelloCommand(CommandTestCase):
 
     def test_handle_packet(self):
         sender_node = self.test_nodes[1]
-        message = build_test_text_message('!hello', sender_node.user.id, self.bot.my_id)
+        message = build_test_text_message("!hello", sender_node.user.id, self.bot.my_id)
         expected = (
             f"Hello, {sender_node.user.long_name}! How can I help you? (tip: try !help). "
             "I'm a bot maintained by PDY4 / pskillen@gmail.com"
@@ -23,5 +23,5 @@ class TestHelloCommand(CommandTestCase):
         self.assert_message_sent(expected, sender_node)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

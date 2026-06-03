@@ -48,12 +48,14 @@ class AbstractUserPrefsPersistence(abc.ABC):
         pass
 
 
-class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersistenceStore):
+class SqliteUserPrefsPersistence(
+    AbstractUserPrefsPersistence, BaseSqlitePersistenceStore
+):
 
     def _initialize_db(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS user_prefs (
                     user_id TEXT,
                     setting_name TEXT,
@@ -62,18 +64,21 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
                     num_changes INTEGER,
                     PRIMARY KEY (user_id, setting_name)
                 )
-            ''')
+            """)
             conn.commit()
 
     def get_user_prefs(self, user_id: str) -> UserPrefs:
         with sqlite3.connect(self.db_path) as conn:
             # Fetch the data
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT setting_name, setting_value, time_set, num_changes
                   FROM user_prefs
                  WHERE user_id = ?
-            ''', (user_id,))
+            """,
+                (user_id,),
+            )
             rows = cursor.fetchall()
 
             # Parse the data
@@ -81,9 +86,13 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
             for row in rows:
                 setting_name, setting_value, time_set, num_changes = row
                 preference = UserPrefs.Preference.from_values(
-                    value=True if setting_value == 'True' else False if setting_value == 'False' else setting_value,
+                    value=(
+                        True
+                        if setting_value == "True"
+                        else False if setting_value == "False" else setting_value
+                    ),
                     time_set=datetime.fromisoformat(time_set),
-                    num_changes=num_changes
+                    num_changes=num_changes,
                 )
                 setattr(user_prefs, setting_name, preference)
 
@@ -94,14 +103,17 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             for key, preference in user_prefs.__dict__.items():
-                if key == 'user_id':
+                if key == "user_id":
                     continue
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     SELECT setting_value, num_changes
                       FROM user_prefs
                      WHERE user_id = ? AND setting_name = ?
-                ''', (user_id, key))
+                """,
+                    (user_id, key),
+                )
                 row = cursor.fetchone()
 
                 if row:
@@ -117,14 +129,23 @@ class SqliteUserPrefsPersistence(AbstractUserPrefsPersistence, BaseSqlitePersist
                     time_set = datetime.now(timezone.utc)
 
                 # Store this value
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO user_prefs (user_id, setting_name, setting_value, time_set, num_changes)
                     VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT(user_id, setting_name) DO UPDATE SET
                         setting_value=excluded.setting_value,
                         time_set=excluded.time_set,
                         num_changes=excluded.num_changes
-                ''', (user_id, key, str(preference.value), time_set.isoformat(), num_changes))
+                """,
+                    (
+                        user_id,
+                        key,
+                        str(preference.value),
+                        time_set.isoformat(),
+                        num_changes,
+                    ),
+                )
 
             # Commit all values
             conn.commit()

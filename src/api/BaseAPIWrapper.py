@@ -8,16 +8,16 @@ class BaseAPIWrapper(ABC):
     auth_token: str | None
 
     def __init__(self, base_url: str, auth_token: str = None):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.auth_token = auth_token
 
     def _get_headers(self) -> dict:
         headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
         if self.auth_token:
-            headers['Authorization'] = f'Token {self.auth_token}'
+            headers["Authorization"] = f"Token {self.auth_token}"
 
         return headers
 

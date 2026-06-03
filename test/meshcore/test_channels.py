@@ -6,10 +6,14 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 from meshcore.events import Event, EventType
-from src.meshcore.channels import (_channel_entry_from_info,
-                                   apply_device_channels, log_device_channels,
-                                   merge_channel_region_scopes,
-                                   read_device_channels, snapshot_sync_body)
+from src.meshcore.channels import (
+    _channel_entry_from_info,
+    apply_device_channels,
+    log_device_channels,
+    merge_channel_region_scopes,
+    read_device_channels,
+    snapshot_sync_body,
+)
 
 
 def test_channel_entry_public():

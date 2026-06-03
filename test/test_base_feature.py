@@ -18,7 +18,9 @@ class TestAbstractBaseFeature(unittest.TestCase):
 
     def test_reply_in_channel(self):
         sender = self.test_non_admin_nodes[1]
-        msg = build_test_text_message('!test', sender.user.id, self.bot.my_id, channel=1)
+        msg = build_test_text_message(
+            "!test", sender.user.id, self.bot.my_id, channel=1
+        )
         self.feature.reply_in_channel(msg, "Test message")
         self.fake_radio.send_text.assert_called_once_with(
             "Test message", channel=1, want_ack=False, hop_limit=5
@@ -32,7 +34,7 @@ class TestAbstractBaseFeature(unittest.TestCase):
 
     def test_reply_in_dm(self):
         sender = self.test_non_admin_nodes[1]
-        msg = build_test_text_message('!test', sender.user.id, self.bot.my_id)
+        msg = build_test_text_message("!test", sender.user.id, self.bot.my_id)
         self.feature.reply_in_dm(msg, "Test message")
         self.fake_radio.send_text.assert_called_once_with(
             "Test message", destination_id=sender.user.id, want_ack=False, hop_limit=5
@@ -47,7 +49,9 @@ class TestAbstractBaseFeature(unittest.TestCase):
 
     def test_react_in_channel(self):
         sender = self.test_non_admin_nodes[1]
-        msg = build_test_text_message('!test', sender.user.id, self.bot.my_id, channel=1)
+        msg = build_test_text_message(
+            "!test", sender.user.id, self.bot.my_id, channel=1
+        )
         self.feature.react_in_channel(msg, "👍")
         self.fake_radio.send_reaction.assert_called_once_with(
             "👍", msg.message_id, channel=1
@@ -55,12 +59,12 @@ class TestAbstractBaseFeature(unittest.TestCase):
 
     def test_react_in_dm(self):
         sender = self.test_non_admin_nodes[1]
-        msg = build_test_text_message('!test', sender.user.id, self.bot.my_id)
+        msg = build_test_text_message("!test", sender.user.id, self.bot.my_id)
         self.feature.react_in_dm(msg, "👍")
         self.fake_radio.send_reaction.assert_called_once_with(
             "👍", msg.message_id, destination_id=sender.user.id
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

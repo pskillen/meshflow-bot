@@ -8,7 +8,9 @@ from src.data_classes import MeshNode
 from src.radio.events import IncomingTextMessage
 
 
-def _rows_for_sender(rows: list[dict[str, Any]], sender_id: str) -> list[dict[str, Any]]:
+def _rows_for_sender(
+    rows: list[dict[str, Any]], sender_id: str
+) -> list[dict[str, Any]]:
     return [r for r in rows if r["sender_id"] == sender_id]
 
 
@@ -42,9 +44,7 @@ class AdminCommand(AbstractCommandWithSubcommands):
             self.bot.node_info.reset_packets_today()
             response = "Packet counter reset"
         else:
-            response = (
-                f"reset: Unknown argument '{args[0]}' - options are: {available_options}"
-            )
+            response = f"reset: Unknown argument '{args[0]}' - options are: {available_options}"
         self.reply(message, response)
 
     def show_users(self, message: IncomingTextMessage, args: list[str]) -> None:
@@ -56,9 +56,7 @@ class AdminCommand(AbstractCommandWithSubcommands):
             return self._show_user(message, req_user)
         return self._show_users(message)
 
-    def _show_user(
-        self, message: IncomingTextMessage, req_user: MeshNode.User
-    ) -> None:
+    def _show_user(self, message: IncomingTextMessage, req_user: MeshNode.User) -> None:
         since = datetime.now(timezone.utc) - timedelta(days=7)
         since = since.replace(hour=0, minute=0, second=0, microsecond=0)
 

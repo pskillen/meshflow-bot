@@ -12,20 +12,35 @@ from src.meshcore.radio import (
 
 
 def test_parse_flood_advert_interval_hours_defaults() -> None:
-    assert MeshCoreRadio.parse_flood_advert_interval_hours(None) == DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
-    assert MeshCoreRadio.parse_flood_advert_interval_hours({}) == DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
+    assert (
+        MeshCoreRadio.parse_flood_advert_interval_hours(None)
+        == DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
+    )
+    assert (
+        MeshCoreRadio.parse_flood_advert_interval_hours({})
+        == DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
+    )
 
 
 def test_parse_flood_advert_interval_hours_clamps() -> None:
-    assert MeshCoreRadio.parse_flood_advert_interval_hours(
-        {"mc_flood_advert_interval_hours": 1}
-    ) == 2.0
-    assert MeshCoreRadio.parse_flood_advert_interval_hours(
-        {"mc_flood_advert_interval_hours": 48}
-    ) == 24.0
-    assert MeshCoreRadio.parse_flood_advert_interval_hours(
-        {"mc_flood_advert_interval_hours": 12}
-    ) == 12.0
+    assert (
+        MeshCoreRadio.parse_flood_advert_interval_hours(
+            {"mc_flood_advert_interval_hours": 1}
+        )
+        == 2.0
+    )
+    assert (
+        MeshCoreRadio.parse_flood_advert_interval_hours(
+            {"mc_flood_advert_interval_hours": 48}
+        )
+        == 24.0
+    )
+    assert (
+        MeshCoreRadio.parse_flood_advert_interval_hours(
+            {"mc_flood_advert_interval_hours": 12}
+        )
+        == 12.0
+    )
 
 
 def test_schedule_flood_advert_from_config() -> None:

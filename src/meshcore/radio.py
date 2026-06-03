@@ -12,9 +12,11 @@ from typing import Optional
 from meshcore import MeshCore
 from meshcore.events import Event, EventType
 from src.meshcore.dump import dump_meshcore_event
-from src.meshcore.translation import (event_to_incoming_packet,
-                                      event_to_node_update,
-                                      event_to_text_message)
+from src.meshcore.translation import (
+    event_to_incoming_packet,
+    event_to_node_update,
+    event_to_text_message,
+)
 from src.radio.errors import RadioError, call_safely, get_global_error_counter
 from src.radio.events import ConnectionEstablished
 from src.radio.interface import RadioHandlers, RadioInterface
@@ -411,8 +413,7 @@ class MeshCoreRadio(RadioInterface):
             return
 
         async def _task() -> None:
-            from src.meshcore.channel_sync import \
-              sync_channels_to_storage_apis_async
+            from src.meshcore.channel_sync import sync_channels_to_storage_apis_async
 
             labels = [str(getattr(s, "base_url", "?")) for s in storage_apis]
             logger.info(
