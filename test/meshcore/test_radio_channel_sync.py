@@ -39,7 +39,7 @@ def test_schedule_channel_sync_runs_on_loop() -> None:
         storage.base_url = "http://api.test"
         done = asyncio.Event()
 
-        async def _fake_sync(_radio, _storages):
+        async def _fake_sync(_radio, _storages, **kwargs):
             done.set()
 
         with patch(
@@ -66,7 +66,7 @@ def test_schedule_channel_sync_from_worker_thread() -> None:
         storage.base_url = "http://api.test"
         done = asyncio.Event()
 
-        async def _fake_sync(_radio, _storages):
+        async def _fake_sync(_radio, _storages, **kwargs):
             done.set()
 
         with patch(
