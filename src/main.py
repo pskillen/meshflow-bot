@@ -28,6 +28,7 @@ logging.getLogger("stream_interface").setLevel(logging.WARNING)
 logging.getLogger("mesh_interface").setLevel(logging.WARNING)
 
 from src.api.packet_serializer import PacketSerializer
+
 # Now we can import the rest of our local files
 from src.api.StorageAPI import StorageAPIWrapper
 from src.bot import MeshflowBot

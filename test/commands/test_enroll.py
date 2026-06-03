@@ -11,14 +11,16 @@ class TestEnrollCommandHandler(CommandWSCTestCase):
 
     def setUp(self):
         super().setUp()
-        self.command = EnrollCommandHandler(self.bot, 'enroll')
+        self.command = EnrollCommandHandler(self.bot, "enroll")
         self.bot.user_prefs_persistence = MagicMock()
 
     def test_enroll_testing(self):
-        command = EnrollCommandHandler(self.bot, 'enroll')
+        command = EnrollCommandHandler(self.bot, "enroll")
         sender_node = self.test_nodes[1]
 
-        packet = build_test_text_message('!enroll testing', sender_node.user.id, self.bot.my_id)
+        packet = build_test_text_message(
+            "!enroll testing", sender_node.user.id, self.bot.my_id
+        )
         command.handle_packet(packet)
 
         self.bot.user_prefs_persistence.persist_user_prefs.assert_called_once()
@@ -26,10 +28,12 @@ class TestEnrollCommandHandler(CommandWSCTestCase):
         self.assertTrue(user_prefs.respond_to_testing.value)
 
     def test_leave_testing(self):
-        command = EnrollCommandHandler(self.bot, 'leave')
+        command = EnrollCommandHandler(self.bot, "leave")
         sender_node = self.test_nodes[1]
 
-        packet = build_test_text_message('!leave testing', sender_node.user.id, self.bot.my_id)
+        packet = build_test_text_message(
+            "!leave testing", sender_node.user.id, self.bot.my_id
+        )
         command.handle_packet(packet)
 
         self.bot.user_prefs_persistence.persist_user_prefs.assert_called_once()
@@ -37,5 +41,5 @@ class TestEnrollCommandHandler(CommandWSCTestCase):
         self.assertFalse(user_prefs.respond_to_testing.value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

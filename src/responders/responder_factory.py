@@ -26,7 +26,7 @@ class ResponderFactory:
 
     @staticmethod
     def create_responder(responder_info, bot):
-        module_name, class_name = responder_info["class"].rsplit('.', 1)
+        module_name, class_name = responder_info["class"].rsplit(".", 1)
         module = importlib.import_module(module_name)
         responder_class = getattr(module, class_name)
         args = [bot] + responder_info["args"]

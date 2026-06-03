@@ -11,18 +11,18 @@ from meshtastic.tcp_interface import TCPInterface
 
 class SupportsMessageReactionInterface(TCPInterface):
     def sendReaction(
-            self,
-            emoji: str,
-            messageId: int,
-            destinationId: Union[int, str] = BROADCAST_ADDR,
-            wantAck: bool = False,
-            channelIndex: int = 0,
-            portNum: portnums_pb2.PortNum.ValueType = portnums_pb2.PortNum.TEXT_MESSAGE_APP,
-            hopLimit: Optional[int] = None,
-            pkiEncrypted: Optional[bool] = False,
-            publicKey: Optional[bytes] = None,
+        self,
+        emoji: str,
+        messageId: int,
+        destinationId: Union[int, str] = BROADCAST_ADDR,
+        wantAck: bool = False,
+        channelIndex: int = 0,
+        portNum: portnums_pb2.PortNum.ValueType = portnums_pb2.PortNum.TEXT_MESSAGE_APP,
+        hopLimit: Optional[int] = None,
+        pkiEncrypted: Optional[bool] = False,
+        publicKey: Optional[bytes] = None,
     ):
-        emoji_bytes = emoji.encode('utf-8')
+        emoji_bytes = emoji.encode("utf-8")
 
         packet = mesh_pb2.MeshPacket()
         packet.channel = channelIndex
@@ -31,21 +31,27 @@ class SupportsMessageReactionInterface(TCPInterface):
         packet.decoded.reply_id = messageId
         packet.decoded.emoji = 1
 
-        self._sendPacket(packet, destinationId,
-                         wantAck=wantAck,
-                         hopLimit=hopLimit,
-                         pkiEncrypted=pkiEncrypted,
-                         publicKey=publicKey)
+        self._sendPacket(
+            packet,
+            destinationId,
+            wantAck=wantAck,
+            hopLimit=hopLimit,
+            pkiEncrypted=pkiEncrypted,
+            publicKey=publicKey,
+        )
         return packet
 
 
 class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
     packet_queue: Queue
 
-    def __init__(self, *args,
-                 error_handler: Optional[Callable[[Exception], None]] = None,
-                 packet_queue: Optional[Queue] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        *args,
+        error_handler: Optional[Callable[[Exception], None]] = None,
+        packet_queue: Optional[Queue] = None,
+        **kwargs,
+    ):
         self.error_handler = error_handler
         self.packet_queue = packet_queue or Queue()
         super().__init__(*args, **kwargs)
@@ -71,13 +77,13 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
             self._shutdown_and_call_error_handler()
 
     def _sendPacket(
-            self,
-            meshPacket: mesh_pb2.MeshPacket,
-            destinationId: Union[int, str] = BROADCAST_ADDR,
-            wantAck: bool = False,
-            hopLimit: Optional[int] = None,
-            pkiEncrypted: Optional[bool] = False,
-            publicKey: Optional[bytes] = None,
+        self,
+        meshPacket: mesh_pb2.MeshPacket,
+        destinationId: Union[int, str] = BROADCAST_ADDR,
+        wantAck: bool = False,
+        hopLimit: Optional[int] = None,
+        pkiEncrypted: Optional[bool] = False,
+        publicKey: Optional[bytes] = None,
     ):
         try:
             super()._sendPacket(
@@ -86,11 +92,13 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
                 wantAck=wantAck,
                 hopLimit=hopLimit,
                 pkiEncrypted=pkiEncrypted,
-                publicKey=publicKey
+                publicKey=publicKey,
             )
         except (OSError, BrokenPipeError) as e:
             logging.error(f"sendPacket failed: {e}")
-            self.packet_queue.put((meshPacket, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey))
+            self.packet_queue.put(
+                (meshPacket, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey)
+            )
             # self._reconnect_with_backoff()
             self._shutdown_and_call_error_handler(e)
 
@@ -101,7 +109,8 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
         except Exception as e:
             logging.warning(
                 f"Failed to close connection. "
-                f"This might not be an issue since we've already disconnected: {e}")
+                f"This might not be an issue since we've already disconnected: {e}"
+            )
 
         if self.error_handler:
             self.error_handler(conn_error)
@@ -124,13 +133,17 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
                 if backoff_time == max_backoff_time:
                     logging.error("Max backoff time reached. Exiting.")
                     sys.exit(1)
-                backoff_time = min(backoff_time * backoff_rate, max_backoff_time)  # Exponential back-off
+                backoff_time = min(
+                    backoff_time * backoff_rate, max_backoff_time
+                )  # Exponential back-off
                 logging.info(f"Next reconnection attempt in {backoff_time} seconds")
                 time.sleep(backoff_time)
 
     def _replay_packet_queue(self):
         while not self.packet_queue.empty():
-            packet, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey = self.packet_queue.get()
+            packet, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey = (
+                self.packet_queue.get()
+            )
             try:
                 super()._sendPacket(
                     meshPacket=packet,
@@ -138,10 +151,12 @@ class AutoReconnectTcpInterface(SupportsMessageReactionInterface, TCPInterface):
                     wantAck=wantAck,
                     hopLimit=hopLimit,
                     pkiEncrypted=pkiEncrypted,
-                    publicKey=publicKey
+                    publicKey=publicKey,
                 )
                 logging.info("Replayed packet successfully")
             except Exception as e:
                 logging.error(f"Failed to replay packet: {e}")
-                self.packet_queue.put((packet, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey))
+                self.packet_queue.put(
+                    (packet, destinationId, wantAck, hopLimit, pkiEncrypted, publicKey)
+                )
                 break

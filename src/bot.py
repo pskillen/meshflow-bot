@@ -24,8 +24,12 @@ from src.persistence.node_info import AbstractNodeInfoStore
 from src.persistence.packet_dump import dump_packet
 from src.persistence.user_prefs import AbstractUserPrefsPersistence
 from src.radio.errors import call_safely, get_global_error_counter
-from src.radio.events import (ConnectionEstablished, IncomingPacket,
-                              IncomingTextMessage, NodeUpdate)
+from src.radio.events import (
+    ConnectionEstablished,
+    IncomingPacket,
+    IncomingTextMessage,
+    NodeUpdate,
+)
 from src.radio.interface import RadioHandlers, RadioInterface
 from src.responders.responder_factory import ResponderFactory
 
@@ -93,9 +97,11 @@ class MeshflowBot:
 
     def on_apply_mc_channel_config(self, channels: list) -> None:
         """Handle apply_mc_channel_config from WebSocket (MeshCore feeders)."""
-        from src.meshcore.channel_sync import (apply_channels_on_device,
-                                               sync_channels_after_apply,
-                                               sync_channels_to_api)
+        from src.meshcore.channel_sync import (
+            apply_channels_on_device,
+            sync_channels_after_apply,
+            sync_channels_to_api,
+        )
 
         if not hasattr(self.radio, "run_coroutine"):
             logger.warning(

@@ -21,9 +21,7 @@ class EnrollCommandHandler(AbstractCommandWithSubcommands):
         )
         self.reply(message, response)
 
-    def enroll_testing(
-        self, message: IncomingTextMessage, args: list[str]
-    ) -> None:
+    def enroll_testing(self, message: IncomingTextMessage, args: list[str]) -> None:
         sender_id = message.from_id
         user_prefs = self.bot.user_prefs_persistence.get_user_prefs(sender_id)
         if user_prefs is None:

@@ -25,10 +25,10 @@ class CommandWSCTestCase(CommandTestCase):
             self.assertIn(want, response)
 
     def test_show_help(self):
-        if self.__class__.__name__ == 'CommandWSCTestCase':
+        if self.__class__.__name__ == "CommandWSCTestCase":
             return
         base_cmd = self.command.base_command
         message = build_test_text_message(
-            f'!{base_cmd} help', self.test_nodes[1].user.id, self.bot.my_id
+            f"!{base_cmd} help", self.test_nodes[1].user.id, self.bot.my_id
         )
         self.assert_show_help_for_command(message)

@@ -34,4 +34,4 @@ _safe_chars = string.ascii_letters + string.digits + r" ()@\/.,-:\"'"
 
 
 def safe_encode_node_name(name):
-    return ''.join(c if c in _safe_chars else urllib.parse.quote(c) for c in name)
+    return "".join(c if c in _safe_chars else urllib.parse.quote(c) for c in name)

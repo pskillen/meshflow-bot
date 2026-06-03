@@ -27,15 +27,15 @@ def generate_random_rssi():
 
 
 def generate_random_packet_id():
-    return random.randint(0, 2 ** 32 - 1)  # 32-bit unsigned int
+    return random.randint(0, 2**32 - 1)  # 32-bit unsigned int
 
 
 _packet_types = [
-    'TEXT_MESSAGE_APP',
-    'POSITION_APP',
-    'TRACKER_APP',
-    'PRIVATE_APP',
-    'BROADCAST_APP',
+    "TEXT_MESSAGE_APP",
+    "POSITION_APP",
+    "TRACKER_APP",
+    "PRIVATE_APP",
+    "BROADCAST_APP",
 ]
 
 
@@ -44,7 +44,7 @@ def generate_random_packet_type() -> str:
 
 
 def random_node_id():
-    return random.randint(0, 2 ** 32 - 1)  # 32-bit unsigned int
+    return random.randint(0, 2**32 - 1)  # 32-bit unsigned int
 
 
 def random_node_id_hex():
@@ -56,7 +56,7 @@ def make_node():
     node.user = MeshNode.User()
     node.user.id = random_node_id_hex()
     node.user.short_name = node.user.id[-4:]
-    node.user.long_name = 'Node ' + node.user.id
+    node.user.long_name = "Node " + node.user.id
     return node
 
 
@@ -73,7 +73,10 @@ def get_test_bot(node_count=2, admin_node_count=1):
     admin_nodes: list[MeshNode] = [make_node() for _ in range(admin_node_count)]
     all_nodes = nodes + admin_nodes
 
-    fake_radio = FakeRadio(local_node_id=nodes[0].user.id, local_nodenum=meshtastic_hex_to_int(nodes[0].user.id))
+    fake_radio = FakeRadio(
+        local_node_id=nodes[0].user.id,
+        local_nodenum=meshtastic_hex_to_int(nodes[0].user.id),
+    )
     bot = MeshflowBot(radio=fake_radio)
     bot.admin_nodes = [node.user.id for node in admin_nodes]
 
@@ -88,7 +91,9 @@ def get_test_bot(node_count=2, admin_node_count=1):
 
         bot.node_db.store_node(node)
         for _ in range(random.randint(1, 10)):
-            bot.node_info.node_packet_received(node.user.id, generate_random_packet_type())
+            bot.node_info.node_packet_received(
+                node.user.id, generate_random_packet_type()
+            )
         bot.node_info.update_last_heard(node.user.id, last_heard)
 
     return bot, nodes, admin_nodes
@@ -117,7 +122,9 @@ def build_test_text_message(
         from_id=sender_id,
         to_id=to_id,
         channel=channel,
-        message_id=message_id if message_id is not None else generate_random_packet_id(),
+        message_id=(
+            message_id if message_id is not None else generate_random_packet_id()
+        ),
         hop_start=max_hops,
         hop_limit=hops_left,
         is_dm=is_dm,

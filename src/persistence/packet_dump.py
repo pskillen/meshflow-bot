@@ -14,7 +14,9 @@ if dump_portnums:
 
     logging.info(f"Will dump all packets for portnums to JSON: {dump_portnums}")
 else:
-    logging.info("Not dumping packets - set DUMP_PACKETS_PORTNUMS to comma separated list of portnums to dump")
+    logging.info(
+        "Not dumping packets - set DUMP_PACKETS_PORTNUMS to comma separated list of portnums to dump"
+    )
 
 
 def dump_packet(packet: dict):

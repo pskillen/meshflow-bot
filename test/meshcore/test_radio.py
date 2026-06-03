@@ -47,7 +47,9 @@ def test_meshcore_radio_dispatch_round_trip(tmp_path: Path, monkeypatch) -> None
     radio.dispatch_meshcore_event_for_tests(ev)
 
     assert (tmp_path / "meshcore_packets" / "contact_message").exists()
-    json_files = list((tmp_path / "meshcore_packets" / "contact_message").glob("*.json"))
+    json_files = list(
+        (tmp_path / "meshcore_packets" / "contact_message").glob("*.json")
+    )
     assert len(json_files) == 1
     kinds = [k for k, _ in received]
     assert "packet" in kinds

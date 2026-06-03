@@ -9,11 +9,18 @@ from src.persistence.node_db import SqliteNodeDB, InMemoryNodeDB
 class TestInMemoryNodeDB(unittest.TestCase):
     def setUp(self):
         self.db = InMemoryNodeDB()
-        self.node_user = MeshNode.User(node_id='node1', short_name='Node1', long_name='Test Node 1')
-        self.position = MeshNode.Position(logged_time=datetime.now(timezone.utc),
-                                          latitude=10.0, longitude=20.0, altitude=100.0)
-        self.device_metrics = MeshNode.DeviceMetrics(logged_time=datetime.now(timezone.utc),
-                                                     battery_level=90)
+        self.node_user = MeshNode.User(
+            node_id="node1", short_name="Node1", long_name="Test Node 1"
+        )
+        self.position = MeshNode.Position(
+            logged_time=datetime.now(timezone.utc),
+            latitude=10.0,
+            longitude=20.0,
+            altitude=100.0,
+        )
+        self.device_metrics = MeshNode.DeviceMetrics(
+            logged_time=datetime.now(timezone.utc), battery_level=90
+        )
 
     def test_store_and_get_user(self):
         self.db.store_user(self.node_user)
@@ -32,7 +39,9 @@ class TestInMemoryNodeDB(unittest.TestCase):
     def test_store_and_get_device_metrics(self):
         self.db.store_device_metrics(self.node_user.id, self.device_metrics)
         retrieved_metrics = self.db.get_last_device_metrics(self.node_user.id)
-        self.assertEqual(retrieved_metrics.battery_level, self.device_metrics.battery_level)
+        self.assertEqual(
+            retrieved_metrics.battery_level, self.device_metrics.battery_level
+        )
 
     def test_list_nodes(self):
         self.db.store_user(self.node_user)
@@ -52,20 +61,29 @@ class TestInMemoryNodeDB(unittest.TestCase):
         start_time = datetime.now(timezone.utc) - timedelta(days=1)
         end_time = datetime.now(timezone.utc) + timedelta(days=1)
         self.db.store_device_metrics(self.node_user.id, self.device_metrics)
-        metrics = self.db.get_device_metrics_log(self.node_user.id, start_time, end_time)
+        metrics = self.db.get_device_metrics_log(
+            self.node_user.id, start_time, end_time
+        )
         self.assertEqual(len(metrics), 1)
         self.assertEqual(metrics[0].battery_level, self.device_metrics.battery_level)
 
 
 class TestSqliteNodeDB(unittest.TestCase):
     def setUp(self):
-        self.db_path = 'test_node_db.sqlite'
+        self.db_path = "test_node_db.sqlite"
         self.db = SqliteNodeDB(self.db_path)
-        self.node_user = MeshNode.User(node_id='node1', short_name='Node1', long_name='Test Node 1')
-        self.position = MeshNode.Position(logged_time=datetime.now(timezone.utc),
-                                          latitude=10.0, longitude=20.0, altitude=100.0)
-        self.device_metrics = MeshNode.DeviceMetrics(logged_time=datetime.now(timezone.utc),
-                                                     battery_level=90)
+        self.node_user = MeshNode.User(
+            node_id="node1", short_name="Node1", long_name="Test Node 1"
+        )
+        self.position = MeshNode.Position(
+            logged_time=datetime.now(timezone.utc),
+            latitude=10.0,
+            longitude=20.0,
+            altitude=100.0,
+        )
+        self.device_metrics = MeshNode.DeviceMetrics(
+            logged_time=datetime.now(timezone.utc), battery_level=90
+        )
 
     def tearDown(self):
         if os.path.exists(self.db_path):
@@ -88,7 +106,9 @@ class TestSqliteNodeDB(unittest.TestCase):
     def test_store_and_get_device_metrics(self):
         self.db.store_device_metrics(self.node_user.id, self.device_metrics)
         retrieved_metrics = self.db.get_last_device_metrics(self.node_user.id)
-        self.assertEqual(retrieved_metrics.battery_level, self.device_metrics.battery_level)
+        self.assertEqual(
+            retrieved_metrics.battery_level, self.device_metrics.battery_level
+        )
 
     def test_list_nodes(self):
         self.db.store_user(self.node_user)
@@ -108,10 +128,12 @@ class TestSqliteNodeDB(unittest.TestCase):
         start_time = datetime.now(timezone.utc) - timedelta(days=1)
         end_time = datetime.now(timezone.utc) + timedelta(days=1)
         self.db.store_device_metrics(self.node_user.id, self.device_metrics)
-        metrics = self.db.get_device_metrics_log(self.node_user.id, start_time, end_time)
+        metrics = self.db.get_device_metrics_log(
+            self.node_user.id, start_time, end_time
+        )
         self.assertEqual(len(metrics), 1)
         self.assertEqual(metrics[0].battery_level, self.device_metrics.battery_level)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

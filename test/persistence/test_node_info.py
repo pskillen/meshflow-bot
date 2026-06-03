@@ -7,13 +7,16 @@ from src.persistence.node_info import InMemoryNodeInfoStore
 class TestInMemoryNodeInfoStore(unittest.TestCase):
     def setUp(self):
         self.store = InMemoryNodeInfoStore()
-        self.node_id = 'node1'
-        self.packet_type = 'data'
+        self.node_id = "node1"
+        self.packet_type = "data"
 
     def test_node_packet_received(self):
         self.store.node_packet_received(self.node_id, self.packet_type)
         self.assertEqual(self.store.get_node_packets_today(self.node_id), 1)
-        self.assertEqual(self.store.get_node_packets_today_breakdown(self.node_id)[self.packet_type], 1)
+        self.assertEqual(
+            self.store.get_node_packets_today_breakdown(self.node_id)[self.packet_type],
+            1,
+        )
 
     def test_update_last_heard(self):
         now = datetime.now(timezone.utc)
@@ -55,5 +58,5 @@ class TestInMemoryNodeInfoStore(unittest.TestCase):
         self.assertEqual(all_packets_breakdown[self.node_id][self.packet_type], 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
