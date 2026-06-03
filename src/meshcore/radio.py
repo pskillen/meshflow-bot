@@ -12,11 +12,9 @@ from typing import Optional
 from meshcore import MeshCore
 from meshcore.events import Event, EventType
 from src.meshcore.dump import dump_meshcore_event
-from src.meshcore.translation import (
-    event_to_incoming_packet,
-    event_to_node_update,
-    event_to_text_message,
-)
+from src.meshcore.translation import (event_to_incoming_packet,
+                                      event_to_node_update,
+                                      event_to_text_message)
 from src.radio.errors import RadioError, call_safely, get_global_error_counter
 from src.radio.events import ConnectionEstablished
 from src.radio.interface import RadioHandlers, RadioInterface
@@ -289,7 +287,12 @@ class MeshCoreRadio(RadioInterface):
         if not config:
             return DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
         try:
-            hours = float(config.get("mc_flood_advert_interval_hours", DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS))
+            hours = float(
+                config.get(
+                    "mc_flood_advert_interval_hours",
+                    DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS,
+                )
+            )
         except (TypeError, ValueError):
             return DEFAULT_MC_FLOOD_ADVERT_INTERVAL_HOURS
         return max(
@@ -360,7 +363,9 @@ class MeshCoreRadio(RadioInterface):
                     await asyncio.sleep(hours * 3600.0)
                     if self._shutdown.is_set():
                         break
-                    await self._send_flood_advert_once(log_label="periodic flood advert")
+                    await self._send_flood_advert_once(
+                        log_label="periodic flood advert"
+                    )
             except asyncio.CancelledError:
                 pass
 
@@ -389,7 +394,12 @@ class MeshCoreRadio(RadioInterface):
             return asyncio.create_task(coro)
         return asyncio.run_coroutine_threadsafe(coro, loop)
 
-    def schedule_channel_sync(self, storage_apis: list) -> None:
+    def schedule_channel_sync(
+        self,
+        storage_apis: list,
+        *,
+        scope_hints: list[dict] | None = None,
+    ) -> None:
         """Schedule channel sync on the radio asyncio loop (any thread)."""
         if not storage_apis:
             return
@@ -401,7 +411,8 @@ class MeshCoreRadio(RadioInterface):
             return
 
         async def _task() -> None:
-            from src.meshcore.channel_sync import sync_channels_to_storage_apis_async
+            from src.meshcore.channel_sync import \
+              sync_channels_to_storage_apis_async
 
             labels = [str(getattr(s, "base_url", "?")) for s in storage_apis]
             logger.info(
@@ -409,7 +420,11 @@ class MeshCoreRadio(RadioInterface):
                 len(storage_apis),
                 ", ".join(labels),
             )
-            await sync_channels_to_storage_apis_async(self, storage_apis)
+            await sync_channels_to_storage_apis_async(
+                self,
+                storage_apis,
+                scope_hints=scope_hints,
+            )
             logger.info("MeshCore channel sync finished")
 
         try:

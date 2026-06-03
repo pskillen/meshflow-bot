@@ -1,9 +1,9 @@
 import unittest
+from test.fake_radio import FakeRadio
 from unittest.mock import MagicMock, patch
 
 from src.bot import MeshflowBot
 from src.radio.events import ConnectionEstablished
-from test.fake_radio import FakeRadio
 
 
 class TestMeshflowBot(unittest.TestCase):
@@ -47,7 +47,10 @@ class TestMeshflowBot(unittest.TestCase):
         ) as apply_mock:
             bot.on_apply_mc_channel_config(channels)
         apply_mock.assert_called_once_with(mc_radio, channels)
-        mc_radio.schedule_channel_sync.assert_called_once_with(bot.storage_apis)
+        mc_radio.schedule_channel_sync.assert_called_once_with(
+            bot.storage_apis,
+            scope_hints=channels,
+        )
 
     def test_meshcore_connection_schedules_channel_sync(self):
         mc_radio = MagicMock()

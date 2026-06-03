@@ -17,19 +17,15 @@ from src.api.StorageAPI import StorageAPIWrapper
 from src.commands.factory import CommandFactory
 from src.data_classes import MeshNode
 from src.helpers import pretty_print_last_heard, safe_encode_node_name
+from src.packet_log import log_incoming_packet
 from src.persistence.commands_logger import AbstractCommandLogger
 from src.persistence.node_db import AbstractNodeDB
 from src.persistence.node_info import AbstractNodeInfoStore
-from src.packet_log import log_incoming_packet
 from src.persistence.packet_dump import dump_packet
 from src.persistence.user_prefs import AbstractUserPrefsPersistence
 from src.radio.errors import call_safely, get_global_error_counter
-from src.radio.events import (
-    ConnectionEstablished,
-    IncomingPacket,
-    IncomingTextMessage,
-    NodeUpdate,
-)
+from src.radio.events import (ConnectionEstablished, IncomingPacket,
+                              IncomingTextMessage, NodeUpdate)
 from src.radio.interface import RadioHandlers, RadioInterface
 from src.responders.responder_factory import ResponderFactory
 
@@ -97,10 +93,9 @@ class MeshflowBot:
 
     def on_apply_mc_channel_config(self, channels: list) -> None:
         """Handle apply_mc_channel_config from WebSocket (MeshCore feeders)."""
-        from src.meshcore.channel_sync import (
-            apply_channels_on_device,
-            sync_channels_to_api,
-        )
+        from src.meshcore.channel_sync import (apply_channels_on_device,
+                                               sync_channels_after_apply,
+                                               sync_channels_to_api)
 
         if not hasattr(self.radio, "run_coroutine"):
             logger.warning(
@@ -110,10 +105,12 @@ class MeshflowBot:
         if not apply_channels_on_device(self.radio, channels):
             return
         if hasattr(self.radio, "schedule_channel_sync"):
-            self.radio.schedule_channel_sync(self.storage_apis)
+            self.radio.schedule_channel_sync(self.storage_apis, scope_hints=channels)
+        elif self.storage_apis:
+            sync_channels_after_apply(self.radio, self.storage_apis, channels)
         else:
             for storage_api in self.storage_apis:
-                sync_channels_to_api(self.radio, storage_api)
+                sync_channels_to_api(self.radio, storage_api, scope_hints=channels)
 
     def on_traceroute_command(self, target_node_id: int) -> None:
         """Handle a traceroute command (e.g. delivered via WebSocket)."""
