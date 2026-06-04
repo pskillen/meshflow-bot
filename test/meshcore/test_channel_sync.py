@@ -5,12 +5,10 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.meshcore.channel_sync import (
-    apply_channels_on_device,
-    sync_channels_to_api,
-    sync_channels_to_api_async,
-    sync_channels_to_storage_apis_async,
-)
+from src.meshcore.channel_sync import (apply_channels_on_device,
+                                       sync_channels_to_api,
+                                       sync_channels_to_api_async,
+                                       sync_channels_to_storage_apis_async)
 
 
 class _MeshCoreRadioStub:
@@ -147,11 +145,17 @@ def test_apply_channels_success() -> None:
             "mc_hashtag": "galloway",
         }
     ]
-    with patch(
-        "src.meshcore.channels.apply_device_channels", new_callable=AsyncMock
-    ) as apply_mock:
+    with (
+        patch(
+            "src.meshcore.channels.apply_device_channels", new_callable=AsyncMock
+        ) as apply_mock,
+        patch(
+            "src.meshcore.channels.verify_apply_channels", new_callable=AsyncMock
+        ) as verify_mock,
+    ):
         assert apply_channels_on_device(radio, channels) is True
         apply_mock.assert_awaited_once()
+        verify_mock.assert_awaited_once()
 
 
 def test_apply_channels_fails_when_not_connected() -> None:
