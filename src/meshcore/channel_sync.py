@@ -8,11 +8,8 @@ from typing import TYPE_CHECKING, Optional
 
 CHANNEL_READ_DELAY_S = 2.0
 
-from src.meshcore.channels import (
-    log_device_channels,
-    read_device_channels,
-    snapshot_sync_body,
-)
+from src.meshcore.channels import (log_device_channels, read_device_channels,
+                                   snapshot_sync_body)
 
 if TYPE_CHECKING:
     from src.api.StorageAPI import StorageAPIWrapper
@@ -116,13 +113,15 @@ def sync_channels_to_api(
 
 def apply_channels_on_device(radio: "MeshCoreRadio", channels: list[dict]) -> bool:
     """Apply WS command payload to device, then caller should re-sync API."""
-    from src.meshcore.channels import apply_device_channels
+    from src.meshcore.channels import (apply_device_channels,
+                                       verify_apply_channels)
 
     async def _apply():
         mc = radio._meshcore  # noqa: SLF001
         if mc is None:
             raise RuntimeError("MeshCore not connected")
         await apply_device_channels(mc, channels)
+        await verify_apply_channels(mc, channels)
 
     try:
         radio.run_coroutine(_apply())

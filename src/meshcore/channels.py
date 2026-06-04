@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -12,6 +13,7 @@ from meshcore.events import EventType
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_CHANNEL_SCAN = 16
+APPLY_READBACK_DELAY_S = 2.0
 
 
 def _normalize_region_scope(value: Any) -> str | None:
@@ -174,6 +176,99 @@ async def apply_device_channels(meshcore: MeshCore, channels: list[dict]) -> Non
             )
 
 
+def _format_region_scope(scope: str | None) -> str:
+    return scope if scope else "(none)"
+
+
+def _channels_by_idx(channels: list[dict]) -> dict[int, dict]:
+    by_idx: dict[int, dict] = {}
+    for row in channels:
+        if row.get("mc_channel_idx") is None:
+            continue
+        by_idx[int(row["mc_channel_idx"])] = row
+    return by_idx
+
+
+def _normalize_compare_name(entry: dict) -> str:
+    name = str(entry.get("name") or "").strip()
+    if str(entry.get("mc_channel_type", "PUBLIC")).upper() == "HASHTAG":
+        name = name.lstrip("#")
+    return name
+
+
+def log_labeled_channel_config(label: str, channels: list[dict]) -> None:
+    """Log apply DESIRED or READBACK channel rows (operator-visible in feeder logs)."""
+    tag = label.upper()
+    if not channels:
+        logger.info("MeshCore apply %s: (no channels)", tag)
+        return
+    logger.info("MeshCore apply %s (%s channel(s)):", tag, len(channels))
+    for ch in sorted(channels, key=lambda c: int(c["mc_channel_idx"])):
+        idx = ch["mc_channel_idx"]
+        typ = ch.get("mc_channel_type", "?")
+        name = ch.get("name", "")
+        logger.info(
+            "  [%s] %s name=%r region_scope=%s",
+            idx,
+            typ,
+            name,
+            _format_region_scope(ch.get("region_scope")),
+        )
+
+
+def warn_apply_readback_mismatches(desired: list[dict], readback: list[dict]) -> None:
+    """
+    Compare apply payload to device readback (no scope_hints).
+
+    region_scope mismatches are warned only when readback includes scope from
+    CHANNEL_INFO; firmware often omits scope until per-slot scope is exposed.
+    """
+    read_by_idx = _channels_by_idx(readback)
+    for want in sorted(desired, key=lambda c: int(c["mc_channel_idx"])):
+        idx = int(want["mc_channel_idx"])
+        got = read_by_idx.get(idx)
+        if got is None:
+            logger.warning(
+                "MeshCore apply READBACK mismatch slot [%s]: desired present, no readback row",
+                idx,
+            )
+            continue
+        if _normalize_compare_name(want) != _normalize_compare_name(got):
+            logger.warning(
+                "MeshCore apply READBACK mismatch slot [%s]: desired name=%r readback name=%r",
+                idx,
+                want.get("name"),
+                got.get("name"),
+            )
+        want_type = str(want.get("mc_channel_type", "PUBLIC")).upper()
+        got_type = str(got.get("mc_channel_type", "PUBLIC")).upper()
+        if want_type != got_type:
+            logger.warning(
+                "MeshCore apply READBACK mismatch slot [%s]: desired type=%s readback type=%s",
+                idx,
+                want_type,
+                got_type,
+            )
+        want_scope = _normalize_region_scope(want.get("region_scope"))
+        got_scope = got.get("region_scope")
+        if got_scope is not None and want_scope != got_scope:
+            logger.warning(
+                "MeshCore apply READBACK mismatch slot [%s]: desired region_scope=%s readback region_scope=%s",
+                idx,
+                _format_region_scope(want_scope),
+                _format_region_scope(got_scope),
+            )
+
+
+async def verify_apply_channels(meshcore: MeshCore, desired: list[dict]) -> None:
+    """Log desired apply payload, read device without scope_hints, warn on mismatch."""
+    log_labeled_channel_config("DESIRED", desired)
+    await asyncio.sleep(APPLY_READBACK_DELAY_S)
+    readback = await read_device_channels(meshcore, scope_hints=None)
+    log_labeled_channel_config("READBACK", readback)
+    warn_apply_readback_mismatches(desired, readback)
+
+
 def log_device_channels(channels: list[dict]) -> None:
     """Log the device channel table at INFO (visible in docker logs on connect)."""
     if not channels:
@@ -184,14 +279,12 @@ def log_device_channels(channels: list[dict]) -> None:
         idx = ch["mc_channel_idx"]
         typ = ch.get("mc_channel_type", "?")
         name = ch.get("name", "")
-        scope = ch.get("region_scope")
-        scope_label = scope if scope else "(none)"
         logger.info(
             "  [%s] %s name=%r region_scope=%s",
             idx,
             typ,
             name,
-            scope_label,
+            _format_region_scope(ch.get("region_scope")),
         )
 
 

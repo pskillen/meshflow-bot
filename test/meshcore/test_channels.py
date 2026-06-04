@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from meshcore.events import Event, EventType
-from src.meshcore.channels import (
-    _channel_entry_from_info,
-    apply_device_channels,
-    log_device_channels,
-    merge_channel_region_scopes,
-    read_device_channels,
-    snapshot_sync_body,
-)
+from src.meshcore.channels import (_channel_entry_from_info,
+                                   apply_device_channels, log_device_channels,
+                                   log_labeled_channel_config,
+                                   merge_channel_region_scopes,
+                                   read_device_channels, snapshot_sync_body,
+                                   verify_apply_channels,
+                                   warn_apply_readback_mismatches)
 
 
 def test_channel_entry_public():
@@ -182,3 +181,137 @@ def test_apply_device_channels_sets_flood_scope() -> None:
         )
     )
     mc.commands.set_flood_scope.assert_awaited_once_with("sample-west")
+
+
+def test_log_labeled_channel_config_desired(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO)
+    log_labeled_channel_config(
+        "DESIRED",
+        [
+            {
+                "mc_channel_idx": 0,
+                "name": "Public",
+                "mc_channel_type": "PUBLIC",
+                "region_scope": "sco",
+            },
+        ],
+    )
+    assert "MeshCore apply DESIRED" in caplog.text
+    assert "region_scope=sco" in caplog.text
+
+
+def test_warn_apply_readback_mismatch_name(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.WARNING)
+    desired = [
+        {
+            "mc_channel_idx": 1,
+            "name": "glasgow",
+            "mc_channel_type": "HASHTAG",
+            "region_scope": "gla",
+        },
+    ]
+    readback = [
+        {
+            "mc_channel_idx": 1,
+            "name": "wrong",
+            "mc_channel_type": "HASHTAG",
+            "region_scope": None,
+        },
+    ]
+    warn_apply_readback_mismatches(desired, readback)
+    assert "READBACK mismatch slot [1]" in caplog.text
+    assert "desired name='glasgow'" in caplog.text
+
+
+def test_warn_apply_readback_no_scope_warning_when_readback_omits_scope(
+    caplog,
+) -> None:
+    import logging
+
+    caplog.set_level(logging.WARNING)
+    desired = [
+        {
+            "mc_channel_idx": 0,
+            "name": "Public",
+            "mc_channel_type": "PUBLIC",
+            "region_scope": "sco",
+        },
+    ]
+    readback = [
+        {
+            "mc_channel_idx": 0,
+            "name": "Public",
+            "mc_channel_type": "PUBLIC",
+            "region_scope": None,
+        },
+    ]
+    warn_apply_readback_mismatches(desired, readback)
+    assert "READBACK mismatch" not in caplog.text
+
+
+def test_warn_apply_readback_scope_when_readback_has_scope(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.WARNING)
+    desired = [
+        {
+            "mc_channel_idx": 0,
+            "name": "test",
+            "mc_channel_type": "HASHTAG",
+            "region_scope": "gla",
+        },
+    ]
+    readback = [
+        {
+            "mc_channel_idx": 0,
+            "name": "test",
+            "mc_channel_type": "HASHTAG",
+            "region_scope": "sco",
+        },
+    ]
+    warn_apply_readback_mismatches(desired, readback)
+    assert "region_scope=gla" in caplog.text
+    assert "region_scope=sco" in caplog.text
+
+
+def test_verify_apply_channels_logs_desired_and_readback(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO)
+    mc = MagicMock()
+    desired = [
+        {
+            "mc_channel_idx": 0,
+            "name": "Public",
+            "mc_channel_type": "PUBLIC",
+            "region_scope": "sco",
+        },
+    ]
+    readback = [
+        {
+            "mc_channel_idx": 0,
+            "name": "Public",
+            "mc_channel_type": "PUBLIC",
+            "region_scope": None,
+        },
+    ]
+
+    async def _run():
+        with (
+            patch("src.meshcore.channels.asyncio.sleep", new_callable=AsyncMock),
+            patch(
+                "src.meshcore.channels.read_device_channels",
+                new_callable=AsyncMock,
+                return_value=readback,
+            ) as read_mock,
+        ):
+            await verify_apply_channels(mc, desired)
+        read_mock.assert_awaited_once_with(mc, scope_hints=None)
+
+    asyncio.run(_run())
+    assert "MeshCore apply DESIRED" in caplog.text
+    assert "MeshCore apply READBACK" in caplog.text
