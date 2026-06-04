@@ -6,13 +6,19 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from meshcore.events import Event, EventType
-from src.meshcore.channels import (_channel_entry_from_info,
-                                   apply_device_channels, log_device_channels,
-                                   log_labeled_channel_config,
-                                   merge_channel_region_scopes,
-                                   read_device_channels, snapshot_sync_body,
-                                   verify_apply_channels,
-                                   warn_apply_readback_mismatches)
+from src.meshcore.channels import (
+    CLEAR_CHANNEL_SECRET,
+    _channel_entry_from_info,
+    apply_device_channels,
+    clear_unlisted_device_channels,
+    log_device_channels,
+    log_labeled_channel_config,
+    merge_channel_region_scopes,
+    read_device_channels,
+    snapshot_sync_body,
+    verify_apply_channels,
+    warn_apply_readback_mismatches,
+)
 
 
 def test_channel_entry_public():
@@ -167,20 +173,76 @@ def test_apply_device_channels_sets_flood_scope() -> None:
         return_value=Event(EventType.CHANNEL_INFO, {}, {})
     )
     mc.commands.set_flood_scope = AsyncMock(return_value=Event(EventType.OK, {}, {}))
-    asyncio.run(
-        apply_device_channels(
-            mc,
-            [
-                {
-                    "mc_channel_idx": 1,
-                    "name": "galloway",
-                    "mc_channel_type": "HASHTAG",
-                    "region_scope": "sample-west",
-                },
-            ],
+    with patch(
+        "src.meshcore.channels.read_device_channels",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        asyncio.run(
+            apply_device_channels(
+                mc,
+                [
+                    {
+                        "mc_channel_idx": 1,
+                        "name": "galloway",
+                        "mc_channel_type": "HASHTAG",
+                        "region_scope": "sample-west",
+                    },
+                ],
+            )
         )
-    )
     mc.commands.set_flood_scope.assert_awaited_once_with("sample-west")
+
+
+def test_clear_unlisted_device_channels() -> None:
+    mc = MagicMock()
+    mc.commands.set_channel = AsyncMock(return_value=Event(EventType.OK, {}, {}))
+    existing = [
+        {"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"},
+        {"mc_channel_idx": 6, "name": "glasgow", "mc_channel_type": "HASHTAG"},
+    ]
+    desired = [{"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"}]
+
+    with patch(
+        "src.meshcore.channels.read_device_channels",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        asyncio.run(clear_unlisted_device_channels(mc, desired))
+
+    mc.commands.set_channel.assert_awaited_once_with(6, "", CLEAR_CHANNEL_SECRET)
+
+
+def test_apply_device_channels_clears_stale_slots_before_write() -> None:
+    mc = MagicMock()
+    mc.commands.set_channel = AsyncMock(return_value=Event(EventType.OK, {}, {}))
+    mc.commands.set_flood_scope = AsyncMock(return_value=Event(EventType.OK, {}, {}))
+    existing = [
+        {"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"},
+        {"mc_channel_idx": 6, "name": "glasgow", "mc_channel_type": "HASHTAG"},
+    ]
+    desired = [
+        {"mc_channel_idx": 0, "name": "Public", "mc_channel_type": "PUBLIC"},
+        {
+            "mc_channel_idx": 3,
+            "name": "glasgow",
+            "mc_channel_type": "HASHTAG",
+            "region_scope": "gla",
+        },
+    ]
+
+    with patch(
+        "src.meshcore.channels.read_device_channels",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        asyncio.run(apply_device_channels(mc, desired))
+
+    calls = mc.commands.set_channel.await_args_list
+    assert calls[0].args == (6, "", CLEAR_CHANNEL_SECRET)
+    assert calls[1].args[0] == 0
+    assert calls[2].args[0] == 3
+    assert calls[2].args[1] == "#glasgow"
 
 
 def test_log_labeled_channel_config_desired(caplog) -> None:
