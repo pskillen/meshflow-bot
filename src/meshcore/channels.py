@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_CHANNEL_SCAN = 16
 APPLY_READBACK_DELAY_S = 2.0
+# Companion protocol: delete channel = SET_CHANNEL with empty name + all-zero secret.
+CLEAR_CHANNEL_SECRET = bytes(16)
 
 
 def _normalize_region_scope(value: Any) -> str | None:
@@ -152,8 +154,50 @@ async def read_device_channels(
     return merge_channel_region_scopes(channels, scope_hints)
 
 
+async def _clear_device_channel_slot(meshcore: MeshCore, idx: int) -> bool:
+    """
+    Remove a channel slot (companion SET_CHANNEL with empty name).
+
+    meshcore_py 2.3.x has no del_channel; pass explicit zero secret so the
+    library does not derive one from the empty name hash.
+    """
+    evt = await meshcore.commands.set_channel(idx, "", CLEAR_CHANNEL_SECRET)
+    if evt.type == EventType.ERROR:
+        logger.warning("clear_channel(%s) failed: %s", idx, evt.payload)
+        return False
+    logger.info("MeshCore channel [%s] cleared (not in apply payload)", idx)
+    return True
+
+
+async def clear_unlisted_device_channels(
+    meshcore: MeshCore,
+    desired_channels: list[dict],
+    *,
+    max_channels: int = DEFAULT_MAX_CHANNEL_SCAN,
+) -> None:
+    """Clear device slots that have a name but are absent from the apply payload."""
+    desired_indices = {
+        int(ch["mc_channel_idx"])
+        for ch in desired_channels
+        if ch.get("mc_channel_idx") is not None
+    }
+    existing = await read_device_channels(
+        meshcore, max_channels=max_channels, scope_hints=None
+    )
+    for row in existing:
+        idx = int(row["mc_channel_idx"])
+        if idx not in desired_indices:
+            await _clear_device_channel_slot(meshcore, idx)
+
+
 async def apply_device_channels(meshcore: MeshCore, channels: list[dict]) -> None:
-    """Write channel list to device (UI push path)."""
+    """
+    Write channel list to device (UI push path).
+
+    Clears any currently configured slot not listed in ``channels``, then writes
+    each payload row so the radio matches the Meshflow feeder mirror layout.
+    """
+    await clear_unlisted_device_channels(meshcore, channels)
     for ch in channels:
         idx = int(ch["mc_channel_idx"])
         name = str(ch.get("name") or f"channel {idx}")
