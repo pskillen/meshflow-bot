@@ -2,5 +2,5 @@
 
 # dev dependencies
 unittest-xml-reporting~=4.0.0
-pytest~=9.0
+pytest~=9.1
 pytest-cov~=7.1
