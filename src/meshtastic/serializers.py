@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import datetime
+import time
 from abc import ABC
 from typing import Any
 
@@ -202,6 +203,10 @@ class MeshtasticPacketSerializer(PacketSerializer):
         # if we have it so the api receives a full record.
         if raw_proto is not None and "channel" not in cleaned:
             cleaned["channel"] = getattr(raw_proto, "channel", 0)
+        # The API requires rxTime; locally generated packets (self telemetry)
+        # may not carry one, so fall back to the host clock.
+        if not cleaned.get("rxTime"):
+            cleaned["rxTime"] = int(time.time())
         return cleaned
 
     def serialise_node(self, node: MeshNode) -> dict:

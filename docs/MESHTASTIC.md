@@ -39,8 +39,23 @@ With `MESHFLOW_WS_URL` + token (or derived from `STORAGE_API_*`), the bot starts
 | `IGNORE_PORTNUMS` | Comma-separated portnums to skip when uploading (upper-case, e.g. `ROUTING_APP`). |
 | `DUMP_PACKETS_PORTNUMS` | Comma-separated Meshtastic `portnum` names (or `*`) to dump received packets under `<DATA_DIR>/packets/<PORTNUM>/`. Each file is `{packet, raw_b64, meta}`: `packet` is the library dict (bytes as base64), `raw_b64` is base64 of `MeshPacket.SerializeToString()` (keeps unknown fields such as the 2.8 signing fields, so it can be re-parsed with a newer lib), `meta` is `feeder_num`, `feeder_fw` (null if unavailable), `lib_version`, `captured_at`. See [`src/persistence/packet_dump.py`](../src/persistence/packet_dump.py). |
 | `DUMP_NODEDB` | `true` / `false` (default `false`). On connect, write the radio's NodeDB (`interface.nodes`, bytes as base64) to `<DATA_DIR>/packets/_nodedb/<ts>.json`. Public keys only; config/security (private key) is never dumped. |
+| `SELF_TELEMETRY_UPLOAD_INTERVAL_SECONDS` | Seconds between uploads of the feeder's own telemetry (default `900`; `0` disables it entirely). See [Self telemetry](#self-telemetry). |
 | `ADMIN_NODES` | Comma-separated `!hex8` node ids allowed to run admin commands. |
 | `DATA_DIR` | Data root (default `data/`). |
+
+## Self telemetry
+
+The connected radio reports its own telemetry (device metrics, local stats, power, environment, ... and any variant newer firmware adds) to the bot every few seconds. Other feeders used to capture these over the air, but Meshtastic 2.8 turns broadcast telemetry off by default, so the bot uploads them itself.
+
+Uploading every report would flood the API (that is why self telemetry was once disabled), so the throttle is bot-side only:
+
+- The bot keeps the **latest sample per telemetry variant**.
+- Every `SELF_TELEMETRY_UPLOAD_INTERVAL_SECONDS` (default 900, i.e. 15 minutes) a scheduled job uploads the newest unsent sample of each variant through the normal packet-report path, so the API ingests it as telemetry. Variants with nothing new are skipped.
+- `0` disables self-telemetry uploads completely.
+- Packets sent without `rxTime` (the API requires it) get the host clock's time before upload. This applies to every Meshtastic packet.
+- There is no server-side throttling: it would still cost a request per sample.
+
+Code: [`src/meshtastic/self_telemetry.py`](../src/meshtastic/self_telemetry.py). MeshCore is unchanged.
 
 ## Sample packet JSON
 

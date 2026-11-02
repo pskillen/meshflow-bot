@@ -40,6 +40,11 @@ class IncomingPacket:
     The bot uses this to skip uploading duplicates, since another bot will
     capture the same packet over the air."""
 
+    self_telemetry_variant: Optional[str] = None
+    """Meshtastic only: the telemetry variant (``deviceMetrics``, ``localStats``, ...)
+    when the packet is telemetry from the local node, else ``None``. The bot
+    hands these to the self-telemetry throttle instead of uploading each one."""
+
     raw: Any = None
     """The protocol-native packet (e.g. a Meshtastic ``MeshPacket`` dict).
     Only the storage uploader and the originating adapter should look at this."""

@@ -18,6 +18,7 @@ from src.commands.factory import CommandFactory
 from src.data_classes import MeshNode
 from src.helpers import pretty_print_last_heard, safe_encode_node_name
 from src.packet_log import log_incoming_packet
+from src.meshtastic.self_telemetry import SelfTelemetryThrottle
 from src.persistence.commands_logger import AbstractCommandLogger
 from src.persistence.node_db import AbstractNodeDB
 from src.persistence.node_info import AbstractNodeInfoStore
@@ -55,6 +56,7 @@ class MeshflowBot:
         self.radio = radio
         self.admin_nodes = []
         self.ignore_portnums = frozenset()
+        self.self_telemetry: Optional[SelfTelemetryThrottle] = None
 
         self.init_complete = False
 
@@ -183,25 +185,15 @@ class MeshflowBot:
             )
         elif not event.has_decoded:
             pass  # encrypted-only packet; nothing to upload
+        elif event.self_telemetry_variant:
+            # Meshtastic self telemetry: keep the newest sample per variant;
+            # the scheduler uploads it once per interval (0 = disabled).
+            if self.self_telemetry is not None and isinstance(event.raw, dict):
+                self.self_telemetry.record(event.self_telemetry_variant, event.raw)
         elif event.is_self_telemetry:
-            pass  # self device-metrics; another bot will capture over the air
+            pass  # MeshCore self telemetry; not uploaded
         else:
-            raw = event.raw if event.raw is not None else event
-            for storage_api in self.storage_apis:
-                if isinstance(raw, dict) and raw.get("meshcore"):
-                    call_safely(
-                        "bot.store_raw_meshcore_packet",
-                        storage_api.store_raw_meshcore_packet,
-                        raw,
-                        counter=self._error_counter,
-                    )
-                else:
-                    call_safely(
-                        "bot.store_raw_packet",
-                        storage_api.store_raw_packet,
-                        raw,
-                        counter=self._error_counter,
-                    )
+            self._upload_raw(event.raw if event.raw is not None else event)
 
         sender = event.from_id
         if not sender:
@@ -221,6 +213,30 @@ class MeshflowBot:
             logger.debug(
                 "Received packet from self: %s (port %s)", recipient_name, event.portnum
             )
+
+    def _upload_raw(self, raw) -> None:
+        for storage_api in self.storage_apis:
+            if isinstance(raw, dict) and raw.get("meshcore"):
+                call_safely(
+                    "bot.store_raw_meshcore_packet",
+                    storage_api.store_raw_meshcore_packet,
+                    raw,
+                    counter=self._error_counter,
+                )
+            else:
+                call_safely(
+                    "bot.store_raw_packet",
+                    storage_api.store_raw_packet,
+                    raw,
+                    counter=self._error_counter,
+                )
+
+    def upload_self_telemetry(self) -> None:
+        """Scheduled job: upload the newest unsent self-telemetry sample per variant."""
+        if self.self_telemetry is None:
+            return
+        for packet in self.self_telemetry.flush():
+            self._upload_raw(packet)
 
     def _on_text_message(self, message: IncomingTextMessage) -> None:
         if message.is_dm:
@@ -332,6 +348,10 @@ class MeshflowBot:
 
     def start_scheduler(self) -> None:
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
+        if self.self_telemetry is not None and self.self_telemetry.enabled:
+            schedule.every(self.self_telemetry.interval_seconds).seconds.do(
+                self.upload_self_telemetry
+            )
         while True:
             schedule.run_pending()
             try:
