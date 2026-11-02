@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.data_classes import MeshNode
+from src.meshtastic.self_telemetry import telemetry_variant
 from src.radio.events import IncomingPacket, IncomingTextMessage, NodeUpdate
 
 
@@ -25,14 +26,12 @@ def packet_to_incoming(packet: dict, *, local_node_id: Optional[str]) -> Incomin
     has_decoded = "decoded" in packet or "decrypted" in packet
 
     sender = packet.get("fromId")
-    decoded = packet.get("decoded") or {}
-    telemetry = decoded.get("telemetry") or {}
     is_self_telemetry = (
         local_node_id is not None
         and sender == local_node_id
         and portnum_key == "TELEMETRY_APP"
-        and "deviceMetrics" in telemetry
     )
+    variant = telemetry_variant(packet) if is_self_telemetry else None
 
     return IncomingPacket(
         portnum=portnum_key,
@@ -41,6 +40,7 @@ def packet_to_incoming(packet: dict, *, local_node_id: Optional[str]) -> Incomin
         channel=packet.get("channel", 0) or 0,
         has_decoded=has_decoded,
         is_self_telemetry=is_self_telemetry,
+        self_telemetry_variant=variant,
         raw=packet,
     )
 
