@@ -28,6 +28,7 @@ from src.meshtastic.translation import (
     packet_to_text_message,
     node_dict_to_node_update,
 )
+from src.persistence.packet_dump import dump_nodes
 from src.radio.errors import RadioError, call_safely, get_global_error_counter
 from src.radio.events import ConnectionEstablished
 from src.radio.interface import RadioHandlers, RadioInterface
@@ -97,6 +98,15 @@ class MeshtasticRadio(RadioInterface):
     @property
     def local_nodenum(self) -> Optional[int]:
         return self._local_nodenum
+
+    @property
+    def firmware_version(self) -> Optional[str]:
+        """Feeder firmware version if the library exposes it, else ``None``."""
+        try:
+            metadata = getattr(self._interface, "metadata", None)
+            return getattr(metadata, "firmware_version", None) or None
+        except Exception:
+            return None
 
     def send_text(
         self,
@@ -169,6 +179,12 @@ class MeshtasticRadio(RadioInterface):
         self._local_id = nodenum_to_id(self._local_nodenum)
         self._is_connected = True
         logger.info("MeshtasticRadio: connection established (%s)", self._local_id)
+        call_safely(
+            "radio.dump_nodes",
+            dump_nodes,
+            getattr(interface, "nodes", None),
+            counter=self._error_counter,
+        )
 
         if self._handlers.on_connection_established:
             call_safely(

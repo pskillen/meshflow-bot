@@ -37,7 +37,8 @@ With `MESHFLOW_WS_URL` + token (or derived from `STORAGE_API_*`), the bot starts
 | Variable | Description |
 |----------|-------------|
 | `IGNORE_PORTNUMS` | Comma-separated portnums to skip when uploading (upper-case, e.g. `ROUTING_APP`). |
-| `DUMP_PACKETS_PORTNUMS` | Comma-separated Meshtastic `portnum` names (or `*`) to mirror received packets as JSON under `data/packets/<PORTNUM>/`. See [`src/persistence/packet_dump.py`](../src/persistence/packet_dump.py). |
+| `DUMP_PACKETS_PORTNUMS` | Comma-separated Meshtastic `portnum` names (or `*`) to dump received packets under `<DATA_DIR>/packets/<PORTNUM>/`. Each file is `{packet, raw_b64, meta}`: `packet` is the library dict (bytes as base64), `raw_b64` is base64 of `MeshPacket.SerializeToString()` (keeps unknown fields such as the 2.8 signing fields, so it can be re-parsed with a newer lib), `meta` is `feeder_num`, `feeder_fw` (null if unavailable), `lib_version`, `captured_at`. See [`src/persistence/packet_dump.py`](../src/persistence/packet_dump.py). |
+| `DUMP_NODEDB` | `true` / `false` (default `false`). On connect, write the radio's NodeDB (`interface.nodes`, bytes as base64) to `<DATA_DIR>/packets/_nodedb/<ts>.json`. Public keys only; config/security (private key) is never dumped. |
 | `ADMIN_NODES` | Comma-separated `!hex8` node ids allowed to run admin commands. |
 | `DATA_DIR` | Data root (default `data/`). |
 
