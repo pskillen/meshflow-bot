@@ -133,6 +133,7 @@ def main() -> None:
                 failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshtastic_identity_provider=lambda: radio.identity,
             )
         )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED:
@@ -165,6 +166,7 @@ def main() -> None:
                 failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshtastic_identity_provider=lambda: radio.identity,
             )
         )
     elif (
