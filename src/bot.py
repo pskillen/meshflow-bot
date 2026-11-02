@@ -27,6 +27,7 @@ from src.persistence.user_prefs import AbstractUserPrefsPersistence
 from src.radio.errors import call_safely, get_global_error_counter
 from src.radio.events import (
     ConnectionEstablished,
+    IdentityChanged,
     IncomingPacket,
     IncomingTextMessage,
     NodeUpdate,
@@ -76,6 +77,7 @@ class MeshflowBot:
                 on_node_update=self._on_node_update,
                 on_connection_established=self._on_connection_established,
                 on_disconnected=self._on_disconnected,
+                on_identity_changed=self._on_identity_changed,
             )
         )
 
@@ -160,6 +162,14 @@ class MeshflowBot:
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()
+
+    def _on_identity_changed(self, event: IdentityChanged) -> None:
+        """The radio's reported identity changed (e.g. 2.8 node number): tell
+        every API, and resubscribe the WebSocket under the new number."""
+        for storage_api in self.storage_apis:
+            storage_api.report_bot_version()
+        if event.nodenum_changed and self.ws_client:
+            self.ws_client.reconnect()
 
     def _on_disconnected(self, error: Optional[Exception]) -> None:
         self.init_complete = False
