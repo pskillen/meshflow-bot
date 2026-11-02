@@ -102,3 +102,16 @@ class ConnectionEstablished:
     extras: dict = field(default_factory=dict)
     """Adapter-specific connection details (e.g. firmware version) — opaque
     to the bot."""
+
+
+@dataclass
+class IdentityChanged:
+    """The local radio's reported identity changed mid-session (Meshtastic:
+    node number, public key, firmware, region or preset)."""
+
+    old_nodenum: Optional[int]
+    new_nodenum: Optional[int]
+
+    @property
+    def nodenum_changed(self) -> bool:
+        return self.old_nodenum != self.new_nodenum

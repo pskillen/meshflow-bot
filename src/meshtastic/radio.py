@@ -28,12 +28,20 @@ from src.meshtastic.translation import (
     packet_to_text_message,
     node_dict_to_node_update,
 )
+from src.meshtastic.identity import (
+    FeederIdentity,
+    read_firmware_version,
+    read_identity,
+    read_node_num,
+)
 from src.persistence.packet_dump import dump_nodes
 from src.radio.errors import RadioError, call_safely, get_global_error_counter
-from src.radio.events import ConnectionEstablished
+from src.radio.events import ConnectionEstablished, IdentityChanged
 from src.radio.interface import RadioHandlers, RadioInterface
 
 logger = logging.getLogger(__name__)
+
+IDENTITY_CHECK_INTERVAL_SECONDS = 60.0
 
 
 class MeshtasticRadio(RadioInterface):
@@ -49,6 +57,9 @@ class MeshtasticRadio(RadioInterface):
         self._reconnect_lock = threading.Lock()
         self._error_counter = get_global_error_counter()
         self._pubsub_subscribed = False
+        self._identity = FeederIdentity()
+        self._identity_lock = threading.Lock()
+        self._identity_timer: Optional[threading.Timer] = None
 
     # --- RadioInterface ---------------------------------------------------
 
@@ -79,6 +90,7 @@ class MeshtasticRadio(RadioInterface):
 
     def disconnect(self) -> None:
         self._is_connected = False
+        self._stop_identity_timer()
         if not self._interface:
             return
         try:
@@ -102,11 +114,14 @@ class MeshtasticRadio(RadioInterface):
     @property
     def firmware_version(self) -> Optional[str]:
         """Feeder firmware version if the library exposes it, else ``None``."""
-        try:
-            metadata = getattr(self._interface, "metadata", None)
-            return getattr(metadata, "firmware_version", None) or None
-        except Exception:
-            return None
+        return read_firmware_version(self._interface)
+
+    @property
+    def identity(self) -> FeederIdentity:
+        """What the bot currently reports about the local radio (key, MAC,
+        node number, firmware, region, preset). Fields the radio does not
+        report are ``None``."""
+        return self._identity
 
     def send_text(
         self,
@@ -175,10 +190,17 @@ class MeshtasticRadio(RadioInterface):
             raise RadioError("MeshtasticRadio: not connected")
 
     def _on_connection_established(self, interface, topic=pub.AUTO_TOPIC):
+        previous_nodenum = self._local_nodenum
         self._local_nodenum = interface.localNode.nodeNum
         self._local_id = nodenum_to_id(self._local_nodenum)
         self._is_connected = True
+        with self._identity_lock:
+            self._identity = read_identity(interface)
         logger.info("MeshtasticRadio: connection established (%s)", self._local_id)
+        if previous_nodenum is not None and previous_nodenum != self._local_nodenum:
+            self._log_nodenum_change(previous_nodenum, self._local_nodenum)
+            self._emit_identity_changed(previous_nodenum, self._local_nodenum)
+        self._start_identity_timer()
         call_safely(
             "radio.dump_nodes",
             dump_nodes,
@@ -222,6 +244,11 @@ class MeshtasticRadio(RadioInterface):
         if self._local_nodenum is None and getattr(interface, "localNode", None):
             self._local_nodenum = interface.localNode.nodeNum
             self._local_id = nodenum_to_id(self._local_nodenum)
+        if isinstance(node, dict) and node.get("num") in (
+            self._local_nodenum,
+            read_node_num(interface),
+        ):
+            self.check_identity()
         update = node_dict_to_node_update(node)
         if update is None:
             return
@@ -232,6 +259,80 @@ class MeshtasticRadio(RadioInterface):
                 update,
                 counter=self._error_counter,
             )
+
+    # --- identity ---------------------------------------------------------
+
+    def check_identity(self) -> bool:
+        """Re-read the local radio's identity; report a change to the bot.
+
+        Called on local ``node.updated`` events and every
+        ``IDENTITY_CHECK_INTERVAL_SECONDS``. In 2.8 the node number is
+        ``crc32(public key)``, so it can change mid-session (a key minted
+        after the region is set). On a node-number change this logs WARNING;
+        on any change it refreshes :attr:`identity` and calls
+        ``handlers.on_identity_changed`` so the bot re-reports and
+        resubscribes the WebSocket under the new number. Returns ``True`` if
+        something changed."""
+        interface = self._interface
+        if interface is None or not self._is_connected:
+            return False
+        try:
+            current = read_identity(interface)
+        except Exception as exc:  # read_identity should not raise; be safe
+            logger.debug("MeshtasticRadio: identity read failed: %s", exc)
+            return False
+        with self._identity_lock:
+            old_nodenum = self._local_nodenum
+            new_nodenum = current.node_num or old_nodenum
+            if current == self._identity and new_nodenum == old_nodenum:
+                return False
+            self._identity = current
+            if new_nodenum != old_nodenum:
+                self._local_nodenum = new_nodenum
+                self._local_id = nodenum_to_id(new_nodenum)
+        if new_nodenum != old_nodenum:
+            self._log_nodenum_change(old_nodenum, new_nodenum)
+        else:
+            logger.info("MeshtasticRadio: reported identity changed; refreshing")
+        self._emit_identity_changed(old_nodenum, new_nodenum)
+        return True
+
+    def _log_nodenum_change(self, old: Optional[int], new: Optional[int]) -> None:
+        logger.warning(
+            "MeshtasticRadio: local node number changed from %s to %s "
+            "(Meshtastic 2.8 derives it from the public key); "
+            "refreshing reported identity and reconnecting the WebSocket",
+            old,
+            new,
+        )
+
+    def _emit_identity_changed(self, old: Optional[int], new: Optional[int]) -> None:
+        if self._handlers.on_identity_changed:
+            call_safely(
+                "radio.on_identity_changed",
+                self._handlers.on_identity_changed,
+                IdentityChanged(old_nodenum=old, new_nodenum=new),
+                counter=self._error_counter,
+            )
+
+    def _start_identity_timer(self) -> None:
+        self._stop_identity_timer()
+        timer = threading.Timer(IDENTITY_CHECK_INTERVAL_SECONDS, self._identity_tick)
+        timer.daemon = True
+        self._identity_timer = timer
+        timer.start()
+
+    def _stop_identity_timer(self) -> None:
+        timer, self._identity_timer = self._identity_timer, None
+        if timer is not None:
+            timer.cancel()
+
+    def _identity_tick(self) -> None:
+        try:
+            self.check_identity()
+        finally:
+            if self._is_connected:
+                self._start_identity_timer()
 
     # --- transport error handling ----------------------------------------
 

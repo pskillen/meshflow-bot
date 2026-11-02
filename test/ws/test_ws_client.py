@@ -29,6 +29,37 @@ def test_ws_endpoint_includes_feeder_pubkey_prefix():
     assert "feeder_node_id=" not in endpoint
 
 
+def test_reconnect_is_a_noop_when_not_connected():
+    client = MeshflowWSClient(
+        ws_url="ws://localhost:8000",
+        api_key="k",
+        on_traceroute=lambda _t: None,
+    )
+    client.reconnect()  # not started: nothing to close, must not raise
+
+
+def test_reconnect_closes_live_connection_so_loop_rebuilds_endpoint():
+    import asyncio
+    from unittest.mock import MagicMock, patch
+
+    nodenum = {"value": 1}
+    client = MeshflowWSClient(
+        ws_url="ws://localhost:8000",
+        api_key="k",
+        on_traceroute=lambda _t: None,
+        feeder_node_id_provider=lambda: nodenum["value"],
+    )
+    client._running = True
+    client._loop = MagicMock()
+    client._ws = MagicMock()
+    with patch.object(asyncio, "run_coroutine_threadsafe") as run:
+        client.reconnect()
+    run.assert_called_once()
+    # the endpoint the loop builds next uses the new number
+    nodenum["value"] = 2
+    assert client._get_ws_endpoint().endswith("feeder_node_id=2")
+
+
 def test_ws_endpoint_api_key_only_when_no_providers():
     client = MeshflowWSClient(
         ws_url="ws://localhost:8000",

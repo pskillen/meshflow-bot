@@ -13,6 +13,7 @@ from typing import Callable, Optional
 
 from src.radio.events import (
     ConnectionEstablished,
+    IdentityChanged,
     IncomingPacket,
     IncomingTextMessage,
     NodeUpdate,
@@ -33,6 +34,7 @@ class RadioHandlers:
     on_node_update: Optional[Callable[[NodeUpdate], None]] = None
     on_connection_established: Optional[Callable[[ConnectionEstablished], None]] = None
     on_disconnected: Optional[Callable[[Optional[Exception]], None]] = None
+    on_identity_changed: Optional[Callable[[IdentityChanged], None]] = None
 
 
 class RadioInterface(ABC):
