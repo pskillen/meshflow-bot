@@ -170,7 +170,11 @@ class MeshflowBot:
             if isinstance(event.raw, dict) and event.raw.get("meshcore"):
                 pass  # MeshCore JSON dumps live under data/meshcore_packets/ (see MeshCoreRadio)
             elif isinstance(event.raw, dict) and "decoded" in event.raw:
-                dump_packet(event.raw)
+                dump_packet(
+                    event.raw,
+                    feeder_num=getattr(self.radio, "local_nodenum", None),
+                    feeder_fw=getattr(self.radio, "firmware_version", None),
+                )
 
         if self.ignore_portnums and event.portnum in self.ignore_portnums:
             logger.info(
