@@ -10,3 +10,26 @@ concurrency:
 jobs:
   UnitTest:
     uses: ./.github/workflows/unit-tests.yaml
+
+  DockerBuild:
+    # Build the production image (no push) so base-image or dependency bumps that break
+    # `pip install` in the image fail here, not after release.
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha,scope=pr-meshflow-bot
+          cache-to: type=gha,mode=max,scope=pr-meshflow-bot

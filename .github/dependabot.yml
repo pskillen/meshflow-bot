@@ -54,3 +54,8 @@ updates:
       docker:
         patterns:
           - "*"
+    # Held-back majors: https://github.com/pskillen/meshflow-ui/issues/387
+    # Remove the rule in the PR that takes the bump.
+    ignore:
+      - dependency-name: python
+        versions: [">=3.15"]
