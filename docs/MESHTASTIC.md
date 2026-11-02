@@ -28,6 +28,31 @@ When `STORAGE_API_ROOT` is set and `RADIO_PROTOCOL=meshtastic`:
 
 Failed uploads can be retained under `data/failed_packets/` when configured.
 
+## Feeder identity
+
+In Meshtastic 2.8 a node's number becomes `crc32(public key)`, so a feeder's number can change when its firmware is upgraded (or when a key is minted after the region is set). The API identifies feeders by API key and uses what the bot reports here to notice and handle that change. The bot only **reports**; it is safe against current APIs, which ignore the extra headers and fields. Works unchanged on 2.7 radios (fields the radio doesn't have are simply left out, never sent empty).
+
+What is read from the connected radio ([`src/meshtastic/identity.py`](../src/meshtastic/identity.py)):
+
+| Item | Source | Notes |
+|------|--------|-------|
+| Public key | local node's NodeDB `user.publicKey` | base64, as the library reports it |
+| MAC (OTA `macaddr`) | local node's NodeDB `user.macaddr` | sent as `aa:bb:cc:dd:ee:ff`; absent if the firmware doesn't report one |
+| Node number | `myInfo.my_node_num` | |
+| Firmware version | device metadata (`interface.metadata.firmware_version`) | |
+| LoRa region, modem preset | `localConfig.lora` | e.g. `EU_868`, `LONG_FAST`; region `UNSET` if not configured; no preset when custom modem settings are in use |
+
+The private key and the `security` config section are never read or sent.
+
+Reported to the API on Meshtastic calls (not MeshCore):
+
+- Headers on every request: `X-Meshtastic-Feeder-Pubkey`, `X-Meshtastic-Feeder-Node-Num`, `X-Meshtastic-Feeder-Firmware`.
+- The bot-version report (`PUT …/bot-version/`) also carries `meshtastic_public_key`, `meshtastic_node_num`, `meshtastic_firmware_version`, `meshtastic_macaddr`, `meshtastic_region` and `meshtastic_modem_preset`. It is sent on connect and again whenever the reported identity changes (for instance once the region is set).
+
+Change detection: on local `node.updated` events and every 60 seconds the bot re-reads the identity. If the node number changed it logs a WARNING, refreshes what it reports, re-sends the bot-version report and reconnects the WebSocket so it subscribes under the new number. A reconnect to a radio that now has a different number is handled the same way. (The Meshtastic library only learns a new number from a fresh `my_info`, so a number changed in the radio mid-session is picked up when the library next receives one.)
+
+If the API answers an upload with **403 or 409**, the bot logs an ERROR naming the node number it reported and pointing at the 2.8 identity change, then pauses uploads with exponential backoff (30 s, doubling to 15 min) instead of retrying every packet. The first success resets the backoff. Check the feeder's API key and linked node in Meshflow; for the upgrade steps see the 2.8 upgrade runbook in the meshflow-api packet-ingestion docs.
+
 ## WebSocket commands
 
 With `MESHFLOW_WS_URL` + token (or derived from `STORAGE_API_*`), the bot starts `MeshflowWSClient` for remote actions such as **traceroute** after the radio connects.
