@@ -133,6 +133,16 @@ class TestNodeUpdate(unittest.TestCase):
         self.assertEqual(node.user.long_name, "")
         self.assertFalse(node.is_favorite)
 
+    def test_node_dict_to_mesh_node_last_heard_present(self):
+        node = node_dict_to_mesh_node({"user": {"id": "!1"}, "lastHeard": 1700000000})
+        self.assertEqual(node.last_heard.timestamp(), 1700000000)
+
+    def test_node_dict_to_mesh_node_last_heard_missing_or_zero_is_none(self):
+        self.assertIsNone(node_dict_to_mesh_node({"user": {"id": "!1"}}).last_heard)
+        self.assertIsNone(
+            node_dict_to_mesh_node({"user": {"id": "!1"}, "lastHeard": 0}).last_heard
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

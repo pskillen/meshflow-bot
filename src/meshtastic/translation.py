@@ -106,6 +106,10 @@ def node_dict_to_mesh_node(node_data: dict) -> MeshNode:
     node.position = position
     node.device_metrics = metrics
     node.is_favorite = node_data.get("isFavorite", False)
+    last_heard_int = node_data.get("lastHeard") or 0
+    node.last_heard = (
+        datetime.fromtimestamp(last_heard_int, timezone.utc) if last_heard_int else None
+    )
     return node
 
 

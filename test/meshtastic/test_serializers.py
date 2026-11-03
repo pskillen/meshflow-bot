@@ -77,6 +77,27 @@ class TestMeshtasticPacketSerializer(unittest.TestCase):
         self.assertNotIn("channel_utilization", out["device_metrics"])
         self.assertNotIn("air_util_tx", out["device_metrics"])
 
+    def _node_with_last_heard(self, last_heard):
+        node = MeshNode()
+        node.user = MeshNode.User(node_id="!1", long_name="A", short_name="A")
+        node.position = None
+        node.device_metrics = None
+        node.last_heard = last_heard
+        return node
+
+    def test_serialise_node_sends_last_heard_iso_utc(self):
+        from datetime import datetime, timezone
+
+        node = self._node_with_last_heard(
+            datetime.fromtimestamp(1700000000, timezone.utc)
+        )
+        out = self.serializer.serialise_node(node)
+        self.assertEqual(out["last_heard"], "2023-11-14T22:13:20+00:00")
+
+    def test_serialise_node_omits_last_heard_when_missing(self):
+        out = self.serializer.serialise_node(self._node_with_last_heard(None))
+        self.assertNotIn("last_heard", out)
+
 
 if __name__ == "__main__":
     unittest.main()
