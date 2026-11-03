@@ -40,6 +40,11 @@ class IncomingPacket:
     The bot uses this to skip uploading duplicates, since another bot will
     capture the same packet over the air."""
 
+    self_telemetry_variant: Optional[str] = None
+    """Meshtastic only: the telemetry variant (``deviceMetrics``, ``localStats``, ...)
+    when the packet is telemetry from the local node, else ``None``. The bot
+    hands these to the self-telemetry throttle instead of uploading each one."""
+
     raw: Any = None
     """The protocol-native packet (e.g. a Meshtastic ``MeshPacket`` dict).
     Only the storage uploader and the originating adapter should look at this."""
@@ -97,3 +102,16 @@ class ConnectionEstablished:
     extras: dict = field(default_factory=dict)
     """Adapter-specific connection details (e.g. firmware version) — opaque
     to the bot."""
+
+
+@dataclass
+class IdentityChanged:
+    """The local radio's reported identity changed mid-session (Meshtastic:
+    node number, public key, firmware, region or preset)."""
+
+    old_nodenum: Optional[int]
+    new_nodenum: Optional[int]
+
+    @property
+    def nodenum_changed(self) -> bool:
+        return self.old_nodenum != self.new_nodenum

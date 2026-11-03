@@ -1,4 +1,5 @@
-meshtastic>=2.7.11,<3.0.0
+# Pin <2.8: firmware 2.8 is alpha and its lib is not on PyPI yet. Full bump is LB-1 (#148).
+meshtastic>=2.7.11,<2.8
 meshcore>=2.3.17,<3.0.0
 websockets>=17.3
 Pypubsub~=4.0.7

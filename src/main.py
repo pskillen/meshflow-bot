@@ -35,6 +35,7 @@ from src.bot import MeshflowBot
 from src.meshcore.radio import MeshCoreRadio
 from src.meshcore.serializers import MeshCorePacketSerializer
 from src.meshtastic.radio import MeshtasticRadio
+from src.meshtastic.self_telemetry import SelfTelemetryThrottle, interval_from_env
 from src.meshtastic.serializers import MeshtasticPacketSerializer
 from src.persistence.commands_logger import SqliteCommandLogger
 from src.persistence.node_db import SqliteNodeDB
@@ -114,6 +115,8 @@ def main() -> None:
     radio, serializer = build_radio(data_dir)
     bot = MeshflowBot(radio=radio)
     bot.ignore_portnums = IGNORE_PORTNUMS
+    if RADIO_PROTOCOL == "meshtastic":
+        bot.self_telemetry = SelfTelemetryThrottle(interval_from_env())
     bot.admin_nodes = ADMIN_NODES
     bot.user_prefs_persistence = SqliteUserPrefsPersistence(str(user_prefs_file))
     bot.command_logger = SqliteCommandLogger(str(command_log_file))
@@ -130,6 +133,7 @@ def main() -> None:
                 failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshtastic_identity_provider=lambda: radio.identity,
             )
         )
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED:
@@ -162,6 +166,7 @@ def main() -> None:
                 failed_packets_dir,
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+                meshtastic_identity_provider=lambda: radio.identity,
             )
         )
     elif (

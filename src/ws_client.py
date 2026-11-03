@@ -55,6 +55,7 @@ class MeshflowWSClient:
         self._running = False
         self._task: Optional[asyncio.Task] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._ws = None  # live connection, for reconnect()
         self._backoff = 1.0  # Reset on successful connect so reconnects start fast
 
     def _get_ws_endpoint(self) -> str:
@@ -87,6 +88,17 @@ class MeshflowWSClient:
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
         logger.info("MeshflowWSClient: started")
+
+    def reconnect(self):
+        """Drop the live connection so the run loop reconnects with a freshly
+        built endpoint (e.g. after the feeder's node number changed). A no-op
+        when not started; if a connect attempt is pending it already rebuilds
+        the endpoint."""
+        ws, loop = self._ws, self._loop
+        if not self._running or ws is None or loop is None:
+            return
+        logger.info("MeshflowWSClient: reconnecting to pick up changed feeder identity")
+        asyncio.run_coroutine_threadsafe(ws.close(), loop)
 
     def stop(self):
         """Stop the WebSocket client."""
@@ -149,6 +161,7 @@ class MeshflowWSClient:
             ping_timeout=10,
         ) as ws:
             self._backoff = 1.0  # Reset so next reconnect starts with short delay
+            self._ws = ws
             prefix = (
                 self._feeder_pubkey_prefix_provider()
                 if self._feeder_pubkey_prefix_provider

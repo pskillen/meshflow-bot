@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,7 @@ from requests import HTTPError, RequestException
 from src.api.BaseAPIWrapper import BaseAPIWrapper
 from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
+from src.meshtastic.identity import FeederIdentity
 from src.meshcore.serializers import MeshCoreSkipUpload
 from src.radio.errors import get_global_error_counter
 from src.version import get_bot_version
@@ -33,6 +35,12 @@ from src.version import get_bot_version
 logger = logging.getLogger(__name__)
 
 MESHCORE_FEEDER_PUBKEY_HEADER = "X-MeshCore-Feeder-Pubkey"
+
+# Meshtastic calls answer 403/409 when the API cannot accept this feeder as it
+# identifies itself (e.g. the 2.8 node-number change). Don't hammer it.
+IDENTITY_REJECTION_STATUSES = (403, 409)
+IDENTITY_BACKOFF_INITIAL_SECONDS = 30.0
+IDENTITY_BACKOFF_MAX_SECONDS = 900.0
 
 
 class StorageAPIWrapper(BaseAPIWrapper):
@@ -51,6 +59,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
         local_meshtastic_nodenum_provider: Callable[[], Optional[int]],
         meshcore_feeder_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
         meshcore_feeder_pubkey_provider: Optional[Callable[[], Optional[str]]] = None,
+        meshtastic_identity_provider: Optional[Callable[[], FeederIdentity]] = None,
+        clock: Callable[[], float] = time.monotonic,
     ):
         super().__init__(base_url, token)
         self.api_version = api_version
@@ -61,10 +71,69 @@ class StorageAPIWrapper(BaseAPIWrapper):
         self._local_meshtastic_nodenum_provider = local_meshtastic_nodenum_provider
         self._meshcore_feeder_prefix_provider = meshcore_feeder_prefix_provider
         self._meshcore_feeder_pubkey_provider = meshcore_feeder_pubkey_provider
+        self._meshtastic_identity_provider = meshtastic_identity_provider
+        self._clock = clock
+        self._identity_backoff_seconds = 0.0
+        self._identity_blocked_until = 0.0
         self._error_counter = get_global_error_counter()
+
+    def _meshtastic_identity(self) -> Optional[FeederIdentity]:
+        if not self._meshtastic_identity_provider:
+            return None
+        try:
+            return self._meshtastic_identity_provider()
+        except Exception as exc:
+            logger.debug("Could not read feeder identity: %s", exc)
+            return None
+
+    # --- identity rejection backoff ---------------------------------------
+
+    def _identity_backoff_active(self) -> bool:
+        return self._clock() < self._identity_blocked_until
+
+    def _note_identity_ok(self) -> None:
+        self._identity_backoff_seconds = 0.0
+        self._identity_blocked_until = 0.0
+
+    def _handle_identity_rejection(self, exc: HTTPError, what: str) -> bool:
+        """On 403/409 from a Meshtastic call: log an actionable ERROR naming
+        the reported node number and start/extend a backoff. Returns ``True``
+        if ``exc`` was such a rejection."""
+        status = getattr(exc.response, "status_code", None)
+        if (
+            status not in IDENTITY_REJECTION_STATUSES
+            or not self._meshtastic_identity_provider
+        ):
+            return False
+        identity = self._meshtastic_identity()
+        reported = identity.node_num if identity else None
+        self._identity_backoff_seconds = min(
+            max(self._identity_backoff_seconds * 2, IDENTITY_BACKOFF_INITIAL_SECONDS),
+            IDENTITY_BACKOFF_MAX_SECONDS,
+        )
+        self._identity_blocked_until = self._clock() + self._identity_backoff_seconds
+        self._error_counter.increment("storage.identity_rejected")
+        logger.error(
+            "API %s refused %s with HTTP %s while reporting node number %s. "
+            "Meshtastic 2.8 derives the node number from the radio's public key, "
+            "so a firmware upgrade can change it and the API may not recognise "
+            "this feeder under the new number; check the feeder's API key and "
+            "linked node in Meshflow (see docs/MESHTASTIC.md, 'Feeder identity'). "
+            "Pausing uploads for %.0fs. Response: %s",
+            self.base_url,
+            what,
+            status,
+            reported,
+            self._identity_backoff_seconds,
+            getattr(exc.response, "text", ""),
+        )
+        return True
 
     def _get_headers(self) -> dict:
         headers = super()._get_headers()
+        identity = self._meshtastic_identity()
+        if identity:
+            headers.update(identity.headers())
         if self._meshcore_feeder_pubkey_provider:
             pubkey = self._meshcore_feeder_pubkey_provider()
             if pubkey:
@@ -128,12 +197,17 @@ class StorageAPIWrapper(BaseAPIWrapper):
             url = self._get_url("bot_version")
 
         try:
-            self._put(url, json={"bot_version": version})
+            payload: dict[str, Any] = {"bot_version": version}
+            identity = self._meshtastic_identity()
+            if identity and not prefix:
+                payload.update(identity.bot_version_fields())
+            self._put(url, json=payload)
             logger.info("Reported bot version %s to API", version)
             return True
         except HTTPError as exc:
             self._error_counter.increment("storage.report_bot_version.http")
-            logger.error("HTTP error reporting bot version: %s", exc.response.text)
+            if not self._handle_identity_rejection(exc, "the bot version report"):
+                logger.error("HTTP error reporting bot version: %s", exc.response.text)
         except RequestException as exc:
             self._error_counter.increment("storage.report_bot_version.network")
             logger.error("Network error reporting bot version: %s", exc)
@@ -249,13 +323,20 @@ class StorageAPIWrapper(BaseAPIWrapper):
             logger.exception("StorageAPIWrapper: serialise_raw_packet failed: %s", exc)
             return None
 
+        if self._identity_backoff_active():
+            self._error_counter.increment("storage.store_raw_packet.backoff")
+            logger.debug("Skipping packet upload: backing off after identity rejection")
+            return None
+
         logger.debug("Storing packet: %s", payload)
         try:
             response = self._post(self._get_url("raw_packet"), json=payload)
+            self._note_identity_ok()
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_raw_packet.http")
-            logger.error("HTTP error storing packet: %s", exc.response.text)
+            if not self._handle_identity_rejection(exc, "a packet upload"):
+                logger.error("HTTP error storing packet: %s", exc.response.text)
             if self.failed_packets_dir:
                 self._dump_failed_packet(payload, exc, original_packet=packet)
         except RequestException as exc:
@@ -277,14 +358,21 @@ class StorageAPIWrapper(BaseAPIWrapper):
         return [self._serializer.deserialise_node(node) for node in response.json()]
 
     def store_node(self, node: MeshNode) -> Optional[dict]:
+        if self._identity_backoff_active():
+            self._error_counter.increment("storage.store_node.backoff")
+            return None
         try:
             payload = self._serializer.serialise_node(node)
             response = self._post(self._get_url("nodes"), json=payload)
+            self._note_identity_ok()
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_node.http")
             node_id = getattr(getattr(node, "user", None), "id", None)
-            logger.error("HTTP error storing node %s: %s", node_id, exc.response.text)
+            if not self._handle_identity_rejection(exc, f"node {node_id}"):
+                logger.error(
+                    "HTTP error storing node %s: %s", node_id, exc.response.text
+                )
         except RequestException as exc:
             self._error_counter.increment("storage.store_node.network")
             logger.error("Network error storing node: %s", exc)
