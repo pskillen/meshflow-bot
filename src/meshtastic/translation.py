@@ -122,9 +122,9 @@ def node_dict_to_node_update(node_data: dict) -> Optional[NodeUpdate]:
     if node_data.get("user") is None:
         return None
     mesh_node = node_dict_to_mesh_node(node_data)
-    last_heard_int = node_data.get("lastHeard", 0) or 0
-    last_heard = datetime.fromtimestamp(last_heard_int, tz=timezone.utc)
-    return NodeUpdate(node=mesh_node, last_heard=last_heard, raw=node_data)
+    # lastHeard is parsed once, in node_dict_to_mesh_node; None when the radio
+    # reports none (the bot then treats the node as heard now).
+    return NodeUpdate(node=mesh_node, last_heard=mesh_node.last_heard, raw=node_data)
 
 
 def nodenum_to_id(nodenum: int) -> str:

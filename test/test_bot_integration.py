@@ -72,6 +72,20 @@ class TestMeshflowBotEventRouting(unittest.TestCase):
         self.assertIsNotNone(bot.node_db.get_by_radio_id("!11112222"))
         storage.store_node.assert_called_once_with(node)
 
+    def test_node_update_without_last_heard_falls_back_to_now(self):
+        bot, radio = _build_bot()
+        bot.storage_apis = []
+
+        node = MeshNode()
+        node.user = MeshNode.User(node_id="!11112222", long_name="Alice")
+        radio.deliver_node_update(NodeUpdate(node=node, last_heard=None))
+
+        heard = bot.node_info.get_last_heard("!11112222")
+        self.assertIsNotNone(heard)
+        self.assertLess(
+            abs((datetime.now(timezone.utc) - heard).total_seconds()), 60
+        )
+
     def test_text_message_dm_triggers_command(self):
         bot, radio = _build_bot()
         # Sender must exist in node_db for the bot to log them

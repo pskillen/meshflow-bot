@@ -124,6 +124,30 @@ class TestNodeUpdate(unittest.TestCase):
         self.assertTrue(update.node.is_favorite)
         self.assertEqual(update.last_heard.year, 2023)
 
+    def test_node_update_sets_node_last_heard(self):
+        update = node_dict_to_node_update(
+            {"user": {"id": "!1"}, "lastHeard": 1700000000}
+        )
+        self.assertEqual(update.node.last_heard.timestamp(), 1700000000)
+        self.assertEqual(update.last_heard, update.node.last_heard)
+
+    def test_node_update_last_heard_missing_or_zero_is_none(self):
+        for data in ({"user": {"id": "!1"}}, {"user": {"id": "!1"}, "lastHeard": 0}):
+            update = node_dict_to_node_update(data)
+            self.assertIsNone(update.last_heard)
+            self.assertIsNone(update.node.last_heard)
+
+    def test_last_heard_end_to_end_to_api_dict(self):
+        from src.meshtastic.serializers import MeshNodeSerializer
+
+        node = node_dict_to_mesh_node({"user": {"id": "!1"}, "lastHeard": 1700000000})
+        self.assertEqual(
+            MeshNodeSerializer.to_api_dict(node)["last_heard"],
+            "2023-11-14T22:13:20+00:00",
+        )
+        absent = node_dict_to_mesh_node({"user": {"id": "!1"}})
+        self.assertNotIn("last_heard", MeshNodeSerializer.to_api_dict(absent))
+
     def test_node_without_user_yields_none(self):
         self.assertIsNone(node_dict_to_node_update({"user": None}))
 
