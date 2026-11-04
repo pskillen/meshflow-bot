@@ -114,3 +114,66 @@ def test_reconnect_backoff_resets_after_successful_connect():
     sleeps = []
     _run_with_script(client, [OSError("x")] * 4 + [None] + [OSError("x")] * 2, sleeps)
     assert sleeps == [1.0, 2.0, 4.0, 8.0, 1.0, 2.0]
+
+
+# --- real _connect_and_receive against a stub websockets.connect -----------
+
+
+class _StubConnection:
+    """Async context manager standing in for ``websockets.connect(...)``."""
+
+    def __init__(self, messages, then=None):
+        self._messages = list(messages)
+        self._then = then
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def recv(self):
+        if self._messages:
+            return self._messages.pop(0)
+        from websockets.exceptions import ConnectionClosed
+
+        raise ConnectionClosed(None, None)
+
+
+def _drive_connect(client, conn):
+    import asyncio
+    from unittest.mock import patch
+
+    client._running = True
+    with patch("websockets.connect", return_value=conn):
+        try:
+            asyncio.run(client._connect_and_receive())
+        except Exception:
+            pass  # ConnectionClosed propagates to _run, which reconnects
+
+
+def test_backoff_resets_after_first_message_on_real_connect():
+    client = _client()
+    client._backoff = 16.0
+    _drive_connect(client, _StubConnection(['{"type": "noop"}']))
+    assert client._backoff == 1.0
+
+
+def test_backoff_not_reset_when_server_accepts_then_drops_immediately():
+    client = _client()
+    client._backoff = 16.0
+    _drive_connect(client, _StubConnection([]))
+    assert client._backoff == 16.0
+
+
+def test_backoff_resets_when_connection_was_stable_before_closing():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    client = _client()
+    client._backoff = 16.0
+    ticks = iter([100.0, 100.0 + 31.0, 100.0 + 31.0])
+    fake_time = SimpleNamespace(monotonic=lambda: next(ticks))
+    with patch("src.ws_client.time", fake_time):
+        _drive_connect(client, _StubConnection([]))
+    assert client._backoff == 1.0

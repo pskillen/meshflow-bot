@@ -8,6 +8,7 @@ Connects to ws/nodes/?api_key=<token> and invokes callbacks when commands
 import asyncio
 import json
 import logging
+import time
 from typing import Callable, Optional
 from urllib.parse import quote
 
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
 INITIAL_BACKOFF_SECONDS = 1.0
 MAX_BACKOFF_SECONDS = 60.0
 BACKOFF_FACTOR = 2.0
+# A connection that stayed up this long counts as good even if it never got a
+# message, so a server that accepts and then drops us can't pin us at 1s retries.
+STABLE_CONNECTION_SECONDS = 30.0
 
 
 class MeshflowWSClient:
@@ -140,6 +144,10 @@ class MeshflowWSClient:
 
         logger.info("MeshflowWSClient: run loop ended")
 
+    def _reset_backoff_if_stable(self, connected_at: float) -> None:
+        if time.monotonic() - connected_at >= STABLE_CONNECTION_SECONDS:
+            self._backoff = INITIAL_BACKOFF_SECONDS
+
     async def _connect_and_receive(self):
         """Connect to WebSocket and receive messages until disconnect."""
         try:
@@ -161,8 +169,9 @@ class MeshflowWSClient:
             ping_interval=20,
             ping_timeout=10,
         ) as ws:
-            self._backoff = INITIAL_BACKOFF_SECONDS  # reset after a successful connect
             self._ws = ws
+            connected_at = time.monotonic()
+            got_message = False
             prefix = (
                 self._feeder_pubkey_prefix_provider()
                 if self._feeder_pubkey_prefix_provider
@@ -188,13 +197,21 @@ class MeshflowWSClient:
                 try:
                     msg = await asyncio.wait_for(ws.recv(), timeout=60.0)
                 except asyncio.TimeoutError:
+                    self._reset_backoff_if_stable(connected_at)
                     continue
                 except ConnectionClosed as e:
+                    self._reset_backoff_if_stable(connected_at)
                     code = getattr(getattr(e, "rcvd", None), "code", None)
                     logger.info(
                         f"MeshflowWSClient: connection closed by server (code={code})"
                     )
                     raise
+
+                if not got_message:
+                    # Data flowed, so the server really accepted us: reset the
+                    # reconnect back-off (merely opening the socket isn't enough).
+                    got_message = True
+                    self._backoff = INITIAL_BACKOFF_SECONDS
 
                 try:
                     data = json.loads(msg)

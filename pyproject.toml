@@ -15,7 +15,6 @@ source = ["src"]
 # rest of `src/`.
 omit = [
     "src/main.py",
-    "src/ws_client.py",
     "src/meshcore/radio.py",
     "src/meshtastic/radio.py",
     "src/meshtastic/tcp_interface.py",
