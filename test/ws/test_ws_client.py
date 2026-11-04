@@ -67,3 +67,113 @@ def test_ws_endpoint_api_key_only_when_no_providers():
         on_traceroute=lambda _target: None,
     )
     assert client._get_ws_endpoint() == "ws://localhost:8000/ws/nodes/?api_key=test-key"
+
+
+def _run_with_script(client, outcomes, sleeps):
+    """Drive ``_run`` with scripted connect outcomes (an Exception to fail, or
+    None to connect and reset the backoff), recording each sleep."""
+    import asyncio
+    from unittest.mock import patch
+
+    outcomes = list(outcomes)
+
+    async def fake_connect():
+        outcome = outcomes.pop(0)
+        if not outcomes:
+            client._running = False
+        if outcome is None:
+            client._backoff = 1.0  # what a successful connect does
+            raise ConnectionError("dropped after connect")
+        raise outcome
+
+    async def fake_sleep(delay):
+        sleeps.append(delay)
+
+    client._running = True
+    with patch.object(client, "_connect_and_receive", fake_connect), patch(
+        "src.ws_client.asyncio.sleep", fake_sleep
+    ):
+        asyncio.run(client._run())
+
+
+def _client():
+    return MeshflowWSClient(
+        ws_url="ws://localhost:8000", api_key="k", on_traceroute=lambda _t: None
+    )
+
+
+def test_reconnect_backoff_grows_exponentially_to_cap():
+    client = _client()
+    sleeps = []
+    _run_with_script(client, [OSError("x")] * 10, sleeps)
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0, 60.0, 60.0]
+
+
+def test_reconnect_backoff_resets_after_successful_connect():
+    client = _client()
+    sleeps = []
+    _run_with_script(client, [OSError("x")] * 4 + [None] + [OSError("x")] * 2, sleeps)
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 1.0, 2.0]
+
+
+# --- real _connect_and_receive against a stub websockets.connect -----------
+
+
+class _StubConnection:
+    """Async context manager standing in for ``websockets.connect(...)``."""
+
+    def __init__(self, messages, then=None):
+        self._messages = list(messages)
+        self._then = then
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def recv(self):
+        if self._messages:
+            return self._messages.pop(0)
+        from websockets.exceptions import ConnectionClosed
+
+        raise ConnectionClosed(None, None)
+
+
+def _drive_connect(client, conn):
+    import asyncio
+    from unittest.mock import patch
+
+    client._running = True
+    with patch("websockets.connect", return_value=conn):
+        try:
+            asyncio.run(client._connect_and_receive())
+        except Exception:
+            pass  # ConnectionClosed propagates to _run, which reconnects
+
+
+def test_backoff_resets_after_first_message_on_real_connect():
+    client = _client()
+    client._backoff = 16.0
+    _drive_connect(client, _StubConnection(['{"type": "noop"}']))
+    assert client._backoff == 1.0
+
+
+def test_backoff_not_reset_when_server_accepts_then_drops_immediately():
+    client = _client()
+    client._backoff = 16.0
+    _drive_connect(client, _StubConnection([]))
+    assert client._backoff == 16.0
+
+
+def test_backoff_resets_when_connection_was_stable_before_closing():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    client = _client()
+    client._backoff = 16.0
+    ticks = iter([100.0, 100.0 + 31.0, 100.0 + 31.0])
+    fake_time = SimpleNamespace(monotonic=lambda: next(ticks))
+    with patch("src.ws_client.time", fake_time):
+        _drive_connect(client, _StubConnection([]))
+    assert client._backoff == 1.0

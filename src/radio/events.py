@@ -85,7 +85,7 @@ class NodeUpdate:
     """A node's user/position/metrics changed."""
 
     node: MeshNode
-    last_heard: datetime
+    last_heard: Optional[datetime]
     raw: Any = None
 
 

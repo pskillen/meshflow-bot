@@ -8,7 +8,7 @@ nodes.json
 all_state.json
 data/
 docker-data/
-tmp/
+tmp
 temp/
 
 # OS files
@@ -142,7 +142,7 @@ celerybeat.pid
 .env
 .venv
 env/
-venv/
+venv
 venv-*/
 ENV/
 env.bak/

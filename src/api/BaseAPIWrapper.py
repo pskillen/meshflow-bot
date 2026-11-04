@@ -3,6 +3,11 @@ from abc import ABC
 import requests
 
 
+# (connect, read) seconds. Without a timeout a black-holed API hangs the caller
+# forever; with one it raises ``Timeout``, which the retry logic understands.
+REQUEST_TIMEOUT = (5, 30)
+
+
 class BaseAPIWrapper(ABC):
     base_url: str
     auth_token: str | None
@@ -23,19 +28,19 @@ class BaseAPIWrapper(ABC):
 
     def _get(self, url: str) -> requests.Response:
         full_url = f"{self.base_url}/{url.lstrip('/')}"
-        response = requests.get(full_url, headers=self._get_headers())
+        response = requests.get(full_url, headers=self._get_headers(), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
 
         return response
 
     def _post(self, url: str, json: dict) -> requests.Response:
         full_url = f"{self.base_url}/{url.lstrip('/')}"
-        response = requests.post(full_url, json=json, headers=self._get_headers())
+        response = requests.post(full_url, json=json, headers=self._get_headers(), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         return response
 
     def _put(self, url: str, json: dict) -> requests.Response:
         full_url = f"{self.base_url}/{url.lstrip('/')}"
-        response = requests.put(full_url, json=json, headers=self._get_headers())
+        response = requests.put(full_url, json=json, headers=self._get_headers(), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         return response
