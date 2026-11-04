@@ -89,6 +89,8 @@ class MeshNode:
     position: Optional[Position]
     device_metrics: Optional[DeviceMetrics]
     is_favorite: bool
+    # NodeDB ``lastHeard`` (UTC); None when the radio reports none (missing or 0).
+    last_heard: Optional[datetime] = None
 
     @classmethod
     def from_dict(cls, node_data: dict) -> "MeshNode":

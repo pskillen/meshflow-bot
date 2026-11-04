@@ -131,6 +131,12 @@ class MeshNodeSerializer(AbstractModelSerializer):
             },
         }
 
+        # NodeDB lastHeard lets the API tell a stale uploaded name from a fresh one
+        if node.last_heard:
+            node_data["last_heard"] = node.last_heard.astimezone(
+                datetime.timezone.utc
+            ).isoformat()
+
         # only log a position if it's actually set
         if node.position and not (
             node.position.latitude == 0
