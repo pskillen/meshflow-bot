@@ -67,3 +67,50 @@ def test_ws_endpoint_api_key_only_when_no_providers():
         on_traceroute=lambda _target: None,
     )
     assert client._get_ws_endpoint() == "ws://localhost:8000/ws/nodes/?api_key=test-key"
+
+
+def _run_with_script(client, outcomes, sleeps):
+    """Drive ``_run`` with scripted connect outcomes (an Exception to fail, or
+    None to connect and reset the backoff), recording each sleep."""
+    import asyncio
+    from unittest.mock import patch
+
+    outcomes = list(outcomes)
+
+    async def fake_connect():
+        outcome = outcomes.pop(0)
+        if not outcomes:
+            client._running = False
+        if outcome is None:
+            client._backoff = 1.0  # what a successful connect does
+            raise ConnectionError("dropped after connect")
+        raise outcome
+
+    async def fake_sleep(delay):
+        sleeps.append(delay)
+
+    client._running = True
+    with patch.object(client, "_connect_and_receive", fake_connect), patch(
+        "src.ws_client.asyncio.sleep", fake_sleep
+    ):
+        asyncio.run(client._run())
+
+
+def _client():
+    return MeshflowWSClient(
+        ws_url="ws://localhost:8000", api_key="k", on_traceroute=lambda _t: None
+    )
+
+
+def test_reconnect_backoff_grows_exponentially_to_cap():
+    client = _client()
+    sleeps = []
+    _run_with_script(client, [OSError("x")] * 10, sleeps)
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0, 60.0, 60.0]
+
+
+def test_reconnect_backoff_resets_after_successful_connect():
+    client = _client()
+    sleeps = []
+    _run_with_script(client, [OSError("x")] * 4 + [None] + [OSError("x")] * 2, sleeps)
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 1.0, 2.0, 4.0]

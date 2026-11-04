@@ -13,6 +13,10 @@ from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
+INITIAL_BACKOFF_SECONDS = 1.0
+MAX_BACKOFF_SECONDS = 60.0
+BACKOFF_FACTOR = 2.0
+
 
 class MeshflowWSClient:
     """
@@ -56,7 +60,7 @@ class MeshflowWSClient:
         self._task: Optional[asyncio.Task] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._ws = None  # live connection, for reconnect()
-        self._backoff = 1.0  # Reset on successful connect so reconnects start fast
+        self._backoff = INITIAL_BACKOFF_SECONDS  # delay before the next reconnect
 
     def _get_ws_endpoint(self) -> str:
         url = f"{self.ws_url}/ws/nodes/?api_key={self.api_key}"
@@ -108,9 +112,6 @@ class MeshflowWSClient:
 
     async def _run(self):
         """Main loop with reconnection."""
-        backoff = 1.0
-        max_backoff = 300.0
-
         while self._running:
             try:
                 await self._connect_and_receive()
@@ -120,7 +121,7 @@ class MeshflowWSClient:
             except Exception as e:
                 logger.warning(
                     f"MeshflowWSClient: connection lost ({type(e).__name__}: {e}). "
-                    f"Reconnecting in {backoff:.0f}s..."
+                    f"Reconnecting in {self._backoff:.0f}s..."
                 )
                 if self.on_disconnect:
                     try:
@@ -131,11 +132,11 @@ class MeshflowWSClient:
             if not self._running:
                 break
 
-            await asyncio.sleep(backoff)
-            backoff = getattr(
-                self, "_backoff", backoff
-            )  # Use reset value from successful connect
-            backoff = min(backoff * 1.5, max_backoff)
+            # Grow exponentially to a cap; a successful connect resets
+            # self._backoff to the initial value (see _connect_and_receive).
+            delay = self._backoff
+            self._backoff = min(delay * BACKOFF_FACTOR, MAX_BACKOFF_SECONDS)
+            await asyncio.sleep(delay)
 
         logger.info("MeshflowWSClient: run loop ended")
 
@@ -160,7 +161,7 @@ class MeshflowWSClient:
             ping_interval=20,
             ping_timeout=10,
         ) as ws:
-            self._backoff = 1.0  # Reset so next reconnect starts with short delay
+            self._backoff = INITIAL_BACKOFF_SECONDS  # reset after a successful connect
             self._ws = ws
             prefix = (
                 self._feeder_pubkey_prefix_provider()
