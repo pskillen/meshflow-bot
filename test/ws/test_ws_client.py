@@ -113,4 +113,4 @@ def test_reconnect_backoff_resets_after_successful_connect():
     client = _client()
     sleeps = []
     _run_with_script(client, [OSError("x")] * 4 + [None] + [OSError("x")] * 2, sleeps)
-    assert sleeps == [1.0, 2.0, 4.0, 8.0, 1.0, 2.0, 4.0]
+    assert sleeps == [1.0, 2.0, 4.0, 8.0, 1.0, 2.0]
