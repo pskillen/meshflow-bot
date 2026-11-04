@@ -16,17 +16,19 @@ from __future__ import annotations
 import json
 import logging
 import os
-import threading
 import time
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
-from requests import HTTPError, RequestException
+from requests import ConnectionError as RequestsConnectionError
+from requests import HTTPError, RequestException, Timeout
+from requests.exceptions import InvalidURL, SSLError
 
 from src.api.BaseAPIWrapper import BaseAPIWrapper
 from src.api.packet_serializer import PacketSerializer
+from src.api.retry_worker import DEFAULT_GAP_SECONDS, RetryWorker
 from src.data_classes import MeshNode
 from src.meshtastic.identity import FeederIdentity
 from src.meshcore.serializers import MeshCoreSkipUpload
@@ -45,15 +47,9 @@ IDENTITY_BACKOFF_MAX_SECONDS = 900.0
 
 # Connect-time calls (bot version report, per-node NodeDB sync) are retried in
 # the background on a transient failure (no connection, timeout, HTTP 5xx):
-# three attempts in all, at 0s, +15s and +60s.
+# three attempts in all, at 0s, +15s and +60s. One worker thread sends the
+# retries serially (see ``RetryWorker``).
 RETRY_DELAYS_SECONDS = (15.0, 45.0)
-
-
-def _start_timer(delay: float, fn: Callable[[], Any]) -> threading.Timer:
-    timer = threading.Timer(delay, fn)
-    timer.daemon = True
-    timer.start()
-    return timer
 
 
 class StorageAPIWrapper(BaseAPIWrapper):
@@ -75,7 +71,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         meshtastic_identity_provider: Optional[Callable[[], FeederIdentity]] = None,
         clock: Callable[[], float] = time.monotonic,
         retry_delays: tuple[float, ...] = RETRY_DELAYS_SECONDS,
-        retry_scheduler: Callable[[float, Callable[[], Any]], Any] = _start_timer,
+        retry_gap: float = DEFAULT_GAP_SECONDS,
     ):
         super().__init__(base_url, token)
         self.api_version = api_version
@@ -92,48 +88,47 @@ class StorageAPIWrapper(BaseAPIWrapper):
         self._identity_blocked_until = 0.0
         self._error_counter = get_global_error_counter()
         self._retry_delays = retry_delays
-        self._retry_scheduler = retry_scheduler
-        self._retry_lock = threading.Lock()
-        self._retry_pending: dict[str, Any] = {}
+        self._retry_worker = RetryWorker(gap=retry_gap, clock=clock)
+
+    def shutdown(self) -> None:
+        """Stop the retry thread (non-blocking); pending retries are dropped."""
+        self._retry_worker.stop()
 
     # --- transient-failure retry ------------------------------------------
 
     @staticmethod
     def _is_transient(exc: Exception) -> bool:
-        """Connection errors, timeouts and HTTP 5xx are worth retrying. 4xx
+        """No connection, timeouts and HTTP 5xx are worth retrying. 4xx
         (including the 403/409 identity rejections, which have their own
-        back-off) are not."""
+        back-off), TLS failures and malformed URLs will not fix themselves."""
         if isinstance(exc, HTTPError):
             status = getattr(exc.response, "status_code", None)
             return status is not None and status >= 500
-        return isinstance(exc, RequestException)
+        if isinstance(exc, (SSLError, InvalidURL)):
+            return False
+        return isinstance(exc, (RequestsConnectionError, Timeout))
 
     def _schedule_retry(
-        self, key: str, attempt: Callable[[int], Any], retries_done: int
+        self,
+        key: str,
+        gen: int,
+        fn: Callable[[Any, int], Any],
+        payload: Any,
+        retries_done: int,
     ) -> None:
-        """Run ``attempt(retries_done + 1)`` later on a timer thread (never on
-        the caller's thread). A newer retry for the same ``key`` replaces a
-        pending one."""
+        """Run ``fn(payload, retries_done + 1)`` later on the retry worker
+        (never on the caller's thread)."""
         if retries_done >= len(self._retry_delays):
             logger.error("Giving up on %s after %s attempts", key, retries_done + 1)
             return
         delay = self._retry_delays[retries_done]
-
-        def run() -> None:
-            with self._retry_lock:
-                self._retry_pending.pop(key, None)
-            try:
-                attempt(retries_done + 1)
-            except Exception as exc:  # never let a timer thread die noisily
-                logger.exception("Retry of %s failed unexpectedly: %s", key, exc)
-
-        with self._retry_lock:
-            previous = self._retry_pending.pop(key, None)
-            cancel = getattr(previous, "cancel", None)
-            if cancel:
-                cancel()
+        if self._retry_worker.schedule(key, gen, delay, fn, payload, retries_done + 1):
             logger.info("Will retry %s in %.0fs", key, delay)
-            self._retry_pending[key] = self._retry_scheduler(delay, run)
+
+    def _log_failure(self, retries_done: int, msg: str, *args: Any) -> None:
+        """The first failure is an ERROR; a failed retry is only a WARNING
+        (the give-up line carries the summary)."""
+        logger.log(logging.WARNING if retries_done else logging.ERROR, msg, *args)
 
     def _meshtastic_identity(self) -> Optional[FeederIdentity]:
         if not self._meshtastic_identity_provider:
@@ -235,10 +230,19 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
     def report_bot_version(self) -> bool:
         """Report meshflow-bot version to the API (v2/v3). Returns True on
-        success; a transient failure is retried in the background."""
-        return self._report_bot_version_attempt(0)
+        success; a transient failure is retried in the background. A newer
+        call drops the pending retry."""
+        gen = self._retry_worker.begin("bot_version")
+        return self._report_bot_version_attempt(gen, 0)
 
-    def _report_bot_version_attempt(self, retries_done: int) -> bool:
+    def _retry_report_bot_version(self, gen: int, retries_done: int) -> None:
+        if self._identity_backoff_active():
+            self._error_counter.increment("storage.report_bot_version.backoff")
+            logger.info("Dropping bot version retry: backing off after rejection")
+            return
+        self._report_bot_version_attempt(gen, retries_done)
+
+    def _report_bot_version_attempt(self, gen: int, retries_done: int) -> bool:
         if self.api_version not in (2, 3):
             logger.debug(
                 "Skipping bot version report (api_version=%s)", self.api_version
@@ -258,6 +262,11 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 return False
             url = self._get_url("bot_version")
 
+        def retry() -> None:
+            self._schedule_retry(
+                "bot_version", gen, self._retry_report_bot_version, gen, retries_done
+            )
+
         try:
             payload: dict[str, Any] = {"bot_version": version}
             identity = self._meshtastic_identity()
@@ -269,22 +278,24 @@ class StorageAPIWrapper(BaseAPIWrapper):
         except HTTPError as exc:
             self._error_counter.increment("storage.report_bot_version.http")
             if not self._handle_identity_rejection(exc, "the bot version report"):
-                logger.error("HTTP error reporting bot version: %s", exc.response.text)
+                self._log_failure(
+                    retries_done,
+                    "HTTP error reporting bot version: %s",
+                    exc.response.text,
+                )
                 if self._is_transient(exc):
-                    self._retry_bot_version(retries_done)
+                    retry()
         except RequestException as exc:
             self._error_counter.increment("storage.report_bot_version.network")
-            logger.error("Network error reporting bot version: %s", exc)
-            self._retry_bot_version(retries_done)
+            self._log_failure(
+                retries_done, "Network error reporting bot version: %s", exc
+            )
+            if self._is_transient(exc):
+                retry()
         except Exception as exc:
             self._error_counter.increment("storage.report_bot_version.unexpected")
             logger.exception("Unexpected error reporting bot version: %s", exc)
         return False
-
-    def _retry_bot_version(self, retries_done: int) -> None:
-        self._schedule_retry(
-            "bot_version", self._report_bot_version_attempt, retries_done
-        )
 
     def fetch_bot_config(self) -> Optional[dict]:
         """Fetch operator config for this MeshCore feeder (interval hours, etc.)."""
@@ -429,16 +440,29 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
     def store_node(self, node: MeshNode) -> Optional[dict]:
         """Upload a node; a transient failure is retried in the background
-        (this is what makes the connect-time NodeDB sync resilient)."""
-        return self._store_node_attempt(node, 0)
+        (this is what makes the connect-time NodeDB sync resilient). A newer
+        call for the same node drops that node's pending retry."""
+        node_id = getattr(getattr(node, "user", None), "id", None)
+        gen = self._retry_worker.begin(f"node:{node_id}")
+        return self._store_node_attempt(node, gen, 0)
 
-    def _store_node_attempt(self, node: MeshNode, retries_done: int) -> Optional[dict]:
+    def _retry_store_node(
+        self, payload: tuple[MeshNode, int], retries_done: int
+    ) -> None:
+        node, gen = payload
+        self._store_node_attempt(node, gen, retries_done)
+
+    def _store_node_attempt(
+        self, node: MeshNode, gen: int, retries_done: int
+    ) -> Optional[dict]:
         node_id = getattr(getattr(node, "user", None), "id", None)
 
         def retry() -> None:
             self._schedule_retry(
                 f"node:{node_id}",
-                lambda done: self._store_node_attempt(node, done),
+                gen,
+                self._retry_store_node,
+                (node, gen),
                 retries_done,
             )
 
@@ -449,23 +473,38 @@ class StorageAPIWrapper(BaseAPIWrapper):
             payload = self._serializer.serialise_node(node)
             response = self._post(self._get_url("nodes"), json=payload)
             self._note_identity_ok()
-            return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_node.http")
             if not self._handle_identity_rejection(exc, f"node {node_id}"):
-                logger.error(
-                    "HTTP error storing node %s: %s", node_id, exc.response.text
+                self._log_failure(
+                    retries_done,
+                    "HTTP error storing node %s: %s",
+                    node_id,
+                    exc.response.text,
                 )
                 if self._is_transient(exc):
                     retry()
+            return None
         except RequestException as exc:
             self._error_counter.increment("storage.store_node.network")
-            logger.error("Network error storing node: %s", exc)
-            retry()
+            self._log_failure(retries_done, "Network error storing node: %s", exc)
+            if self._is_transient(exc):
+                retry()
+            return None
         except Exception as exc:
             self._error_counter.increment("storage.store_node.unexpected")
             logger.exception("Unexpected error storing node: %s", exc)
-        return None
+            return None
+        try:
+            # Outside the retried region: a 2xx with a bad body was accepted,
+            # so re-sending it would only duplicate the upload.
+            return response.json()
+        except ValueError as exc:
+            self._error_counter.increment("storage.store_node.bad_body")
+            logger.warning(
+                "Node %s accepted but the response was not JSON: %s", node_id, exc
+            )
+            return None
 
     def get_node_by_id(
         self,

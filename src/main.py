@@ -241,6 +241,8 @@ def main() -> None:
         if bot.ws_client:
             bot.ws_client.stop()
         bot.disconnect()
+        for storage_api in bot.storage_apis:
+            storage_api.shutdown()
         node_info.persist_to_file(str(node_info_file))
 
 
