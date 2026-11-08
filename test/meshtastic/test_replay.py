@@ -49,6 +49,7 @@ class TestClassifier(unittest.TestCase):
         for p in replayed:
             self.assertNotIn("rxRssi", p)
             self.assertEqual(p.get("priority"), "BACKGROUND")
+            self.assertEqual(p.get("transportMechanism"), "TRANSPORT_LORA")
 
     def test_live_records_are_not_replayed(self):
         live = _load("live")
@@ -58,12 +59,32 @@ class TestClassifier(unittest.TestCase):
             self.assertFalse(is_replayed(p, SELF_NUM), p)
 
     def test_mqtt_downlink_without_rssi_is_not_replayed(self):
-        base = {"from": 1, "id": 2, "decoded": {"portnum": "TEXT_MESSAGE_APP"}}
+        base = {
+            "from": 1,
+            "id": 2,
+            "priority": "BACKGROUND",
+            "transportMechanism": "TRANSPORT_LORA",
+            "decoded": {"portnum": "TEXT_MESSAGE_APP"},
+        }
         self.assertTrue(is_replayed(base, SELF_NUM))
         self.assertFalse(is_replayed({**base, "viaMqtt": True}, SELF_NUM))
         self.assertFalse(
             is_replayed({**base, "transportMechanism": "TRANSPORT_MQTT"}, SELF_NUM)
         )
+
+    def test_all_four_conditions_are_required(self):
+        base = {
+            "from": 1,
+            "priority": "BACKGROUND",
+            "transportMechanism": "TRANSPORT_LORA",
+        }
+        self.assertTrue(is_replayed(base, SELF_NUM))
+        self.assertFalse(is_replayed({**base, "from": SELF_NUM}, SELF_NUM))
+        self.assertFalse(is_replayed({**base, "rxRssi": -80}, SELF_NUM))
+        self.assertFalse(is_replayed({**base, "priority": "DEFAULT"}, SELF_NUM))
+        self.assertFalse(is_replayed({**base, "priority": None}, SELF_NUM))
+        no_transport = {k: v for k, v in base.items() if k != "transportMechanism"}
+        self.assertFalse(is_replayed(no_transport, SELF_NUM))
         event = packet_to_incoming(
             {**base, "viaMqtt": True}, local_node_id="!e0a76739", local_nodenum=SELF_NUM
         )
@@ -85,7 +106,12 @@ class TestClassifier(unittest.TestCase):
         self.assertFalse(is_replayed(p, None))
 
     def test_flag_travels_on_the_event(self):
-        replay = {"from": 1, "decoded": {"portnum": "POSITION_APP"}}
+        replay = {
+            "from": 1,
+            "priority": "BACKGROUND",
+            "transportMechanism": "TRANSPORT_LORA",
+            "decoded": {"portnum": "POSITION_APP"},
+        }
         event = packet_to_incoming(
             replay, local_node_id="!e0a76739", local_nodenum=SELF_NUM
         )
@@ -149,6 +175,7 @@ class TestBotModes(unittest.TestCase):
             "fromId": "!00000007",
             "toId": "^all",
             "priority": "BACKGROUND",
+            "transportMechanism": "TRANSPORT_LORA",
             "decoded": {"portnum": "TELEMETRY_APP", "telemetry": {}},
         }
         return packet_to_incoming(
