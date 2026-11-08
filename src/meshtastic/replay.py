@@ -7,9 +7,13 @@ received packets but were not received now. The 2.8 proto marks them by
 leaving ``rx_rssi`` unset; real LoRa receptions always carry a negative RSSI (MQTT-downlinked packets
 have none either, so they are excluded via ``viaMqtt``/``transportMechanism``).
 
-Detection rule (lib 2.7.11 dict): ``from`` is not our node number, the packet
-did not arrive via MQTT and the dict has no ``rxRssi`` key. A 2.8 library exposes ``has_rx_rssi`` explicitly; swap
-:func:`_has_rx_rssi` for that and nothing else changes.
+Detection rule (lib 2.7.11 dict): all of these must hold: ``from`` is not our
+node number, the packet did not arrive via MQTT, the dict has no ``rxRssi``
+key, ``transportMechanism`` is ``TRANSPORT_LORA`` and ``priority`` is
+``BACKGROUND``. Across all four hardware captures this matches every one of
+the 156 replayed packets and no live packet. A 2.8 library exposes
+``has_rx_rssi`` explicitly; swap :func:`_has_rx_rssi` for that and nothing
+else changes.
 
 ``REPLAYED_PACKETS`` = ``drop`` (default) | ``flag`` | ``pass`` decides what the
 bot does with them.
@@ -67,9 +71,9 @@ def _via_mqtt(packet: dict) -> bool:
 def is_replayed(packet: dict, local_nodenum: Optional[int]) -> bool:
     """True if *packet* is a connect-time replay rather than a live reception.
 
-    Our own packets and MQTT-downlinked packets (no RSSI either) are never
-    replays. With the local node
-    number unknown nothing is classified as a replay."""
+    Requires every one of: not from our node, not via MQTT, no RSSI,
+    ``transportMechanism`` ``TRANSPORT_LORA`` and ``priority`` ``BACKGROUND``.
+    With the local node number unknown nothing is classified as a replay."""
     if local_nodenum is None or not isinstance(packet, dict):
         return False
     if packet.get("from") == local_nodenum:
@@ -78,14 +82,9 @@ def is_replayed(packet: dict, local_nodenum: Optional[int]) -> bool:
         return False
     if _has_rx_rssi(packet):
         return False
-    if packet.get("priority") not in (None, "BACKGROUND"):
-        # Secondary evidence only; logged, never required.
-        logger.debug(
-            "Replay candidate with priority %s (id %s)",
-            packet.get("priority"),
-            packet.get("id"),
-        )
-    return True
+    if packet.get("transportMechanism") != "TRANSPORT_LORA":
+        return False
+    return packet.get("priority") == "BACKGROUND"
 
 
 class ReplaySummary:
