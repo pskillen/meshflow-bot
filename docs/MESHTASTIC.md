@@ -65,9 +65,24 @@ With `MESHFLOW_WS_URL` + token (or derived from `STORAGE_API_*`), the bot starts
 | `IGNORE_PORTNUMS` | Comma-separated portnums to skip when uploading (upper-case, e.g. `ROUTING_APP`). |
 | `DUMP_PACKETS_PORTNUMS` | Comma-separated Meshtastic `portnum` names (or `*`) to dump received packets under `<DATA_DIR>/packets/<PORTNUM>/`. Each file is `{packet, raw_b64, meta}`: `packet` is the library dict (bytes as base64), `raw_b64` is base64 of `MeshPacket.SerializeToString()` (keeps unknown fields such as the 2.8 signing fields, so it can be re-parsed with a newer lib), `meta` is `feeder_num`, `feeder_fw` (null if unavailable), `lib_version`, `captured_at`. See [`src/persistence/packet_dump.py`](../src/persistence/packet_dump.py). |
 | `DUMP_NODEDB` | `true` / `false` (default `false`). On connect, write the radio's NodeDB (`interface.nodes`, bytes as base64) to `<DATA_DIR>/packets/_nodedb/<ts>.json`. Public keys only; config/security (private key) is never dumped. |
+| `REPLAYED_PACKETS` | `drop` (default), `flag` or `pass`: what to do with the Meshtastic 2.8 connect-time replay. See [Connect-time replay](#connect-time-replay-28). |
 | `SELF_TELEMETRY_UPLOAD_INTERVAL_SECONDS` | Seconds between uploads of the feeder's own telemetry (default `900`; `0` disables it entirely). See [Self telemetry](#self-telemetry). |
 | `ADMIN_NODES` | Comma-separated `!hex8` node ids allowed to run admin commands. |
 | `DATA_DIR` | Data root (default `data/`). |
+
+## Connect-time replay (2.8)
+
+After `config_complete_id`, a Meshtastic 2.8 radio sends the client one synthetic POSITION_APP, TELEMETRY_APP (device, environment) and NODE_STATUS_APP packet per NodeDB node, built from stored history: `rx_time` is the node's `last_heard`, `rx_snr` the stored SNR, and `rx_rssi` is **absent**. On an 83-node NodeDB that is about 80 packets within 1-4 minutes of every connect. Uploaded as live, they would show old readings as fresh receptions (wrong RSSI, wrong hops, a flood of duplicates on every reconnect).
+
+The bot classifies each incoming packet before it becomes an `IncomingPacket` (`replayed` on the event): a packet whose `from` is not our own node number and whose dict has no `rxRssi` key is a replay. Real LoRa receptions always carry a negative RSSI; our own packets never count. Priority `BACKGROUND` is logged at DEBUG as supporting evidence but is not required. The check is one function (`_has_rx_rssi` in [`src/meshtastic/replay.py`](../src/meshtastic/replay.py)); with a 2.8 library, swap it for `has_rx_rssi`. 2.7 radios never produce the pattern, so nothing changes for them.
+
+`REPLAYED_PACKETS`:
+
+- `drop` (default): not uploaded, not counted as node activity. With `DUMP_PACKETS_PORTNUMS` on they are written to `<DATA_DIR>/replay/<PORTNUM>/` instead of `packets/`, so fixtures can label them.
+- `flag`: uploaded with `"replayed": true` added to the ingest body (and dumped to `replay/`). Current APIs ignore the unknown key; the API twin is meshflow-api#488.
+- `pass`: today's behaviour, replays are handled as live packets.
+
+Each connect logs one INFO line once the burst goes quiet (30 s without a replayed packet), e.g. `replayed packets: 80 dropped in the first 95 s`. The running total is kept in the error counter `radio.replayed_packets` (visible in the bot's counter snapshot).
 
 ## Self telemetry
 
