@@ -48,6 +48,7 @@ deploy/
 ## API Integration (Meshtastic)
 
 - **Packet ingestion**: v2 `POST /api/packets/{my_nodenum}/ingest/`, v1 `/api/raw-packet/`.
+- **Feeder-scoped v4 URLs**: probed per destination (`STORAGE_API_*FEEDER_URLS`, see docs/MESHTASTIC.md); legacy URLs otherwise.
 - **Node sync**: `StorageAPIWrapper` node endpoints.
 - **WebSocket**: remote traceroute and similar commands.
 

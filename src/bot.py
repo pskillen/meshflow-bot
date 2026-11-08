@@ -8,6 +8,7 @@ storage API; it does not know about Meshtastic, MeshCore, pubsub, TCP, or
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from typing import Optional
 
@@ -150,6 +151,8 @@ class MeshflowBot:
         logger.info(
             "Connected as %s (nodenum=%s)", event.local_node_id, event.local_nodenum
         )
+        # Decide v4 vs legacy URLs per destination before the first upload.
+        self.probe_feeder_urls()
         for storage_api in self.storage_apis:
             storage_api.report_bot_version()
         if event.extras.get("meshcore") and hasattr(
@@ -164,6 +167,22 @@ class MeshflowBot:
         self.print_nodes()
         if self.ws_client:
             self.ws_client.start()
+
+    def probe_feeder_urls(self) -> None:
+        """Probe every destination for the v4 feeder URLs (each decides
+        separately). Never raises."""
+        for storage_api in self.storage_apis:
+            try:
+                storage_api.probe_feeder_urls()
+            except Exception as exc:
+                logger.warning("Feeder URL probe failed: %s", exc)
+
+    def _probe_feeder_urls_in_background(self) -> None:
+        """Hourly probe on a short-lived thread, so a slow API can't stall the
+        scheduler loop."""
+        threading.Thread(
+            target=self.probe_feeder_urls, name="feeder-url-probe", daemon=True
+        ).start()
 
     def _on_identity_changed(self, event: IdentityChanged) -> None:
         """The radio's reported identity changed (e.g. 2.8 node number): tell
@@ -374,6 +393,8 @@ class MeshflowBot:
 
     def start_scheduler(self) -> None:
         schedule.every().day.at("00:00").do(self.node_info.reset_packets_today)
+        if self.storage_apis:
+            schedule.every(1).hours.do(self._probe_feeder_urls_in_background)
         if self.self_telemetry is not None and self.self_telemetry.enabled:
             schedule.every(self.self_telemetry.interval_seconds).seconds.do(
                 self.upload_self_telemetry

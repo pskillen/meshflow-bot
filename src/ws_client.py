@@ -41,6 +41,7 @@ class MeshflowWSClient:
         on_disconnect: Optional[Callable[[], None]] = None,
         feeder_pubkey_prefix_provider: Optional[Callable[[], Optional[str]]] = None,
         feeder_node_id_provider: Optional[Callable[[], Optional[int]]] = None,
+        feeder_scoped_provider: Optional[Callable[[], bool]] = None,
     ):
         """
         Args:
@@ -49,6 +50,9 @@ class MeshflowWSClient:
             on_traceroute: Callback(target_node_id: int) when traceroute command received
             on_connect: Optional callback when connected
             on_disconnect: Optional callback when disconnected
+            feeder_scoped_provider: Returns True when the primary storage API
+                uses the v4 feeder URLs; the endpoint then carries
+                ``feeder_scoped=1`` and no ``feeder_node_id``.
         """
         self.ws_url = ws_url.rstrip("/")
         self.api_key = api_key
@@ -59,6 +63,7 @@ class MeshflowWSClient:
         self.on_disconnect = on_disconnect
         self._feeder_pubkey_prefix_provider = feeder_pubkey_prefix_provider
         self._feeder_node_id_provider = feeder_node_id_provider
+        self._feeder_scoped_provider = feeder_scoped_provider
 
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -72,6 +77,8 @@ class MeshflowWSClient:
             prefix = self._feeder_pubkey_prefix_provider()
             if prefix:
                 url += f"&feeder_pubkey_prefix={quote(prefix, safe='')}"
+        if self._feeder_scoped_provider and self._feeder_scoped_provider():
+            return url + "&feeder_scoped=1"
         if self._feeder_node_id_provider:
             node_id = self._feeder_node_id_provider()
             if node_id is not None:
