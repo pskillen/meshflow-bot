@@ -45,6 +45,10 @@ class IncomingPacket:
     when the packet is telemetry from the local node, else ``None``. The bot
     hands these to the self-telemetry throttle instead of uploading each one."""
 
+    replayed: bool = False
+    """Meshtastic 2.8 only: ``True`` for a synthetic packet the radio replays
+    from its NodeDB after connecting (not a live reception)."""
+
     raw: Any = None
     """The protocol-native packet (e.g. a Meshtastic ``MeshPacket`` dict).
     Only the storage uploader and the originating adapter should look at this."""

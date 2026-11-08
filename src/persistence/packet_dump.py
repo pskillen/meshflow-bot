@@ -28,6 +28,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 NODEDB_DIRNAME = "_nodedb"
+REPLAY_DIRNAME = "replay"
 
 dump_portnums = os.getenv("DUMP_PACKETS_PORTNUMS", None)
 if dump_portnums:
@@ -95,7 +96,10 @@ def dump_packet(
     feeder_num: Optional[int] = None,
     feeder_fw: Optional[str] = None,
     data_dir: Optional[Path] = None,
+    replayed: bool = False,
 ) -> None:
+    """Dump one packet. ``replayed`` packets (2.8 connect-time NodeDB replay)
+    go under ``<data dir>/replay/<PORTNUM>/`` so fixtures can label them."""
     global dump_portnums
     if not dump_portnums or len(dump_portnums) == 0:
         return
@@ -107,7 +111,7 @@ def dump_packet(
         return
 
     base = Path(data_dir) if data_dir is not None else resolve_data_dir()
-    portnum_dir = base / "packets" / portnum
+    portnum_dir = base / (REPLAY_DIRNAME if replayed else "packets") / portnum
 
     record = {
         "packet": json_safe({k: v for k, v in packet.items() if k != "raw"}),

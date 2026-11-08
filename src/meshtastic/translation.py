@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.data_classes import MeshNode
+from src.meshtastic.replay import is_replayed
 from src.meshtastic.self_telemetry import telemetry_variant
 from src.radio.events import IncomingPacket, IncomingTextMessage, NodeUpdate
 
@@ -20,7 +21,12 @@ def _portnum_key(packet: dict) -> str:
     return str(portnum).upper()
 
 
-def packet_to_incoming(packet: dict, *, local_node_id: Optional[str]) -> IncomingPacket:
+def packet_to_incoming(
+    packet: dict,
+    *,
+    local_node_id: Optional[str],
+    local_nodenum: Optional[int] = None,
+) -> IncomingPacket:
     """Build an :class:`IncomingPacket` from a Meshtastic packet dict."""
     portnum_key = _portnum_key(packet)
     has_decoded = "decoded" in packet or "decrypted" in packet
@@ -41,6 +47,7 @@ def packet_to_incoming(packet: dict, *, local_node_id: Optional[str]) -> Incomin
         has_decoded=has_decoded,
         is_self_telemetry=is_self_telemetry,
         self_telemetry_variant=variant,
+        replayed=is_replayed(packet, local_nodenum),
         raw=packet,
     )
 

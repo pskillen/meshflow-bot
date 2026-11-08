@@ -19,6 +19,7 @@ from src.commands.factory import CommandFactory
 from src.data_classes import MeshNode
 from src.helpers import pretty_print_last_heard, safe_encode_node_name
 from src.packet_log import log_incoming_packet
+from src.meshtastic.replay import DEFAULT_MODE, MODE_FLAG, MODE_PASS
 from src.meshtastic.self_telemetry import SelfTelemetryThrottle
 from src.persistence.commands_logger import AbstractCommandLogger
 from src.persistence.node_db import AbstractNodeDB
@@ -58,6 +59,7 @@ class MeshflowBot:
         self.radio = radio
         self.admin_nodes = []
         self.ignore_portnums = frozenset()
+        self.replayed_packets_mode = DEFAULT_MODE
         self.self_telemetry: Optional[SelfTelemetryThrottle] = None
 
         self.init_complete = False
@@ -197,6 +199,8 @@ class MeshflowBot:
 
     def _on_packet(self, event: IncomingPacket) -> None:
         log_incoming_packet(event)
+        # REPLAYED_PACKETS=pass behaves as if nothing was classified.
+        replayed = event.replayed and self.replayed_packets_mode != MODE_PASS
         if event.raw is not None:
             if isinstance(event.raw, dict) and event.raw.get("meshcore"):
                 pass  # MeshCore JSON dumps live under data/meshcore_packets/ (see MeshCoreRadio)
@@ -205,7 +209,11 @@ class MeshflowBot:
                     event.raw,
                     feeder_num=getattr(self.radio, "local_nodenum", None),
                     feeder_fw=getattr(self.radio, "firmware_version", None),
+                    replayed=replayed,
                 )
+
+        if replayed and self.replayed_packets_mode != MODE_FLAG:
+            return  # drop: not uploaded, not counted as live activity
 
         if self.ignore_portnums and event.portnum in self.ignore_portnums:
             logger.info(
@@ -222,10 +230,13 @@ class MeshflowBot:
         elif event.is_self_telemetry:
             pass  # MeshCore self telemetry; not uploaded
         else:
-            self._upload_raw(event.raw if event.raw is not None else event)
+            raw = event.raw if event.raw is not None else event
+            if replayed:
+                raw = self._flag_replayed(raw)
+            self._upload_raw(raw)
 
         sender = event.from_id
-        if not sender:
+        if not sender or replayed:  # a replay is not live activity
             return
 
         node = self.node_db.get_by_radio_id(sender)
@@ -242,6 +253,11 @@ class MeshflowBot:
             logger.debug(
                 "Received packet from self: %s (port %s)", recipient_name, event.portnum
             )
+
+    @staticmethod
+    def _flag_replayed(raw):
+        """Copy of the packet dict with ``"replayed": true`` for the ingest body."""
+        return {**raw, "replayed": True} if isinstance(raw, dict) else raw
 
     def _upload_raw(self, raw) -> None:
         for storage_api in self.storage_apis:

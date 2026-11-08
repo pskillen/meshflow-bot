@@ -35,6 +35,7 @@ from src.bot import MeshflowBot
 from src.meshcore.radio import MeshCoreRadio
 from src.meshcore.serializers import MeshCorePacketSerializer
 from src.meshtastic.radio import MeshtasticRadio
+from src.meshtastic.replay import parse_mode as parse_replay_mode
 from src.meshtastic.self_telemetry import SelfTelemetryThrottle, interval_from_env
 from src.meshtastic.serializers import MeshtasticPacketSerializer
 from src.persistence.commands_logger import SqliteCommandLogger
@@ -73,6 +74,7 @@ STORAGE_API_2_FEEDER_URLS = parse_feeder_urls_mode(
 )
 MESHFLOW_WS_URL = os.getenv("MESHFLOW_WS_URL")
 
+REPLAYED_PACKETS = parse_replay_mode(os.getenv("REPLAYED_PACKETS"))
 _ignore_portnums_raw = os.getenv("IGNORE_PORTNUMS", "")
 IGNORE_PORTNUMS = frozenset(
     p.strip().upper() for p in _ignore_portnums_raw.split(",") if p.strip()
@@ -87,7 +89,10 @@ def build_radio(data_dir: Path) -> tuple[RadioInterface, PacketSerializer]:
             raise RuntimeError(
                 "MESHTASTIC_IP must be set when RADIO_PROTOCOL=meshtastic"
             )
-        return MeshtasticRadio(MESHTASTIC_IP), MeshtasticPacketSerializer()
+        return (
+            MeshtasticRadio(MESHTASTIC_IP, replay_mode=REPLAYED_PACKETS),
+            MeshtasticPacketSerializer(),
+        )
     if RADIO_PROTOCOL == "meshcore":
         serial = MESHCORE_SERIAL_DEVICE
         ble = MESHCORE_BLE_ADDRESS
@@ -122,6 +127,7 @@ def main() -> None:
     radio, serializer = build_radio(data_dir)
     bot = MeshflowBot(radio=radio)
     bot.ignore_portnums = IGNORE_PORTNUMS
+    bot.replayed_packets_mode = REPLAYED_PACKETS
     if RADIO_PROTOCOL == "meshtastic":
         bot.self_telemetry = SelfTelemetryThrottle(interval_from_env())
     bot.admin_nodes = ADMIN_NODES
