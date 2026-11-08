@@ -45,6 +45,24 @@ IDENTITY_REJECTION_STATUSES = (403, 409)
 IDENTITY_BACKOFF_INITIAL_SECONDS = 30.0
 IDENTITY_BACKOFF_MAX_SECONDS = 900.0
 
+# Feeder-scoped (v4) URLs: ``auto`` probes the API, ``on`` assumes v4 (and still
+# falls back on a 404), ``off`` never uses v4.
+FEEDER_URLS_MODES = ("auto", "on", "off")
+FEEDER_IDENTITY_PATH = "/api/v4/feeder/identity/"
+V4_PREFIX = "/api/v4/feeder"
+
+
+def parse_feeder_urls_mode(value: Optional[str], name: str = "") -> str:
+    """Normalise a ``STORAGE_API_*_FEEDER_URLS`` setting; unknown means ``auto``."""
+    mode = (value or "auto").strip().lower()
+    if mode not in FEEDER_URLS_MODES:
+        logger.warning(
+            "Ignoring invalid %s=%r (use auto, on or off); using auto", name, value
+        )
+        return "auto"
+    return mode
+
+
 # Connect-time calls (bot version report, per-node NodeDB sync) are retried in
 # the background on a transient failure (no connection, timeout, HTTP 5xx):
 # three attempts in all, at 0s, +15s and +60s. One worker thread sends the
@@ -72,6 +90,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
         clock: Callable[[], float] = time.monotonic,
         retry_delays: tuple[float, ...] = RETRY_DELAYS_SECONDS,
         retry_gap: float = DEFAULT_GAP_SECONDS,
+        feeder_urls_mode: str = "auto",
+        on_feeder_urls_change: Optional[Callable[[bool], None]] = None,
     ):
         super().__init__(base_url, token)
         self.api_version = api_version
@@ -89,6 +109,95 @@ class StorageAPIWrapper(BaseAPIWrapper):
         self._error_counter = get_global_error_counter()
         self._retry_delays = retry_delays
         self._retry_worker = RetryWorker(gap=retry_gap, clock=clock)
+        self.feeder_urls_mode = parse_feeder_urls_mode(feeder_urls_mode)
+        self._on_feeder_urls_change = on_feeder_urls_change
+        # True once this destination is known to serve the v4 feeder URLs.
+        # Meshtastic only: MeshCore keeps its prefix URLs, and api_version 1
+        # (the oldest URLs) never uses v4.
+        self.uses_v4 = self._v4_eligible() and self.feeder_urls_mode == "on"
+
+    def _v4_eligible(self) -> bool:
+        return self._meshcore_feeder_prefix_provider is None and self.api_version != 1
+
+    def _set_uses_v4(self, value: bool) -> None:
+        if value == self.uses_v4:
+            return
+        self.uses_v4 = value
+        logger.info(
+            "API %s: using %s feeder URLs",
+            self.base_url,
+            "v4 (feeder-scoped)" if value else "legacy",
+        )
+        if self._on_feeder_urls_change:
+            try:
+                self._on_feeder_urls_change(value)
+            except Exception as exc:
+                logger.warning("Feeder URL change callback failed: %s", exc)
+
+    # --- v4 feeder URL probe ---------------------------------------------
+
+    def probe_feeder_urls(self) -> None:
+        """Ask ``GET /api/v4/feeder/identity/`` whether this API has the v4
+        feeder URLs: 200 switches to v4, 404 to legacy, 403 ``shared_api_key``
+        stays legacy (ERROR). Any other answer or a network error leaves the
+        mode unchanged. A probe is not an upload, so it never starts the
+        identity back-off."""
+        if not self._v4_eligible() or self.feeder_urls_mode == "off":
+            return
+        try:
+            self._get(FEEDER_IDENTITY_PATH)
+        except HTTPError as exc:
+            self._handle_probe_rejection(exc)
+            return
+        except RequestException as exc:
+            logger.warning(
+                "API %s: feeder URL probe failed (%s); keeping current URLs",
+                self.base_url,
+                exc,
+            )
+            return
+        except Exception as exc:
+            logger.warning("Unexpected error probing %s: %s", self.base_url, exc)
+            return
+        self._set_uses_v4(True)
+
+    def _handle_probe_rejection(self, exc: HTTPError) -> None:
+        status = getattr(exc.response, "status_code", None)
+        if status == 404:
+            self._set_uses_v4(False)
+            return
+        code = None
+        if status == 403:
+            try:
+                code = exc.response.json().get("code")
+            except Exception:
+                code = None
+        if code == "shared_api_key":
+            self._set_uses_v4(False)
+            logger.error(
+                "API %s: this API key is shared by more than one feeder, so the "
+                "feeder-scoped (v4) URLs are refused; using legacy URLs. Ask the "
+                "Meshflow owner to mint one API key per feeder "
+                "(see docs/MESHTASTIC.md, 'Feeder-scoped URLs').",
+                self.base_url,
+            )
+            return
+        logger.warning(
+            "API %s: feeder URL probe answered HTTP %s%s; keeping current URLs",
+            self.base_url,
+            status,
+            f" ({code})" if code else "",
+        )
+
+    def _v4_gone(self, exc: HTTPError) -> bool:
+        """A 404 from a v4 call means the API no longer has v4 (rollback):
+        drop to legacy and probe again at once. Returns True if that happened."""
+        if not self.uses_v4 or getattr(exc.response, "status_code", None) != 404:
+            return False
+        logger.warning("API %s: v4 feeder URL returned 404; re-probing", self.base_url)
+        self._set_uses_v4(False)
+        self.probe_feeder_urls()
+        return True
 
     def shutdown(self) -> None:
         """Stop the retry thread (non-blocking); pending retries are dropped."""
@@ -208,6 +317,14 @@ class StorageAPIWrapper(BaseAPIWrapper):
         if args is None:
             args = {}
 
+        if self.uses_v4:
+            return {
+                "raw_packet": f"{V4_PREFIX}/meshtastic/ingest/",
+                "nodes": f"{V4_PREFIX}/meshtastic/nodes/",
+                "bot_version": f"{V4_PREFIX}/bot-version/",
+                "node_by_id": f"/api/nodes/{args.get('node_id', '')}",
+            }[path]
+
         if self.api_version == 1:
             api_paths = {
                 "raw_packet": "/api/raw-packet/",
@@ -243,7 +360,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         self._report_bot_version_attempt(gen, retries_done)
 
     def _report_bot_version_attempt(self, gen: int, retries_done: int) -> bool:
-        if self.api_version not in (2, 3):
+        if self.api_version not in (2, 3) and not self.uses_v4:
             logger.debug(
                 "Skipping bot version report (api_version=%s)", self.api_version
             )
@@ -255,7 +372,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
             url = self._meshcore_feeder_url("bot-version/")
         else:
             local_nodenum = self._local_meshtastic_nodenum_provider()
-            if local_nodenum is None:
+            if local_nodenum is None and not self.uses_v4:
                 logger.warning(
                     "Cannot report bot version: nodenum and MeshCore prefix unavailable"
                 )
@@ -277,7 +394,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return True
         except HTTPError as exc:
             self._error_counter.increment("storage.report_bot_version.http")
-            if not self._handle_identity_rejection(exc, "the bot version report"):
+            if self._v4_gone(exc):
+                pass
+            elif not self._handle_identity_rejection(exc, "the bot version report"):
                 self._log_failure(
                     retries_done,
                     "HTTP error reporting bot version: %s",
@@ -416,7 +535,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_raw_packet.http")
-            if not self._handle_identity_rejection(exc, "a packet upload"):
+            if self._v4_gone(exc):
+                pass
+            elif not self._handle_identity_rejection(exc, "a packet upload"):
                 logger.error("HTTP error storing packet: %s", exc.response.text)
             if self.failed_packets_dir:
                 self._dump_failed_packet(payload, exc, original_packet=packet)
@@ -475,7 +596,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
             self._note_identity_ok()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_node.http")
-            if not self._handle_identity_rejection(exc, f"node {node_id}"):
+            if self._v4_gone(exc):
+                pass
+            elif not self._handle_identity_rejection(exc, f"node {node_id}"):
                 self._log_failure(
                     retries_done,
                     "HTTP error storing node %s: %s",
