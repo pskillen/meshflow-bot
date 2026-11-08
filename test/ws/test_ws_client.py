@@ -95,7 +95,10 @@ def test_primary_mode_change_reconnects_the_ws_client():
         local_meshtastic_nodenum_provider=lambda: 1,
         on_feeder_urls_change=lambda _v4: ws.reconnect(),
     )
-    with patch("requests.get", return_value=MagicMock()):
+    with patch(
+        "requests.get",
+        return_value=MagicMock(**{"json.return_value": {"internal_id": 1}}),
+    ):
         api.probe_feeder_urls()
         api.probe_feeder_urls()  # unchanged: no second reconnect
     ws.reconnect.assert_called_once()

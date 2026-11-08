@@ -35,7 +35,7 @@ def make_wrapper(mode="auto", api_version=3, base="http://api.test", **kwargs):
 def ok(body=None):
     response = MagicMock()
     response.status_code = 200
-    response.json.return_value = body or {"ok": True}
+    response.json.return_value = body or {"ok": True, "internal_id": 7}
     return response
 
 
@@ -146,7 +146,7 @@ def test_probe_never_starts_identity_backoff():
             wrapper.probe_feeder_urls()
     assert not wrapper._identity_backoff_active()
     with patch("requests.post", return_value=ok()):
-        assert wrapper.store_raw_packet(PACKET) == {"ok": True}
+        assert wrapper.store_raw_packet(PACKET) is not None
 
 
 def test_mode_change_is_logged_once_and_calls_back(caplog):
@@ -182,7 +182,7 @@ def test_off_never_probes():
     assert not wrapper.uses_v4
 
 
-def test_on_uses_v4_at_once_and_reprobes_on_404():
+def test_on_uses_v4_at_once_and_falls_back_on_404():
     wrapper = make_wrapper("on")
     assert wrapper.uses_v4
     assert wrapper._get_url("raw_packet") == "/api/v4/feeder/meshtastic/ingest/"
@@ -191,7 +191,7 @@ def test_on_uses_v4_at_once_and_reprobes_on_404():
         patch("requests.get", return_value=error(404)) as get,
     ):
         assert wrapper.store_raw_packet(PACKET) is None
-    get.assert_called_once()
+    get.assert_not_called()
     assert not wrapper.uses_v4
 
 
@@ -225,7 +225,7 @@ def test_meshcore_wrapper_never_probes():
 
 
 @pytest.mark.parametrize("op", ["packet", "node", "bot_version"])
-def test_v4_upload_404_falls_back_and_probes_again(op):
+def test_v4_upload_404_falls_back(op):
     wrapper = make_wrapper()
     go_v4(wrapper)
     call = {
@@ -239,18 +239,69 @@ def test_v4_upload_404_falls_back_and_probes_again(op):
         patch("requests.get", return_value=error(404)) as get,
     ):
         call()
-    get.assert_called_once()
+    get.assert_not_called()
     assert not wrapper.uses_v4
     wrapper.shutdown()
 
 
-def test_v4_upload_404_then_probe_200_stays_v4():
+def test_probe_200_without_identity_json_is_not_v4(caplog):
+    wrapper = make_wrapper()
+    html = MagicMock()
+    html.status_code = 200
+    html.json.side_effect = ValueError("not json")
+    for response in (html, ok({"detail": "maintenance"})):
+        with patch("requests.get", return_value=response):
+            wrapper.probe_feeder_urls()
+        assert not wrapper.uses_v4
+    go_v4(wrapper)
+    with patch("requests.get", return_value=html):
+        wrapper.probe_feeder_urls()
+    assert wrapper.uses_v4
+
+
+def test_v4_404_resends_packet_on_legacy():
     wrapper = make_wrapper()
     go_v4(wrapper)
-    with patch("requests.get", return_value=ok()):
-        with patch("requests.post", return_value=error(404)):
-            wrapper.store_raw_packet(PACKET)
-    assert wrapper.uses_v4
+    urls = []
+
+    def post(url, **kwargs):
+        urls.append(url)
+        return error(404) if "/api/v4/" in url else ok()
+
+    with patch("requests.post", side_effect=post):
+        assert wrapper.store_raw_packet(PACKET) is not None
+    assert urls == [
+        "http://api.test/api/v4/feeder/meshtastic/ingest/",
+        f"http://api.test/api/v3/packets/{NODENUM}/ingest/",
+    ]
+    assert not wrapper.uses_v4
+
+
+def test_v4_404_then_probe_200_does_not_flap_until_interval_passes():
+    """Mixed replicas: identity answers 200 but ingest 404s. No packet is lost
+    and the bot stays on legacy until a probe interval has passed."""
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    go_v4(wrapper)
+    posts = []
+
+    def post(url, **kwargs):
+        posts.append(url)
+        return error(404) if "/api/v4/" in url else ok()
+
+    with patch("requests.post", side_effect=post), patch(
+        "requests.get", return_value=ok()
+    ):
+        results = []
+        for _ in range(5):
+            wrapper.probe_feeder_urls()
+            results.append(wrapper.store_raw_packet(PACKET))
+        assert all(r is not None for r in results)
+        assert sum("/api/v4/" in u for u in posts) == 1
+        assert not wrapper.uses_v4
+        now[0] += 3601
+        wrapper.probe_feeder_urls()
+        assert wrapper.uses_v4
 
 
 def test_v4_upload_403_backs_off_as_today():

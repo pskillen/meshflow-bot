@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 import traceback
 from datetime import datetime
@@ -50,6 +51,9 @@ IDENTITY_BACKOFF_MAX_SECONDS = 900.0
 FEEDER_URLS_MODES = ("auto", "on", "off")
 FEEDER_IDENTITY_PATH = "/api/v4/feeder/identity/"
 V4_PREFIX = "/api/v4/feeder"
+# The bot probes hourly (see ``Bot``). After a v4 upload 404 a positive probe is
+# ignored for this long, so replicas that disagree cannot make the bot flap.
+PROBE_INTERVAL_SECONDS = 3600.0
 
 
 def parse_feeder_urls_mode(value: Optional[str], name: str = "") -> str:
@@ -115,14 +119,19 @@ class StorageAPIWrapper(BaseAPIWrapper):
         # Meshtastic only: MeshCore keeps its prefix URLs, and api_version 1
         # (the oldest URLs) never uses v4.
         self.uses_v4 = self._v4_eligible() and self.feeder_urls_mode == "on"
+        self._uses_v4_lock = threading.Lock()
+        # Monotonic time before which a positive probe is ignored (set by a
+        # v4 upload 404).
+        self._v4_suspect_until = 0.0
 
     def _v4_eligible(self) -> bool:
         return self._meshcore_feeder_prefix_provider is None and self.api_version != 1
 
     def _set_uses_v4(self, value: bool) -> None:
-        if value == self.uses_v4:
-            return
-        self.uses_v4 = value
+        with self._uses_v4_lock:
+            if value == self.uses_v4:
+                return
+            self.uses_v4 = value
         logger.info(
             "API %s: using %s feeder URLs",
             self.base_url,
@@ -138,14 +147,16 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
     def probe_feeder_urls(self) -> None:
         """Ask ``GET /api/v4/feeder/identity/`` whether this API has the v4
-        feeder URLs: 200 switches to v4, 404 to legacy, 403 ``shared_api_key``
-        stays legacy (ERROR). Any other answer or a network error leaves the
-        mode unchanged. A probe is not an upload, so it never starts the
-        identity back-off."""
+        feeder URLs: a 200 with a JSON body carrying ``internal_id`` switches to
+        v4 (unless a v4 upload 404 happened less than a probe interval ago), 404
+        to legacy, 403 ``shared_api_key`` stays legacy (ERROR). Any other answer
+        (including a 200 that is not the identity JSON, such as a proxy page) or
+        a network error leaves the mode unchanged. A probe is not an upload, so
+        it never starts the identity back-off."""
         if not self._v4_eligible() or self.feeder_urls_mode == "off":
             return
         try:
-            self._get(FEEDER_IDENTITY_PATH)
+            response = self._get(FEEDER_IDENTITY_PATH)
         except HTTPError as exc:
             self._handle_probe_rejection(exc)
             return
@@ -158,6 +169,23 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return
         except Exception as exc:
             logger.warning("Unexpected error probing %s: %s", self.base_url, exc)
+            return
+        try:
+            body = response.json()
+            is_identity = isinstance(body, dict) and "internal_id" in body
+        except Exception:
+            is_identity = False
+        if not is_identity:
+            logger.warning(
+                "API %s: feeder URL probe answered 200 but not with the feeder "
+                "identity; keeping current URLs",
+                self.base_url,
+            )
+            return
+        if self._clock() < self._v4_suspect_until:
+            logger.debug(
+                "API %s: ignoring v4 probe, backing off after a v4 404", self.base_url
+            )
             return
         self._set_uses_v4(True)
 
@@ -191,12 +219,15 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
     def _v4_gone(self, exc: HTTPError) -> bool:
         """A 404 from a v4 call means the API no longer has v4 (rollback):
-        drop to legacy and probe again at once. Returns True if that happened."""
+        drop to legacy and ignore positive probes for one probe interval (the
+        next probe after that decides). Returns True if that happened."""
         if not self.uses_v4 or getattr(exc.response, "status_code", None) != 404:
             return False
-        logger.warning("API %s: v4 feeder URL returned 404; re-probing", self.base_url)
+        logger.warning(
+            "API %s: v4 feeder URL returned 404; using legacy URLs", self.base_url
+        )
+        self._v4_suspect_until = self._clock() + PROBE_INTERVAL_SECONDS
         self._set_uses_v4(False)
-        self.probe_feeder_urls()
         return True
 
     def shutdown(self) -> None:
@@ -269,12 +300,32 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return False
         identity = self._meshtastic_identity()
         reported = identity.node_num if identity else None
+        code = None
+        try:
+            code = exc.response.json().get("code")
+        except Exception:
+            code = None
         self._identity_backoff_seconds = min(
             max(self._identity_backoff_seconds * 2, IDENTITY_BACKOFF_INITIAL_SECONDS),
             IDENTITY_BACKOFF_MAX_SECONDS,
         )
         self._identity_blocked_until = self._clock() + self._identity_backoff_seconds
         self._error_counter.increment("storage.identity_rejected")
+        if self.uses_v4:
+            logger.error(
+                "API %s refused %s with HTTP %s%s. The feeder-scoped (v4) URLs "
+                "need one API key per feeder, linked to this feeder's node: check "
+                "the feeder's API key and linked node in Meshflow (see "
+                "docs/MESHTASTIC.md, 'Feeder-scoped URLs'). Pausing uploads for "
+                "%.0fs. Response: %s",
+                self.base_url,
+                what,
+                status,
+                f" ({code})" if code else "",
+                self._identity_backoff_seconds,
+                getattr(exc.response, "text", ""),
+            )
+            return True
         logger.error(
             "API %s refused %s with HTTP %s while reporting node number %s. "
             "Meshtastic 2.8 derives the node number from the radio's public key, "
@@ -530,14 +581,18 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
         logger.debug("Storing packet: %s", payload)
         try:
-            response = self._post(self._get_url("raw_packet"), json=payload)
+            try:
+                response = self._post(self._get_url("raw_packet"), json=payload)
+            except HTTPError as exc:
+                if not self._v4_gone(exc):
+                    raise
+                # v4 vanished: send this packet once more on the legacy URL.
+                response = self._post(self._get_url("raw_packet"), json=payload)
             self._note_identity_ok()
             return response.json()
         except HTTPError as exc:
             self._error_counter.increment("storage.store_raw_packet.http")
-            if self._v4_gone(exc):
-                pass
-            elif not self._handle_identity_rejection(exc, "a packet upload"):
+            if not self._handle_identity_rejection(exc, "a packet upload"):
                 logger.error("HTTP error storing packet: %s", exc.response.text)
             if self.failed_packets_dir:
                 self._dump_failed_packet(payload, exc, original_packet=packet)
