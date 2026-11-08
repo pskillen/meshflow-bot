@@ -1,0 +1,2123 @@
+{
+ "!1a83cf89": {
+  "num": 444845961,
+  "user": {
+   "id": "!1a83cf89",
+   "longName": "Paddy NIAV-1 🧪🚬",
+   "shortName": "NIAV",
+   "macaddr": "+n4ag8+J",
+   "hwModel": "XIAO_NRF52_KIT",
+   "publicKey": "PYjx6JkBQKnt7197Yx55ZcD4ZshAG8fOHQy5Q3DwGww="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 42,
+   "time": 1794142148,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "lastHeard": 1794142148,
+  "deviceMetrics": {
+   "batteryLevel": 59,
+   "voltage": 3.795,
+   "channelUtilization": 9.858334,
+   "airUtilTx": 0.13252777,
+   "uptimeSeconds": 299
+  },
+  "isFavorite": true
+ },
+ "!a35a0ce8": {
+  "num": 2740587752,
+  "user": {
+   "id": "!a35a0ce8",
+   "longName": "Cowbase",
+   "shortName": "🐄",
+   "macaddr": "EL2jWgzo",
+   "hwModel": "HELTEC_V4",
+   "role": "CLIENT_BASE",
+   "publicKey": "phqaMprkG8qcZtizitdRFhBsdzaVOCelBhSUfkKgTQ0=",
+   "isUnmessagable": false
+  },
+  "snr": 6.0,
+  "lastHeard": 1794141362,
+  "deviceMetrics": {
+   "batteryLevel": 33,
+   "voltage": 3.567,
+   "channelUtilization": 21.361668,
+   "airUtilTx": 0.04241667,
+   "uptimeSeconds": 68
+  },
+  "hopsAway": 3
+ },
+ "!e22b8164": {
+  "num": 3794501988,
+  "user": {
+   "id": "!e22b8164",
+   "longName": "Tinto Router (unattended)",
+   "shortName": "TINT",
+   "macaddr": "397iK4Fk",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "OYKcAT5tzCi4L4lEUXYaDua1b8SUQvj6F56h9QPTGjU=",
+   "isUnmessagable": false
+  },
+  "snr": 6.0,
+  "lastHeard": 1794141319,
+  "hopsAway": 1
+ },
+ "!43596b18": {
+  "num": 1129933592,
+  "user": {
+   "id": "!43596b18",
+   "longName": "PDY base 🤖🔇",
+   "shortName": "PDYb",
+   "macaddr": "SMpDWWsY",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "zQxYfTDX/mGAfZxuEDrTmDnPXEbAnsgQVepBGD9rh38="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "time": 1794141291,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 5.75,
+  "lastHeard": 1794141287,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.271,
+   "channelUtilization": 4.795,
+   "airUtilTx": 2.2639167,
+   "uptimeSeconds": 6130790
+  },
+  "channel": 1,
+  "hopsAway": 0
+ },
+ "!60476689": {
+  "num": 1615292041,
+  "user": {
+   "id": "!60476689",
+   "longName": "Climpy Router (Unattended)",
+   "shortName": "CLIP",
+   "macaddr": "wXZgR2aJ",
+   "hwModel": "XIAO_NRF52_KIT",
+   "role": "ROUTER",
+   "publicKey": "Z1R4TP102n3z7sv3jZv7kxPX/2C+D1mBbz1S6ncEoEE=",
+   "isUnmessagable": true
+  },
+  "snr": 7.25,
+  "lastHeard": 1794140919,
+  "hopsAway": 3
+ },
+ "!433c4ab4": {
+  "num": 1128024756,
+  "user": {
+   "id": "!433c4ab4",
+   "longName": "JPMESHF",
+   "shortName": "JMFX",
+   "macaddr": "SMpDPEq0",
+   "hwModel": "HELTEC_WSL_V3",
+   "publicKey": "qQsY7U2wbxPbeK/sSutsOC7VcdjZwqDNsvZZjndoNSI=",
+   "isUnmessagable": false
+  },
+  "snr": 6.25,
+  "lastHeard": 1794140827,
+  "hopsAway": 3
+ },
+ "!c08eaa22": {
+  "num": 3230575138,
+  "user": {
+   "id": "!c08eaa22",
+   "longName": "Farm MQTT",
+   "shortName": "🌾",
+   "macaddr": "2N7Ajqoi",
+   "hwModel": "RAK4631",
+   "publicKey": "fGkcSOK1ieUc+rS5bIOXhUxCSorOc1XHRfkvq4Ks2TI="
+  },
+  "snr": 6.25,
+  "lastHeard": 1755078655,
+  "deviceMetrics": {
+   "batteryLevel": 100,
+   "voltage": 4.258,
+   "channelUtilization": 10.591666,
+   "airUtilTx": 1.6511668,
+   "uptimeSeconds": 56694
+  },
+  "hopsAway": 6
+ },
+ "!553b5d09": {
+  "num": 1429953801,
+  "user": {
+   "id": "!553b5d09",
+   "longName": "2M0JYH-4 Red Portable",
+   "shortName": "JYH4",
+   "macaddr": "0GpVO10J",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "TRACKER",
+   "publicKey": "rGWFCiSMatClOf+z00pwBpK53VPvj72luml3XmKOsHY=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": -58,
+   "time": 1755078637,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 6.0,
+  "lastHeard": 1755078647,
+  "deviceMetrics": {
+   "batteryLevel": 76,
+   "voltage": 3.958,
+   "channelUtilization": 3.815,
+   "airUtilTx": 2.6858888,
+   "uptimeSeconds": 172949
+  },
+  "hopsAway": 5
+ },
+ "!433b10bc": {
+  "num": 1127944380,
+  "user": {
+   "id": "!433b10bc",
+   "longName": "Nyan 0 🌈🐱",
+   "shortName": "NYA0",
+   "macaddr": "SMpDOxC8",
+   "hwModel": "HELTEC_V3",
+   "role": "ROUTER",
+   "publicKey": "CYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "time": 1751022051,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -3.2
+  },
+  "snr": 6.0,
+  "lastHeard": 1755078641,
+  "hopsAway": 5
+ },
+ "!433cba64": {
+  "num": 1128053348,
+  "user": {
+   "id": "!433cba64",
+   "longName": "Linn Mesh",
+   "shortName": "Linn",
+   "macaddr": "SMpDPLpk",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "g4Bua0fyLHPq3c+JvkdfdjjJI+gDyYoNZUXzVJUgFGs="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -43000000,
+   "altitude": 64,
+   "time": 1755078611,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.3
+  },
+  "snr": 6.0,
+  "lastHeard": 1755078615,
+  "hopsAway": 2
+ },
+ "!a0ade7c0": {
+  "num": 2695751616,
+  "user": {
+   "id": "!a0ade7c0",
+   "longName": "Altair Sera T Deck",
+   "shortName": "ASTD",
+   "macaddr": "MO2grefA",
+   "hwModel": "T_DECK",
+   "publicKey": "L3ZWyGxM7qzvYK/QQBFQLdixwADKAjVrgbigEKJJEl0=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -37000000,
+   "altitude": 200,
+   "time": 1755078615,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.9,
+   "longitude": -3.7
+  },
+  "snr": 6.75,
+  "lastHeard": 1755078590,
+  "hopsAway": 2
+ },
+ "!87051e80": {
+  "num": 2265259648,
+  "user": {
+   "id": "!87051e80",
+   "longName": "PDY CRSA 🔇",
+   "shortName": "PDX1",
+   "macaddr": "2ZOHBR6A",
+   "hwModel": "XIAO_NRF52_KIT",
+   "publicKey": "PYjx6JkBQKnt7197Yx55ZcD4ZshAG8fOHQy5Q3DwGww="
+  },
+  "snr": 6.25,
+  "lastHeard": 1755078552,
+  "deviceMetrics": {
+   "batteryLevel": 37,
+   "voltage": 3.608,
+   "channelUtilization": 20.671667,
+   "airUtilTx": 1.9920279,
+   "uptimeSeconds": 1473916
+  },
+  "hopsAway": 0
+ },
+ "!da6397cc": {
+  "num": 3663960012,
+  "user": {
+   "id": "!da6397cc",
+   "longName": "Meshtastic 97cc",
+   "shortName": "97cc",
+   "macaddr": "NLfaY5fM",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "CiWafZfGs6w3Jj6wHWgyEB0u9zOttz+xnKf9JenLiUA="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 105,
+   "time": 1755074682,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 5.75,
+  "lastHeard": 1755078437,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.247,
+   "channelUtilization": 6.08,
+   "airUtilTx": 1.9894166,
+   "uptimeSeconds": 504173
+  },
+  "hopsAway": 3
+ },
+ "!29212d31": {
+  "num": 690040113,
+  "user": {
+   "id": "!29212d31",
+   "longName": "Firhill (unmanned)",
+   "shortName": "RTj7",
+   "macaddr": "8gspIS0x",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "Ixg+prZxgX30xDFO6fYykJulPv6McfH4ejumhEFq7iA="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -43000000,
+   "altitude": 6,
+   "time": 1755078386,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.3
+  },
+  "snr": 6.0,
+  "lastHeard": 1755078416,
+  "deviceMetrics": {
+   "batteryLevel": 93,
+   "voltage": 4.1,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.50688887,
+   "uptimeSeconds": 2149820
+  },
+  "hopsAway": 2
+ },
+ "!67f662f3": {
+  "num": 1744200435,
+  "user": {
+   "id": "!67f662f3",
+   "longName": "WMF Pi Hat",
+   "shortName": "🥧",
+   "macaddr": "LM9n9mLz",
+   "hwModel": "PORTDUINO",
+   "publicKey": "wOifkQAFAMYufCQVdKbFwKZ8KRqI7d8KgvSrPl5JWBg="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 59,
+   "time": 1755078379,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 56.0,
+   "longitude": -3.6
+  },
+  "snr": 7.0,
+  "lastHeard": 1755078385,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 0.0,
+   "channelUtilization": 3.0,
+   "airUtilTx": 1.9999167,
+   "uptimeSeconds": 507781
+  },
+  "hopsAway": 4
+ },
+ "!44d2507e": {
+  "num": 1154633854,
+  "user": {
+   "id": "!44d2507e",
+   "longName": "WMF Card",
+   "shortName": "💳",
+   "macaddr": "8JJE0lB+",
+   "hwModel": "TRACKER_T1000_E",
+   "publicKey": "LRO5YXElaqjcq7RWgh0TUuWz4P5eZW+wku81foS9lxY="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 42,
+   "time": 1755078305,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 56.0,
+   "longitude": -3.6
+  },
+  "snr": 7.0,
+  "lastHeard": 1755078317,
+  "deviceMetrics": {
+   "batteryLevel": 75,
+   "voltage": 3.995,
+   "channelUtilization": 11.671667,
+   "airUtilTx": 0.08438889,
+   "uptimeSeconds": 66
+  },
+  "hopsAway": 6
+ },
+ "!433a6f68": {
+  "num": 1127903080,
+  "user": {
+   "id": "!433a6f68",
+   "longName": "Sondre Base",
+   "shortName": "LT-B",
+   "macaddr": "SMpDOm9o",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "loy/Cb6rlxO3Gdx3JZ/q76e1EsrowMj/8XAf4sHZlmk=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -47000000,
+   "altitude": 18,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -4.7
+  },
+  "snr": 6.75,
+  "lastHeard": 1755078307,
+  "hopsAway": 5
+ },
+ "!c4e92ac5": {
+  "num": 3303615173,
+  "user": {
+   "id": "!c4e92ac5",
+   "longName": "Longbow v2-6",
+   "shortName": "LBV6",
+   "macaddr": "3m/E6SrF",
+   "hwModel": "XIAO_NRF52_KIT",
+   "role": "CLIENT_MUTE",
+   "publicKey": "IilGnoE/Lktmn9mhF0icTxcdSf/7cnpaS3xOPSycORk="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 65,
+   "time": 1755078294,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 7.0,
+  "lastHeard": 1755078300,
+  "hopsAway": 3
+ },
+ "!648e958e": {
+  "num": 1687065998,
+  "user": {
+   "id": "!648e958e",
+   "longName": "Helensburgh East Node",
+   "shortName": "HV-e",
+   "macaddr": "zctkjpWO",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "yQti990MzqZe2dWXTZa9l+zA/E7VAd4PAgY8py45ziI=",
+   "isUnmessagable": true
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -47000000,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -4.7
+  },
+  "snr": 7.25,
+  "lastHeard": 1755078148,
+  "deviceMetrics": {
+   "batteryLevel": 92,
+   "voltage": 4.09,
+   "channelUtilization": 19.611668,
+   "airUtilTx": 3.8750556,
+   "uptimeSeconds": 135209
+  },
+  "hopsAway": 3
+ },
+ "!4211f414": {
+  "num": 1108472852,
+  "user": {
+   "id": "!4211f414",
+   "longName": "Malky ",
+   "shortName": "Mlky",
+   "macaddr": "/gRCEfQU",
+   "hwModel": "RAK4631",
+   "publicKey": "yK5HQSTu+EbqNu7ywZq5MwiRBM8VpRAulZUEA0W92mA="
+  },
+  "position": {
+   "latitudeI": 562000000,
+   "longitudeI": -32000000,
+   "altitude": 210,
+   "time": 1755078120,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.2,
+   "longitude": -3.2
+  },
+  "snr": 6.75,
+  "lastHeard": 1755078135,
+  "deviceMetrics": {
+   "batteryLevel": 54,
+   "voltage": 3.754,
+   "channelUtilization": 10.756667,
+   "airUtilTx": 1.2532778,
+   "uptimeSeconds": 6663542
+  },
+  "hopsAway": 7
+ },
+ "!da629498": {
+  "num": 3663893656,
+  "user": {
+   "id": "!da629498",
+   "longName": "rico365 | heltec",
+   "shortName": "RMHT",
+   "macaddr": "NLfaYpSY",
+   "hwModel": "HELTEC_V3",
+   "role": "TRACKER",
+   "publicKey": "xx1DxQhNAryvUizQIcqOVoQlDf1KTOGKjjt6lKahXBc=",
+   "isUnmessagable": true
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -40000000,
+   "altitude": 66,
+   "time": 1755078086,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 56.0,
+   "longitude": -4.0
+  },
+  "snr": 5.75,
+  "lastHeard": 1755078092,
+  "deviceMetrics": {
+   "batteryLevel": 96,
+   "voltage": 4.141,
+   "channelUtilization": 7.638333,
+   "airUtilTx": 4.3521943,
+   "uptimeSeconds": 72062
+  },
+  "hopsAway": 2
+ },
+ "!43b6f6d0": {
+  "num": 1136064208,
+  "user": {
+   "id": "!43b6f6d0",
+   "longName": "GM8CZU - Home",
+   "shortName": "CZU1",
+   "macaddr": "SMpDtvbQ",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "IY9KRdyFQYcV8thbQ8GNiwt8gBV/xCkmn5AdjL9m2mQ="
+  },
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -32000000,
+   "altitude": 100,
+   "time": 1755078053,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.1,
+   "longitude": -3.2
+  },
+  "snr": 6.5,
+  "lastHeard": 1755078065,
+  "deviceMetrics": {
+   "batteryLevel": 91,
+   "voltage": 4.074,
+   "channelUtilization": 10.18,
+   "airUtilTx": 0.47758335,
+   "uptimeSeconds": 51105
+  },
+  "hopsAway": 4
+ },
+ "!0324c4a1": {
+  "num": 52741281,
+  "user": {
+   "id": "!0324c4a1",
+   "longName": "WMF T114 desk",
+   "shortName": "WMF",
+   "macaddr": "yMUDJMSh",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "ehzIystas3SaKVGSDBvZDYGTGDBf2XWYFj7S10RSAAE="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 53,
+   "time": 1755077015,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -3.6
+  },
+  "snr": 6.25,
+  "lastHeard": 1755078058,
+  "deviceMetrics": {
+   "batteryLevel": 47,
+   "voltage": 3.699,
+   "channelUtilization": 2.3533332,
+   "airUtilTx": 0.060222223,
+   "uptimeSeconds": 56890
+  },
+  "hopsAway": 6
+ },
+ "!0ec53f95": {
+  "num": 247807893,
+  "user": {
+   "id": "!0ec53f95",
+   "longName": "Paddy NIAV-2 🧪🚬",
+   "shortName": "NIAV",
+   "macaddr": "yvoOxT+V",
+   "hwModel": "XIAO_NRF52_KIT",
+   "role": "CLIENT_MUTE",
+   "publicKey": "PYjx6JkBQKnt7197Yx55ZcD4ZshAG8fOHQy5Q3DwGww="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 43,
+   "time": 1750904629,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": -2.25,
+  "lastHeard": 1755077942,
+  "deviceMetrics": {
+   "batteryLevel": 77,
+   "voltage": 3.962,
+   "channelUtilization": 9.825,
+   "airUtilTx": 0.04447222,
+   "uptimeSeconds": 65
+  },
+  "hopsAway": 0
+ },
+ "!a59ece9b": {
+  "num": 2778648219,
+  "user": {
+   "id": "!a59ece9b",
+   "longName": "FuzzyMobile",
+   "shortName": "FuzM",
+   "macaddr": "xVClns6b",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "vDa0EQQxJTnwqOJ9jJ3STg8/p9MxGMDuUIpf9RQKxkI=",
+   "isUnmessagable": false
+  },
+  "snr": 5.75,
+  "lastHeard": 1755077824,
+  "deviceMetrics": {
+   "batteryLevel": 90,
+   "voltage": 4.06,
+   "channelUtilization": 9.725,
+   "airUtilTx": 2.9763334,
+   "uptimeSeconds": 1815902
+  },
+  "hopsAway": 6
+ },
+ "!ea8f82a4": {
+  "num": 3935273636,
+  "user": {
+   "id": "!ea8f82a4",
+   "longName": "Pidge_Nest",
+   "shortName": "PDGN",
+   "macaddr": "jL/qj4Kk",
+   "hwModel": "SEEED_XIAO_S3",
+   "publicKey": "maHmafIZTpJTJzajc5OIiIupa2WmpCoGE7y2mzXi9y0=",
+   "isUnmessagable": false
+  },
+  "snr": 7.25,
+  "lastHeard": 1755077798,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": -0.001,
+   "channelUtilization": 2.0266666,
+   "airUtilTx": 0.15672222,
+   "uptimeSeconds": 293828
+  },
+  "hopsAway": 5
+ },
+ "!a0cb580c": {
+  "num": 2697680908,
+  "user": {
+   "id": "!a0cb580c",
+   "longName": "Stuart 2M0STM",
+   "shortName": "580c",
+   "macaddr": "MO2gy1gM",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "YmU7+dY2nxs7wWyMqo59cjHPUDvsZtuN1E57YHvu2Ds=",
+   "isUnmessagable": false
+  },
+  "snr": 6.75,
+  "lastHeard": 1755077743,
+  "hopsAway": 3
+ },
+ "!433b8910": {
+  "num": 1127975184,
+  "user": {
+   "id": "!433b8910",
+   "longName": "Dave-North-Pointing-V2",
+   "shortName": "MUB8",
+   "macaddr": "SMpDO4kQ",
+   "hwModel": "HELTEC_WIRELESS_PAPER",
+   "publicKey": "L4msEn3ZyV7IouwgWDV75utJOEvG7+Sa6gKsb/bcgmY="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -32000000,
+   "altitude": 44,
+   "time": 1755077695,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 56.0,
+   "longitude": -3.2
+  },
+  "snr": 6.0,
+  "lastHeard": 1755077701,
+  "deviceMetrics": {
+   "batteryLevel": 63,
+   "voltage": 3.835,
+   "channelUtilization": 9.07,
+   "airUtilTx": 1.4675279,
+   "uptimeSeconds": 225728
+  },
+  "hopsAway": 4
+ },
+ "!a45dc918": {
+  "num": 2757609752,
+  "user": {
+   "id": "!a45dc918",
+   "longName": "rico365 | sensor 1",
+   "shortName": "RMS1",
+   "macaddr": "MK6kXckY",
+   "hwModel": "TLORA_V1",
+   "role": "SENSOR",
+   "publicKey": "KuQB0PRjFRnRRca4zE6hOjD2F/yfZVcbcx2qRZ16bRs=",
+   "isUnmessagable": true
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -40000000,
+   "altitude": 68,
+   "time": 1750524945,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 56.0,
+   "longitude": -4.0
+  },
+  "snr": 7.75,
+  "lastHeard": 1755077679,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": -0.001,
+   "channelUtilization": 7.0333333,
+   "airUtilTx": 0.04425,
+   "uptimeSeconds": 61
+  },
+  "hopsAway": 2
+ },
+ "!b20b3096": {
+  "num": 2987077782,
+  "user": {
+   "id": "!b20b3096",
+   "longName": "Paddy DMR-HS",
+   "shortName": "PDYd",
+   "macaddr": "3RWyCzCW",
+   "hwModel": "XIAO_NRF52_KIT",
+   "publicKey": "I3wFhD0APhwkzW51Fxi83KVCJCxPj2QQtQDQC6wgKXg="
+  },
+  "snr": 6.0,
+  "lastHeard": 1755077583,
+  "deviceMetrics": {
+   "batteryLevel": 60,
+   "voltage": 3.807,
+   "channelUtilization": 6.73,
+   "airUtilTx": 1.2464167,
+   "uptimeSeconds": 3125
+  },
+  "hopsAway": 0
+ },
+ "!8c606f10": {
+  "num": 2355130128,
+  "user": {
+   "id": "!8c606f10",
+   "longName": "Forth Crossing",
+   "shortName": "FLYN",
+   "macaddr": "7BWMYG8Q",
+   "hwModel": "RAK4631",
+   "publicKey": "UtUN7RjL/JAhaEQQI/wPEdHMdsUddq/c/2qchNR4Z2c="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 41,
+   "time": 1750953606,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -3.6
+  },
+  "snr": 6.25,
+  "lastHeard": 1755077359,
+  "deviceMetrics": {
+   "batteryLevel": 99,
+   "voltage": 4.177,
+   "channelUtilization": 6.7766666,
+   "airUtilTx": 1.4578611,
+   "uptimeSeconds": 153089
+  },
+  "hopsAway": 5
+ },
+ "!e8bcd5a4": {
+  "num": 3904689572,
+  "user": {
+   "id": "!e8bcd5a4",
+   "longName": "dml @ raycaster 📡",
+   "shortName": "dmlR",
+   "macaddr": "z3LovNWk",
+   "hwModel": "RAK4631",
+   "publicKey": "UfOE1vb2/jDwgneP834CRfcvIORfnU9QOgSzetTApjs="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -46000000,
+   "time": 1750992203,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.6
+  },
+  "snr": 6.25,
+  "lastHeard": 1755077204,
+  "deviceMetrics": {
+   "batteryLevel": 78,
+   "voltage": 3.978,
+   "channelUtilization": 17.268333,
+   "airUtilTx": 3.417861,
+   "uptimeSeconds": 345522
+  },
+  "hopsAway": 4
+ },
+ "!59ddb6c4": {
+  "num": 1507702468,
+  "user": {
+   "id": "!59ddb6c4",
+   "longName": "stnOTG",
+   "shortName": "stno",
+   "macaddr": "4MlZ3bbE",
+   "hwModel": "RAK4631",
+   "publicKey": "XAGFis+qhNAIqO5SjutWSIB8wvVUJzA/A65073SQfmk="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 74,
+   "time": 1751022360,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 6.0,
+  "lastHeard": 1755077186,
+  "deviceMetrics": {
+   "batteryLevel": 39,
+   "voltage": 3.621,
+   "channelUtilization": 13.378334,
+   "airUtilTx": 2.9299724,
+   "uptimeSeconds": 1016129
+  },
+  "hopsAway": 4
+ },
+ "!f8185202": {
+  "num": 4162343426,
+  "user": {
+   "id": "!f8185202",
+   "longName": "2M0JYH White ⚪🏠",
+   "shortName": "JYH3",
+   "macaddr": "3zz4GFIC",
+   "hwModel": "RAK4631",
+   "publicKey": "8GLK6yumkBC8Iw+OSkke8n0y8wUQ7Kkd+nbdT2T8bkw=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 10,
+   "time": 1755075557,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 5.5,
+  "lastHeard": 1755077110,
+  "deviceMetrics": {
+   "batteryLevel": 92,
+   "voltage": 4.085,
+   "channelUtilization": 10.428333,
+   "airUtilTx": 1.0593055,
+   "uptimeSeconds": 847824
+  },
+  "hopsAway": 2
+ },
+ "!849a0888": {
+  "num": 2224687240,
+  "user": {
+   "id": "!849a0888",
+   "longName": "Shaun MM0HSF",
+   "shortName": "MM0H",
+   "macaddr": "sIGEmgiI",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "3nMDLEsbcSyKut236iafo4DCHgh1wxGaZQiNcgM1KxE="
+  },
+  "position": {
+   "latitudeI": 562000000,
+   "longitudeI": -32000000,
+   "time": 1755076998,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.2,
+   "longitude": -3.2
+  },
+  "snr": 6.0,
+  "lastHeard": 1755077007,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.385,
+   "channelUtilization": 3.9716668,
+   "airUtilTx": 1.9168334,
+   "uptimeSeconds": 37443
+  },
+  "hopsAway": 4
+ },
+ "!4359040c": {
+  "num": 1129907212,
+  "user": {
+   "id": "!4359040c",
+   "longName": "Paddy (mobile 1)",
+   "shortName": "PDY1",
+   "macaddr": "SMpDWQQM",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "7dJbRqMc3bQRzW12xiZiQib2tLIk9xwKYisA8N/j6jE="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -44000000,
+   "altitude": 6,
+   "time": 1755076996,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.9,
+   "longitude": -4.4
+  },
+  "snr": 6.25,
+  "lastHeard": 1755076997,
+  "deviceMetrics": {
+   "batteryLevel": 57,
+   "voltage": 3.777,
+   "channelUtilization": 11.396667,
+   "airUtilTx": 0.044027776,
+   "uptimeSeconds": 61
+  },
+  "hopsAway": 0
+ },
+ "!da56ad6c": {
+  "num": 3663113580,
+  "user": {
+   "id": "!da56ad6c",
+   "longName": "RTj2_ad6c",
+   "shortName": "RTj2",
+   "macaddr": "NLfaVq1s",
+   "hwModel": "HELTEC_V3",
+   "role": "CLIENT_MUTE",
+   "publicKey": "7B3tKJh7kN40oV+ZaRPPYsBUg8tlB/2X1YgFQlZmukc="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -43000000,
+   "altitude": 6,
+   "time": 1755076963,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.3
+  },
+  "snr": 6.5,
+  "lastHeard": 1755076975,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.295,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.12666667,
+   "uptimeSeconds": 136276
+  },
+  "hopsAway": 5
+ },
+ "!f0a2205b": {
+  "num": 4037156955,
+  "user": {
+   "id": "!f0a2205b",
+   "longName": "Pedro Pocket",
+   "shortName": "PePo",
+   "macaddr": "2pfwoiBb",
+   "hwModel": "XIAO_NRF52_KIT",
+   "publicKey": "eJtrzxdXwutwVL434OUI4aSkF1PBh8zU9FS5TOGmtwo="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "altitude": 72,
+   "time": 1750971482,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.9,
+   "longitude": -3.2
+  },
+  "snr": 5.75,
+  "lastHeard": 1755076938,
+  "deviceMetrics": {
+   "batteryLevel": 32,
+   "voltage": 3.558,
+   "channelUtilization": 0.0,
+   "airUtilTx": 1.653,
+   "uptimeSeconds": 426761
+  },
+  "hopsAway": 6
+ },
+ "!aae8900d": {
+  "num": 2867367949,
+  "user": {
+   "id": "!aae8900d",
+   "longName": "Paddy MM7IGV",
+   "shortName": "PDY4",
+   "macaddr": "xvSq6JAN",
+   "hwModel": "TRACKER_T1000_E",
+   "role": "CLIENT_MUTE",
+   "publicKey": "2PiOufrKoX2r8eSusfWfqvHtxESbwlhMVyKSwZq+2UU="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 41,
+   "time": 1755076812,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 5.5,
+  "lastHeard": 1755076812,
+  "deviceMetrics": {
+   "batteryLevel": 61,
+   "voltage": 3.898,
+   "channelUtilization": 5.241667,
+   "airUtilTx": 0.21208334,
+   "uptimeSeconds": 24430
+  },
+  "hopsAway": 0
+ },
+ "!ac1158e6": {
+  "num": 2886818022,
+  "user": {
+   "id": "!ac1158e6",
+   "longName": "WMF Solar 🌲",
+   "shortName": "🌲",
+   "macaddr": "1UCsEVjm",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "CLIENT_MUTE",
+   "publicKey": "3FoAyjjRmTtjUzp/naDZPoj7ZmQsea0cPBeY8tkEFAU="
+  },
+  "snr": 6.75,
+  "lastHeard": 1755076638,
+  "deviceMetrics": {
+   "batteryLevel": 95,
+   "voltage": 4.132,
+   "channelUtilization": 14.300001,
+   "airUtilTx": 1.998,
+   "uptimeSeconds": 115572
+  },
+  "hopsAway": 7
+ },
+ "!665e48d0": {
+  "num": 1717455056,
+  "user": {
+   "id": "!665e48d0",
+   "longName": "Raven Craig Router (unattended)",
+   "shortName": "RAVN",
+   "macaddr": "zZpmXkjQ",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "ehzIystas3SaKVGSDBvZDYGTGDBf2XWYFj7S10RSAAE="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -36000000,
+   "altitude": 285,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -3.6
+  },
+  "snr": 6.5,
+  "lastHeard": 1755076516,
+  "deviceMetrics": {
+   "batteryLevel": 68,
+   "voltage": 3.879,
+   "channelUtilization": 8.386666,
+   "airUtilTx": 4.6635556,
+   "uptimeSeconds": 302651
+  },
+  "hopsAway": 4
+ },
+ "!da545c78": {
+  "num": 3662961784,
+  "user": {
+   "id": "!da545c78",
+   "longName": "JPPX Home",
+   "shortName": "JPX2",
+   "macaddr": "NLfaVFx4",
+   "hwModel": "HELTEC_WSL_V3",
+   "publicKey": "oLOpz1p7W8/Ti8Z0iOU4TqZAYVAXe3Uwm8EF/m1zLFs="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 80,
+   "time": 1750874282,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 6.75,
+  "lastHeard": 1755076340,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.256,
+   "channelUtilization": 3.0,
+   "airUtilTx": 1.884139,
+   "uptimeSeconds": 37553
+  },
+  "hopsAway": 2
+ },
+ "!3364cd7c": {
+  "num": 862244220,
+  "user": {
+   "id": "!3364cd7c",
+   "longName": "Paddy (mobile 3T)",
+   "shortName": "PDY3",
+   "macaddr": "ZOgzZM18",
+   "hwModel": "HELTEC_WIRELESS_TRACKER",
+   "role": "CLIENT_MUTE",
+   "publicKey": "Uw+yxv+CKPHf6RfCh/MCw/TLykK0XiZCK4ztABCviDw="
+  },
+  "snr": 6.25,
+  "lastHeard": 1755076304,
+  "deviceMetrics": {
+   "batteryLevel": 54,
+   "voltage": 3.755,
+   "channelUtilization": 13.789999,
+   "airUtilTx": 0.028027777,
+   "uptimeSeconds": 66
+  },
+  "hopsAway": 0
+ },
+ "!8c976d78": {
+  "num": 2358734200,
+  "user": {
+   "id": "!8c976d78",
+   "longName": "Paddy (solar 1) 🔇",
+   "shortName": "PDYS",
+   "macaddr": "2QyMl214",
+   "hwModel": "RAK4631",
+   "publicKey": "olvSRNjZ2UoilZqnhhGlBrQwjcPTrrMdVK5EtMc0GEI="
+  },
+  "snr": 6.25,
+  "lastHeard": 1755075723,
+  "deviceMetrics": {
+   "batteryLevel": 99,
+   "voltage": 4.187,
+   "channelUtilization": 7.113333,
+   "airUtilTx": 0.07158333,
+   "uptimeSeconds": 65
+  },
+  "hopsAway": 0
+ },
+ "!6f051111": {
+  "num": 1862603025,
+  "user": {
+   "id": "!6f051111",
+   "longName": "rico365 | 🤖 bot (say hi) ",
+   "shortName": "RMHM",
+   "macaddr": "X/dvBRER",
+   "hwModel": "PORTDUINO",
+   "publicKey": "vLP9rbmioCo84Q2yg/ExCkzG/Mn0YMoTjmbwzG14E38="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -40000000,
+   "time": 1755075459,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -4.0
+  },
+  "snr": 7.5,
+  "lastHeard": 1755075472,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 0.0,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.80836105,
+   "uptimeSeconds": 474200
+  },
+  "hopsAway": 2
+ },
+ "!433ca470": {
+  "num": 1128047728,
+  "user": {
+   "id": "!433ca470",
+   "longName": "dml @ zephyr 🔆",
+   "shortName": "dmlZ",
+   "macaddr": "SMpDPKRw",
+   "hwModel": "HELTEC_WSL_V3",
+   "publicKey": "euvFkaAFRG3Uzjzd2dZaBxOfCnyyMU7Dxvpac7tZv0M="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -46000000,
+   "time": 1755074423,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.6
+  },
+  "snr": 6.25,
+  "lastHeard": 1755075335,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.216,
+   "channelUtilization": 3.7266667,
+   "airUtilTx": 3.0909445,
+   "uptimeSeconds": 330491
+  },
+  "hopsAway": 4
+ },
+ "!433d4494": {
+  "num": 1128088724,
+  "user": {
+   "id": "!433d4494",
+   "longName": "Paddy (mobile 2)",
+   "shortName": "PDY2",
+   "macaddr": "SMpDPUSU",
+   "hwModel": "HELTEC_V3",
+   "role": "CLIENT_MUTE",
+   "publicKey": "c1OCe93DrrJwtPKC5VJbneJIrK37WxHBZyPkrYTI/nw="
+  },
+  "snr": 6.75,
+  "lastHeard": 1755074830,
+  "hopsAway": 0
+ },
+ "!c9ad9741": {
+  "num": 3383596865,
+  "user": {
+   "id": "!c9ad9741",
+   "longName": "GM4DOF",
+   "shortName": "4DOF",
+   "macaddr": "7wzJrZdB",
+   "hwModel": "RAK4631",
+   "publicKey": "yHRhOwak/VhPZ+qtdLTxDI8hFqnS5IWVB5eIxj1aSlo=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -32000000,
+   "altitude": 108,
+   "time": 1755074295,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.1,
+   "longitude": -3.2
+  },
+  "snr": 6.25,
+  "lastHeard": 1755074302,
+  "deviceMetrics": {
+   "batteryLevel": 82,
+   "voltage": 4.005,
+   "channelUtilization": 3.39,
+   "airUtilTx": 2.0386112,
+   "uptimeSeconds": 153797
+  },
+  "hopsAway": 4
+ },
+ "!da628170": {
+  "num": 3663888752,
+  "user": {
+   "id": "!da628170",
+   "longName": "FuzzyHome",
+   "shortName": "FuzH",
+   "macaddr": "NLfaYoFw",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "vDa0EQQxJTnwqOJ9jJ3STg8/p9MxGMDuUIpf9RQKxkI="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -36000000,
+   "time": 1750929461,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.9,
+   "longitude": -3.6
+  },
+  "snr": 6.25,
+  "lastHeard": 1755003487,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.214,
+   "channelUtilization": 2.0266666,
+   "airUtilTx": 2.2500556,
+   "uptimeSeconds": 418235
+  },
+  "hopsAway": 4
+ },
+ "!678b4432": {
+  "num": 1737180210,
+  "user": {
+   "id": "!678b4432",
+   "longName": "Meshtastic 4432",
+   "shortName": "4432",
+   "macaddr": "zYFni0Qy",
+   "hwModel": "T_ECHO",
+   "publicKey": "E/5NCHGPusYsneJHcWwa6F0InKyo5D9qdezCk4XJY1Q="
+  },
+  "snr": 6.0,
+  "lastHeard": 1755003342,
+  "hopsAway": 1
+ },
+ "!48eb4f1a": {
+  "num": 1223380762,
+  "user": {
+   "id": "!48eb4f1a",
+   "longName": "M7PMB Mobile",
+   "shortName": "EFC",
+   "macaddr": "0EpI608a",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "ehzIystas3SaKVGSDBvZDYGTGDBf2XWYFj7S10RSAAE="
+  },
+  "snr": 5.5,
+  "lastHeard": 1755003032,
+  "hopsAway": 4
+ },
+ "!da75a92c": {
+  "num": 3665144108,
+  "user": {
+   "id": "!da75a92c",
+   "longName": "TB-Baillieston-C",
+   "shortName": "TBGL",
+   "macaddr": "2Dvadaks",
+   "hwModel": "SENSECAP_INDICATOR",
+   "publicKey": "XnZkEMs5Jrzf62qMNl3t7VfuxR/a/T6MIDLexyEFsjI="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -41000000,
+   "altitude": 68,
+   "time": 1751022573,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.9,
+   "longitude": -4.1
+  },
+  "snr": 6.75,
+  "lastHeard": 1751022592,
+  "hopsAway": 2
+ },
+ "!8ac92664": {
+  "num": 2328438372,
+  "user": {
+   "id": "!8ac92664",
+   "longName": "wo1fy 2664",
+   "shortName": "wo1f",
+   "macaddr": "53eKySZk",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "evXuXn1u1Nppgr63CkXyEGuqKb9u8LMvVtEK3O2btkU=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 562000000,
+   "longitudeI": -32000000,
+   "altitude": 67,
+   "time": 1751022564,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 56.2,
+   "longitude": -3.2
+  },
+  "snr": 7.25,
+  "lastHeard": 1751022579,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.207,
+   "channelUtilization": 5.391667,
+   "airUtilTx": 2.0351667,
+   "uptimeSeconds": 586789
+  },
+  "hopsAway": 4
+ },
+ "!08112b4c": {
+  "num": 135342924,
+  "user": {
+   "id": "!08112b4c",
+   "longName": "ASM-WiFi-Client",
+   "shortName": "ASM",
+   "macaddr": "BIMIEStM",
+   "hwModel": "RAK11200",
+   "publicKey": "5pNJJSCgvTFQ23UA5etPrVQeIBeU1fEBhO5FL2XO7GE="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 50,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -3.6
+  },
+  "snr": 6.5,
+  "lastHeard": 1751022433,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 5.148,
+   "channelUtilization": 8.501667,
+   "airUtilTx": 1.5985001,
+   "uptimeSeconds": 225314
+  },
+  "hopsAway": 4
+ },
+ "!e2e392b4": {
+  "num": 3806565044,
+  "user": {
+   "id": "!e2e392b4",
+   "longName": "dml @ gla-cc 🌳",
+   "shortName": "dmlC",
+   "macaddr": "SCfi45K0",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "p2ojQ1qOkn+NRd15bacSAsgkCsQm9s/xGqX4ju+r2mU="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -43000000,
+   "time": 1751020745,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.3
+  },
+  "snr": 4.75,
+  "lastHeard": 1751022256,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.321,
+   "channelUtilization": 1.0133333,
+   "airUtilTx": 0.088694446,
+   "uptimeSeconds": 3879534
+  },
+  "hopsAway": 2
+ },
+ "!b03c4a94": {
+  "num": 2956741268,
+  "user": {
+   "id": "!b03c4a94",
+   "longName": "Paisley Hoose 1",
+   "shortName": "HOOS",
+   "macaddr": "NM2wPEqU",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "1kgDFknhu0zmixYiAkl+0i0grFg9v2chnGQfQ9c1riA=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -44000000,
+   "time": 1751002694,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.4
+  },
+  "snr": 6.0,
+  "lastHeard": 1751022242,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.315,
+   "channelUtilization": 5.895,
+   "airUtilTx": 1.1970556,
+   "uptimeSeconds": 47704
+  },
+  "hopsAway": 2
+ },
+ "!ea8df778": {
+  "num": 3935172472,
+  "user": {
+   "id": "!ea8df778",
+   "longName": "Papa Charlie f778",
+   "shortName": "PFC2",
+   "macaddr": "jL/qjfd4",
+   "hwModel": "SEEED_XIAO_S3",
+   "publicKey": "ZflhuK4QP+xNz80LUUiWUIfZmXojiyISjPXdfz3rySY="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "altitude": 87,
+   "time": 1751022195,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.9,
+   "longitude": -3.2
+  },
+  "snr": 6.0,
+  "lastHeard": 1751022220,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 5.954,
+   "channelUtilization": 0.0,
+   "airUtilTx": 2.184611,
+   "uptimeSeconds": 13626
+  },
+  "hopsAway": 6
+ },
+ "!e3e64bbc": {
+  "num": 3823520700,
+  "user": {
+   "id": "!e3e64bbc",
+   "longName": "Longbow 2",
+   "shortName": "LBW2",
+   "macaddr": "oIXj5ku8",
+   "hwModel": "HELTEC_WSL_V3",
+   "publicKey": "5h/e9GzL/9SjOh4DQRR+p+i3iRd4y1ZX1LKJKsUp1Fs="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 70,
+   "time": 1751021841,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 6.25,
+  "lastHeard": 1751022100,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": -0.001,
+   "channelUtilization": 17.028334,
+   "airUtilTx": 0.8267778,
+   "uptimeSeconds": 484204
+  },
+  "hopsAway": 2
+ },
+ "!5a24fcf6": {
+  "num": 1512373494,
+  "user": {
+   "id": "!5a24fcf6",
+   "longName": "ML1B (Unattended Router)",
+   "shortName": "ML1B",
+   "macaddr": "+eNaJPz2",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "JyPlSCW1Hl1g5KnZy8x68mdmUmt6e3ceYczzPv5paVc="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 110,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 6.25,
+  "lastHeard": 1751021841,
+  "deviceMetrics": {
+   "batteryLevel": 90,
+   "voltage": 4.063,
+   "channelUtilization": 10.683333,
+   "airUtilTx": 2.8396943,
+   "uptimeSeconds": 43265
+  },
+  "hopsAway": 3
+ },
+ "!5e7f4a0d": {
+  "num": 1585400333,
+  "user": {
+   "id": "!5e7f4a0d",
+   "longName": "Cant Hills Router",
+   "shortName": "CANT",
+   "macaddr": "0G5ef0oN",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "uSBNp3Obrt5fM1isvGDMsrojWU6cIlKSHAgZRE3SSAs="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -39000000,
+   "altitude": 301,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -3.9
+  },
+  "snr": 5.75,
+  "lastHeard": 1751021821,
+  "deviceMetrics": {
+   "batteryLevel": 96,
+   "voltage": 4.14,
+   "channelUtilization": 7.8233333,
+   "airUtilTx": 0.028499998,
+   "uptimeSeconds": 59
+  },
+  "hopsAway": 2
+ },
+ "!5684dc08": {
+  "num": 1451547656,
+  "user": {
+   "id": "!5684dc08",
+   "longName": "NakMuayHome",
+   "shortName": "Mu4y",
+   "macaddr": "4JhWhNwI",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "vDa0EQQxJTnwqOJ9jJ3STg8/p9MxGMDuUIpf9RQKxkI="
+  },
+  "snr": 6.0,
+  "lastHeard": 1751021324,
+  "deviceMetrics": {
+   "batteryLevel": 90,
+   "voltage": 4.057,
+   "channelUtilization": 2.98,
+   "airUtilTx": 1.4853889,
+   "uptimeSeconds": 4977880
+  },
+  "hopsAway": 4
+ },
+ "!43577b98": {
+  "num": 1129806744,
+  "user": {
+   "id": "!43577b98",
+   "longName": "MM0RKN2",
+   "shortName": "RKN2",
+   "macaddr": "SMpDV3uY",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "i0pCP8715reJB6yhEfZ/I8XQBAl8HI4Bwi8pSK7Gr1A="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -40000000,
+   "altitude": 101,
+   "time": 1751020991,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.0
+  },
+  "snr": 5.75,
+  "lastHeard": 1751021031,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.336,
+   "channelUtilization": 3.1216667,
+   "airUtilTx": 2.7508333,
+   "uptimeSeconds": 717477
+  },
+  "hopsAway": 3
+ },
+ "!ea8fdfd0": {
+  "num": 3935297488,
+  "user": {
+   "id": "!ea8fdfd0",
+   "longName": "Meshtastic dfd0",
+   "shortName": "dfd0",
+   "macaddr": "jL/qj9/Q",
+   "hwModel": "SEEED_XIAO_S3",
+   "publicKey": "fhj4fHw+rsM10dhESIr+4GqvvbsVYLWT/Yo6UudfvEg=",
+   "isUnmessagable": false
+  },
+  "snr": 5.5,
+  "lastHeard": 1751020688,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": -0.001,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.050666668,
+   "uptimeSeconds": 669276
+  },
+  "hopsAway": 5
+ },
+ "!2a83b265": {
+  "num": 713273957,
+  "user": {
+   "id": "!2a83b265",
+   "longName": "Meshtastic b265",
+   "shortName": "b265",
+   "macaddr": "1GEqg7Jl",
+   "hwModel": "RAK4631",
+   "role": "CLIENT_MUTE",
+   "publicKey": "CGuFiaidikP0j2WT0cvU4cEo8mAZqPIZIbzTuiABe2M="
+  },
+  "snr": 6.75,
+  "lastHeard": 1751020520,
+  "deviceMetrics": {
+   "batteryLevel": 87,
+   "voltage": 4.036,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.19619444,
+   "uptimeSeconds": 7525906
+  },
+  "hopsAway": 5
+ },
+ "!3e3f9bee": {
+  "num": 1044356078,
+  "user": {
+   "id": "!3e3f9bee",
+   "longName": "Dave-Corstorphine-Hill-V2",
+   "shortName": "DvCH",
+   "macaddr": "z18+P5vu",
+   "hwModel": "XIAO_NRF52_KIT",
+   "role": "ROUTER",
+   "publicKey": "PYjx6JkBQKnt7197Yx55ZcD4ZshAG8fOHQy5Q3DwGww="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -33000000,
+   "altitude": 150,
+   "time": 1750987364,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -3.3
+  },
+  "snr": 4.25,
+  "lastHeard": 1751019699,
+  "deviceMetrics": {
+   "batteryLevel": 98,
+   "voltage": 4.169,
+   "channelUtilization": 1.7783333,
+   "airUtilTx": 0.21036111,
+   "uptimeSeconds": 2678481
+  },
+  "hopsAway": 5
+ },
+ "!65cfcbd4": {
+  "num": 1708116948,
+  "user": {
+   "id": "!65cfcbd4",
+   "longName": "JamiePhonic",
+   "shortName": "JPH1",
+   "macaddr": "x1xlz8vU",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "8X0tAMRVxq2PoMgkuvdpFKfZ2RPWf99P50s+cg+32xY="
+  },
+  "snr": 6.25,
+  "lastHeard": 1751019619,
+  "hopsAway": 3
+ },
+ "!e36c3d8c": {
+  "num": 3815521676,
+  "user": {
+   "id": "!e36c3d8c",
+   "longName": "ariel 3d8c",
+   "shortName": "a3",
+   "macaddr": "8HfjbD2M",
+   "hwModel": "RAK4631",
+   "publicKey": "UoYtycduww8KvqBj37OTzL42JJbDy9cztk2XzRP1ETI="
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -3.2
+  },
+  "snr": 5.75,
+  "lastHeard": 1751019467,
+  "deviceMetrics": {
+   "batteryLevel": 70,
+   "voltage": 3.894,
+   "channelUtilization": 2.0266666,
+   "airUtilTx": 0.99605554,
+   "uptimeSeconds": 433122
+  },
+  "hopsAway": 5
+ },
+ "!b03c933c": {
+  "num": 2956759868,
+  "user": {
+   "id": "!b03c933c",
+   "longName": "Meshtastic 933c",
+   "shortName": "M9",
+   "macaddr": "NM2wPJM8",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "mOolmoJN9jDNXtTcoIxjOKqQaGMwUpeIE0gRVco4yGE=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 52,
+   "time": 1750423263,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 6.5,
+  "lastHeard": 1751019385,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.255,
+   "channelUtilization": 3.0,
+   "airUtilTx": 0.6796111,
+   "uptimeSeconds": 215061
+  },
+  "hopsAway": 2
+ },
+ "!a34fb5eb": {
+  "num": 2739910123,
+  "user": {
+   "id": "!a34fb5eb",
+   "longName": "Benarty - +15°C Partly cloudy",
+   "shortName": "CZU2",
+   "macaddr": "13SjT7Xr",
+   "hwModel": "RAK4631",
+   "role": "ROUTER",
+   "publicKey": "MsKaJkKxYvVpK81pTAAMTqY94C5ZDgI62tvkeGVpwA8="
+  },
+  "position": {
+   "latitudeI": 562000000,
+   "longitudeI": -34000000,
+   "altitude": 300,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.2,
+   "longitude": -3.4
+  },
+  "snr": 4.0,
+  "lastHeard": 1751019050,
+  "deviceMetrics": {
+   "batteryLevel": 79,
+   "voltage": 3.986,
+   "channelUtilization": 11.793333,
+   "airUtilTx": 2.602639,
+   "uptimeSeconds": 43255
+  },
+  "hopsAway": 5
+ },
+ "!337c14b9": {
+  "num": 863769785,
+  "user": {
+   "id": "!337c14b9",
+   "longName": "stnPortable",
+   "shortName": "stnp",
+   "macaddr": "/yQzfBS5",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "0vY72dj9EzAbPVRzEsRDPHKIFEw3CYAL8IT3ArLISz0=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 53,
+   "time": 1750695362,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 6.0,
+  "lastHeard": 1751017653,
+  "deviceMetrics": {
+   "batteryLevel": 45,
+   "voltage": 3.679,
+   "channelUtilization": 1.8333333,
+   "airUtilTx": 0.99572223,
+   "uptimeSeconds": 344610
+  },
+  "hopsAway": 4
+ },
+ "!ade698f0": {
+  "num": 2917570800,
+  "user": {
+   "id": "!ade698f0",
+   "longName": "Tomtain Router",
+   "shortName": "TOMT",
+   "macaddr": "0iit5pjw",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "TduFitFIROz0HF8nKWV2buLSUgodmUCJUAH5QJvbcFU="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -41000000,
+   "altitude": 453,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -4.1
+  },
+  "snr": 5.75,
+  "lastHeard": 1751017470,
+  "deviceMetrics": {
+   "batteryLevel": 94,
+   "voltage": 4.112,
+   "channelUtilization": 29.478333,
+   "airUtilTx": 0.061805557,
+   "uptimeSeconds": 51
+  },
+  "hopsAway": 1
+ },
+ "!bfac84e1": {
+  "num": 3215754465,
+  "user": {
+   "id": "!bfac84e1",
+   "longName": "Pathfinder (Unattended)",
+   "shortName": "PFDR",
+   "macaddr": "7ji/rITh",
+   "hwModel": "XIAO_NRF52_KIT",
+   "role": "ROUTER",
+   "publicKey": "PYjx6JkBQKnt7197Yx55ZcD4ZshAG8fOHQy5Q3DwGww="
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -41000000,
+   "altitude": 200,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 56.0,
+   "longitude": -4.1
+  },
+  "snr": 4.5,
+  "lastHeard": 1751017028,
+  "deviceMetrics": {
+   "batteryLevel": 82,
+   "voltage": 4.007,
+   "channelUtilization": 10.01,
+   "airUtilTx": 3.0036666,
+   "uptimeSeconds": 475283
+  },
+  "hopsAway": 1
+ },
+ "!a0cb006c": {
+  "num": 2697658476,
+  "user": {
+   "id": "!a0cb006c",
+   "longName": "2M0JYH Green 🚶",
+   "shortName": "JYH2",
+   "macaddr": "MO2gywBs",
+   "hwModel": "HELTEC_V3",
+   "role": "CLIENT_MUTE",
+   "publicKey": "JFbJBA1LGLLIV+faKvVHzuXIjeB6bkWJc19cxfi5iQ0="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 59,
+   "time": 1750957846,
+   "locationSource": "LOC_EXTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 5.75,
+  "lastHeard": 1751016431,
+  "deviceMetrics": {
+   "batteryLevel": 73,
+   "voltage": 3.927,
+   "channelUtilization": 12.226666,
+   "airUtilTx": 0.11883334,
+   "uptimeSeconds": 286277
+  },
+  "hopsAway": 2
+ },
+ "!4359d888": {
+  "num": 1129961608,
+  "user": {
+   "id": "!4359d888",
+   "longName": "Paisley Hoose 3",
+   "shortName": "HOOS",
+   "macaddr": "SMpDWdiI",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "t37FOT0hVAm4W9i5bu1oAwgPBpDNT+7hsm+/BDZaHR4=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -44000000,
+   "time": 1751016059,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.9,
+   "longitude": -4.4
+  },
+  "snr": 6.25,
+  "lastHeard": 1751016079,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.207,
+   "channelUtilization": 0.9166666,
+   "airUtilTx": 1.7433611,
+   "uptimeSeconds": 53416
+  },
+  "hopsAway": 3
+ },
+ "!da53df98": {
+  "num": 3662929816,
+  "user": {
+   "id": "!da53df98",
+   "longName": "Jamie Bridge (discord.gg/VvagXJn7Bq)",
+   "shortName": "JPDB",
+   "macaddr": "NLfaU9+Y",
+   "hwModel": "HELTEC_V3",
+   "role": "CLIENT_MUTE",
+   "publicKey": "a1fmuM7yF8O8rdRhyb7N2wVd52Wf+yy46hnsnFMhpz8="
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -44000000,
+   "altitude": 57,
+   "time": 1751013702,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 55.8,
+   "longitude": -4.4
+  },
+  "snr": 6.25,
+  "lastHeard": 1751013721,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.234,
+   "channelUtilization": 11.998333,
+   "airUtilTx": 0.05675,
+   "uptimeSeconds": 7762670
+  },
+  "hopsAway": 3
+ },
+ "!a0cb0570": {
+  "num": 2697659760,
+  "user": {
+   "id": "!a0cb0570",
+   "longName": "2M0JYH Yellow 🏠",
+   "shortName": "JYH1",
+   "macaddr": "MO2gywVw",
+   "hwModel": "HELTEC_V3",
+   "role": "ROUTER",
+   "publicKey": "JdJSdNGWY7ZM0MUkpdkxblFeJtiSU8GcuSOkRwaZC1U=",
+   "isUnmessagable": true
+  },
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -41000000,
+   "altitude": 65,
+   "time": 1750942519,
+   "locationSource": "LOC_MANUAL",
+   "latitude": 55.8,
+   "longitude": -4.1
+  },
+  "snr": 6.25,
+  "lastHeard": 1751013343,
+  "deviceMetrics": {
+   "batteryLevel": 22,
+   "voltage": 3.445,
+   "channelUtilization": 11.191667,
+   "airUtilTx": 0.8259167,
+   "uptimeSeconds": 199673
+  },
+  "hopsAway": 2
+ },
+ "!fee7cfef": {
+  "num": 4276604911,
+  "user": {
+   "id": "!fee7cfef",
+   "longName": "Meshtastic cfef",
+   "shortName": "cfef",
+   "macaddr": "zr/+58/v",
+   "hwModel": "RAK4631",
+   "publicKey": "/XVr3e1OOKslXsCck4wCKg6wgGHYFwXiVfa1g1IEQwA="
+  },
+  "snr": 5.75,
+  "lastHeard": 1751011726,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.048,
+   "channelUtilization": 4.8,
+   "airUtilTx": 1.3707777,
+   "uptimeSeconds": 7012480
+  },
+  "hopsAway": 5
+ },
+ "!3ac8c61c": {
+  "num": 986236444,
+  "user": {
+   "id": "!3ac8c61c",
+   "longName": "wo1fy c61c",
+   "shortName": "wo1t",
+   "macaddr": "2HI6yMYc",
+   "hwModel": "TRACKER_T1000_E",
+   "publicKey": "0m8Xz0fxTbd1V7r9QlYFNwAiowHElKn5+JTWmGIn9QI=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "latitudeI": 562000000,
+   "longitudeI": -32000000,
+   "altitude": 64,
+   "time": 1751002681,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 56.2,
+   "longitude": -3.2
+  },
+  "snr": 4.25,
+  "lastHeard": 1751006833,
+  "deviceMetrics": {
+   "batteryLevel": 68,
+   "voltage": 3.958,
+   "channelUtilization": 0.0,
+   "airUtilTx": 1.7560834,
+   "uptimeSeconds": 649568
+  },
+  "hopsAway": 6
+ },
+ "!2d1015e6": {
+  "num": 756028902,
+  "user": {
+   "id": "!2d1015e6",
+   "longName": "RTj8_T114GPS",
+   "shortName": "RTj8",
+   "macaddr": "8GQtEBXm",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "publicKey": "9EVK1vUbxHanr1oUHvQFmVSuHX8XKjjYVQvHXw36YDs="
+  },
+  "snr": 4.25,
+  "lastHeard": 1750995800,
+  "deviceMetrics": {
+   "batteryLevel": 0,
+   "voltage": 3.103,
+   "channelUtilization": 2.0,
+   "airUtilTx": 1.7880833,
+   "uptimeSeconds": 128298
+  },
+  "hopsAway": 5
+ },
+ "!2899bf28": {
+  "num": 681164584,
+  "user": {
+   "id": "!2899bf28",
+   "longName": "Meshtastic bf28",
+   "shortName": "bf28",
+   "hwModel": "UNSET"
+  },
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -31000000,
+   "altitude": 116,
+   "time": 1794142054,
+   "locationSource": "LOC_INTERNAL",
+   "latitude": 56.0,
+   "longitude": -3.1
+  },
+  "snr": 5.5,
+  "hopsAway": 3
+ }
+}

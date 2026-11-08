@@ -1,0 +1,88 @@
+{
+  "capture_id": "2026-11-08-xiao-2.8.2-hop4",
+  "short": "x28h4",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 3769067321,
+    "id": "!e0a76739",
+    "firmware": "2.8.2.d5f1619",
+    "hw_model": "XIAO_NRF52_KIT",
+    "device_state_version": 25,
+    "hop_limit": 4,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "python master 0a18357 (2.8 protos), reports 2.7.11"
+  },
+  "start": "2026-11-08T14:03:34Z",
+  "end": "2026-11-08T14:08:22Z",
+  "duration_s": 288,
+  "counts": {
+    "total": 89,
+    "by_kind": {
+      "live": 5,
+      "replay": 78,
+      "self": 6
+    },
+    "by_port": {
+      "NODEINFO_APP": 2,
+      "POSITION_APP": 41,
+      "ROUTING_APP": 1,
+      "TELEMETRY_APP": 45
+    },
+    "by_port_and_kind": {
+      "NODEINFO_APP": {
+        "live": 2
+      },
+      "POSITION_APP": {
+        "live": 2,
+        "replay": 39
+      },
+      "ROUTING_APP": {
+        "self": 1
+      },
+      "TELEMETRY_APP": {
+        "live": 1,
+        "replay": 39,
+        "self": 5
+      }
+    }
+  },
+  "senders": {
+    "count": 59,
+    "by_id_scheme": {
+      "mac": 2,
+      "crc32": 0,
+      "neither": 45,
+      "no_user": 12
+    },
+    "mac_zeroed": 45
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 5,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 0
+    }
+  },
+  "replay_burst": {
+    "count": 78,
+    "within_s_of_start": 0.1,
+    "hop_start_values": [
+      4
+    ],
+    "stable_ids_shared_with": [
+      "2026-11-08-xiao-2.8.2"
+    ]
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 41,
+    "nodedb_positions_rounded": 39
+  },
+  "notes": "Hop-limit experiment: hop_limit 4, 5-minute capture 14:03-14:08 local, reconnect to the same 2.8.2 radio. The connect replay burst repeats and its hopStart follows the feeder's hop_limit (4). Replay packet ids are stable across reconnects (shared with the 2026-11-08-xiao-2.8.2 capture)."
+}

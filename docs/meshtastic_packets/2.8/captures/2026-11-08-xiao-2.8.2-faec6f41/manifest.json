@@ -1,0 +1,90 @@
+{
+  "capture_id": "2026-11-08-xiao-2.8.2-faec6f41",
+  "short": "x28f",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 4209798977,
+    "id": "!faec6f41",
+    "firmware": "2.8.2.d5f1619",
+    "hw_model": "XIAO_NRF52_KIT",
+    "device_state_version": 25,
+    "hop_limit": 3,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "python master 0a18357 (2.8 protos), reports 2.7.11"
+  },
+  "start": "2026-11-08T14:24:12Z",
+  "end": "2026-11-08T15:23:11Z",
+  "duration_s": 3540,
+  "counts": {
+    "total": 128,
+    "by_kind": {
+      "live": 62,
+      "self": 66
+    },
+    "by_port": {
+      "NODEINFO_APP": 15,
+      "POSITION_APP": 27,
+      "ROUTING_APP": 4,
+      "STORE_FORWARD_APP": 1,
+      "TELEMETRY_APP": 78,
+      "TRACEROUTE_APP": 3
+    },
+    "by_port_and_kind": {
+      "NODEINFO_APP": {
+        "live": 15
+      },
+      "POSITION_APP": {
+        "live": 27
+      },
+      "ROUTING_APP": {
+        "live": 2,
+        "self": 2
+      },
+      "STORE_FORWARD_APP": {
+        "live": 1
+      },
+      "TELEMETRY_APP": {
+        "live": 14,
+        "self": 64
+      },
+      "TRACEROUTE_APP": {
+        "live": 3
+      }
+    }
+  },
+  "senders": {
+    "count": 39,
+    "by_id_scheme": {
+      "mac": 13,
+      "crc32": 0,
+      "neither": 0,
+      "no_user": 26
+    },
+    "mac_zeroed": 0
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 60,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 4
+    }
+  },
+  "replay_burst": {
+    "count": 0,
+    "within_s_of_start": 0,
+    "hop_start_values": [],
+    "stable_ids_shared_with": []
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 27,
+    "nodedb_positions_rounded": 0
+  },
+  "notes": "Radio re-keyed (!e0a76739 -> !faec6f41, predicted from the new key before the write), downgraded to 2.7.26 (number kept) and re-upgraded to 2.8.2; the NodeDB came back empty (1 node). 60-minute capture from 14:40 local. No replay burst (empty NodeDB), no clock: 18 live packets lack rxTime; fromId is null on most live packets. Self deviceMetrics about every 60 s."
+}
