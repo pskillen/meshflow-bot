@@ -25,6 +25,8 @@ When `STORAGE_API_ROOT` is set and `RADIO_PROTOCOL=meshtastic`:
 | `STORAGE_API_TOKEN` | Bearer / API token |
 | `STORAGE_API_VERSION` | `1`, `2`, or `3` (default `3` for new installs; use `2` only with older API builds) |
 | `STORAGE_API_2_*` | Optional second destination |
+| `STORAGE_API_FEEDER_URLS` | `auto` (default), `on` or `off`: use the feeder-scoped v4 URLs, see [Feeder-scoped URLs](#feeder-scoped-urls-v4) |
+| `STORAGE_API_2_FEEDER_URLS` | Same, for the second destination |
 
 Failed uploads can be retained under `data/failed_packets/` when configured.
 
@@ -52,7 +54,45 @@ Reported to the API on Meshtastic calls (not MeshCore):
 
 Change detection: on local `node.updated` events and every 60 seconds the bot re-reads the identity. If the node number changed it logs a WARNING, refreshes what it reports, re-sends the bot-version report and reconnects the WebSocket so it subscribes under the new number. A reconnect to a radio that now has a different number is handled the same way. (The Meshtastic library only learns a new number from a fresh `my_info`, so a number changed in the radio mid-session is picked up when the library next receives one.)
 
-If the API answers an upload with **403 or 409**, the bot logs an ERROR naming the node number it reported and pointing at the 2.8 identity change, then pauses uploads with exponential backoff (30 s, doubling to 15 min) instead of retrying every packet. The first success resets the backoff. Check the feeder's API key and linked node in Meshflow; for the upgrade steps see the 2.8 upgrade runbook in the meshflow-api packet-ingestion docs.
+If the API answers an upload with **403 or 409**, the bot logs an ERROR naming the node number it reported and pointing at the 2.8 identity change, then pauses uploads with exponential backoff (30 s, doubling to 15 min) instead of retrying every packet. The first success resets the backoff. Check the feeder's API key and linked node in Meshflow; for the upgrade steps see the 2.8 upgrade runbook (`docs/features/packet-ingestion/meshtastic-2.8-upgrade-runbook.md` in meshflow-api). Feeder-scoped (v4) URLs avoid this class of rejection: see below.
+
+## Feeder-scoped URLs (v4)
+
+Needs meshflow-api with the release that adds the v4 feeder URLs (2.3.0 or later, once released). The API then identifies the feeder by its API key alone, so the node number is not in the path and a changed number (Meshtastic 2.8) is accepted rather than refused. Design: ADR-0005 in meshflow-api; upgrade steps: `docs/features/packet-ingestion/meshtastic-2.8-upgrade-runbook.md` in meshflow-api.
+
+| URL | Replaces |
+|-----|----------|
+| `PUT /api/v4/feeder/bot-version/` | `…/packets/{nodenum}/bot-version/` |
+| `POST /api/v4/feeder/meshtastic/ingest/` | `…/packets/{nodenum}/ingest/` |
+| `POST /api/v4/feeder/meshtastic/nodes/` | `…/packets/{nodenum}/nodes/` |
+| `GET /api/v4/feeder/identity/` | (the probe) |
+
+Bodies, `Authorization: Token` and the `X-Meshtastic-Feeder-*` headers are unchanged.
+
+`STORAGE_API_FEEDER_URLS` and `STORAGE_API_2_FEEDER_URLS` (Meshtastic only; MeshCore keeps its prefix URLs) choose per destination:
+
+- `auto` (default): probe `GET /api/v4/feeder/identity/` at start, then every hour.
+- `on`: use v4 straight away without probing (a 404 from a v4 call still drops back and re-probes).
+- `off`: never probe, always use the legacy URL set by `STORAGE_API_VERSION`.
+
+With `STORAGE_API_VERSION=1` v4 is never used. Each destination decides on its own, so production and pre-production can be on different API generations.
+
+Probe answers:
+
+| Answer | Result |
+|--------|--------|
+| 200 | use v4 |
+| 404 | the API is older: use the legacy URLs |
+| 403 `shared_api_key` | use legacy and log an ERROR (see below) |
+| any other 403 (for example `feeder_not_linked`), 401, 5xx, timeout, network error | keep the current mode; WARNING |
+
+A probe is not an upload: it never starts the identity back-off. Every change of mode is logged at INFO with the destination. A 404 from a v4 upload (the API was rolled back) switches to legacy and probes again at once; 403/409 on uploads back off as described under Feeder identity.
+
+**`shared_api_key` ERROR:** v4 needs one API key per feeder, and this key is linked to more than one feeder. Until the Meshflow owner mints a separate key for each feeder (and you set it as `STORAGE_API_TOKEN`), the bot stays on the legacy URLs and repeats the ERROR at each hourly probe.
+
+**2.8 note:** on a legacy URL, an upgraded radio's new node number no longer matches the number in the path and the API answers 403; on v4 the number is only reported (headers and the bot-version body), never part of the URL, so it is accepted.
+
+The WebSocket follows the primary destination (`STORAGE_API_ROOT`): when that is on v4 the bot connects with `feeder_scoped=1` and no `feeder_node_id`, and reconnects whenever the primary's mode changes.
 
 ## WebSocket commands
 
