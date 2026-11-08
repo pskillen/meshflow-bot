@@ -72,8 +72,10 @@ Bodies, `Authorization: Token` and the `X-Meshtastic-Feeder-*` headers are uncha
 `STORAGE_API_FEEDER_URLS` and `STORAGE_API_2_FEEDER_URLS` (Meshtastic only; MeshCore keeps its prefix URLs) choose per destination:
 
 - `auto` (default): probe `GET /api/v4/feeder/identity/` at start, then every hour.
-- `on`: use v4 straight away without probing (a 404 from a v4 call still drops back and re-probes).
+- `on`: start on v4 instead of waiting for the first probe. It still probes at start and every hour, and a 404 (or a `shared_api_key` 403) answer switches to legacy.
 - `off`: never probe, always use the legacy URL set by `STORAGE_API_VERSION`.
+
+An invalid value is logged as a WARNING and treated as `auto`.
 
 With `STORAGE_API_VERSION=1` v4 is never used. Each destination decides on its own, so production and pre-production can be on different API generations.
 
@@ -81,12 +83,13 @@ Probe answers:
 
 | Answer | Result |
 |--------|--------|
-| 200 | use v4 |
+| 200 with a JSON body carrying `internal_id` | use v4 |
+| 200 with anything else (a proxy or maintenance page) | keep the current mode; WARNING |
 | 404 | the API is older: use the legacy URLs |
 | 403 `shared_api_key` | use legacy and log an ERROR (see below) |
 | any other 403 (for example `feeder_not_linked`), 401, 5xx, timeout, network error | keep the current mode; WARNING |
 
-A probe is not an upload: it never starts the identity back-off. Every change of mode is logged at INFO with the destination. A 404 from a v4 upload (the API was rolled back) switches to legacy and probes again at once; 403/409 on uploads back off as described under Feeder identity.
+A probe is not an upload: it never starts the identity back-off. Every change of mode is logged at INFO with the destination. A 404 from a v4 upload (the API was rolled back) switches to legacy, re-sends that packet once on the legacy URL (a node or bot-version upload is not re-sent; the next one goes legacy) and ignores a positive probe for the next hour, so a rolling deploy with mixed replicas cannot flip it back and forth; 403/409 on uploads back off as described under Feeder identity.
 
 **`shared_api_key` ERROR:** v4 needs one API key per feeder, and this key is linked to more than one feeder. Until the Meshflow owner mints a separate key for each feeder (and you set it as `STORAGE_API_TOKEN`), the bot stays on the legacy URLs and repeats the ERROR at each hourly probe.
 
