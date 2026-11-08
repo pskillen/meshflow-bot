@@ -60,9 +60,7 @@ Every record carries `kind`:
 The rule fits all 156 burst records and no live record in any capture. The firmware marks real receptions as
 `TRANSPORT_LORA` with an RSSI; MQTT-downlinked live packets are `TRANSPORT_MQTT` with no RSSI, which is why a missing
 RSSI alone is not enough. The checker asserts that `kind` equals the rule for every record, and that the bot's
-`src.meshtastic.replay.is_replayed` agrees on every record. It does, on all four captures. (The bot's classifier
-treats `viaMqtt` / an MQTT transport as live and does not require `TRANSPORT_LORA` or `BACKGROUND`; on this data the two
-formulations give identical answers.)
+`src.meshtastic.replay.is_replayed` agrees on every record. It does, on all four captures.
 
 What the burst looks like in the data: 78 records within 0.1 s of the first record (the client receives the whole
 replay at once); one per (node, port); `hopStart` follows the feeder's `hop_limit` (3 in `x28`, 4 in `x28h4`); the
@@ -127,7 +125,7 @@ and `raw_b64` decode to the same rounded position as the dict.
 
 `mac`: the sender's number equals the last four bytes of its MAC (a 2.7 or earlier node). `crc32`: it equals the crc32
 of its 32-byte public key (a 2.8 node). Both are read from the capture's NodeDB plus any NODEINFO in the capture;
-`neither` means the sender has a user record that matches neither; `no user` means nothing is known about it. The
+`neither` means the sender has a user record with a public key or MAC that matches neither; `no user` means no record, or a record with neither a public key nor a MAC (names only). The
 feeder itself is excluded from the counts.
 
 The `x28` `crc32` sender is `!23c3c49f`, a wild 2.8 node. **Not every other identified sender is `mac`**: the 2.8
@@ -250,8 +248,10 @@ pytest test/fixtures -q
 The raw captures are not in the repo. The committed directories were built with, for each capture,
 `python tools/meshtastic_fixtures/build_fixtures.py <raw>.jsonl --capture-id <id> --short <short> --out captures/<id> ...`
 and the feeder settings recorded in each manifest (`--hop-limit`, `--role`, `--signature-policy`, `--lib-note`,
-`--notes`). The build is deterministic. `python tools/meshtastic_fixtures/build_fixtures.py --subset
-docs/meshtastic_packets/2.8` rebuilds `subset.json` from the committed captures and fails, naming the row, if a
+`--notes`; read the values back out of the manifest). The build is deterministic. `python
+tools/meshtastic_fixtures/build_fixtures.py --subset docs/meshtastic_packets/2.8` is a second pass, run after all
+captures are built: it rebuilds `subset.json` from the committed captures, also rewrites the cross-capture
+`stable_ids_shared_with` in the manifests, and fails, naming the row, if a
 listed line no longer has the kind, port, variant or sender in the table above.
 
 ## Adding a capture
