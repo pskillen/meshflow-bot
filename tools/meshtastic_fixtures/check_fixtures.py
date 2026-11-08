@@ -105,24 +105,32 @@ def check_protobuf(rec: dict, where: str, problems: Problems) -> None:
     if protos is None:
         return
     mesh_pb2, portnums_pb2 = protos
+    from google.protobuf.message import DecodeError
+
     packet = rec["packet"]
     decoded = packet.get("decoded") or {}
     if decoded.get("portnum") != rules.POSITION_PORT:
         return
     expect = _dict_xy(decoded.get("position") or {})
 
-    pos = mesh_pb2.Position()
-    pos.ParseFromString(base64.b64decode(decoded.get("payload", "")))
-    if _position_xy(pos) != expect:
-        problems.add(where, f"decoded.payload position {_position_xy(pos)} != dict {expect}")
+    try:
+        pos = mesh_pb2.Position()
+        pos.ParseFromString(base64.b64decode(decoded.get("payload", "")))
+        if _position_xy(pos) != expect:
+            problems.add(where, f"decoded.payload position {_position_xy(pos)} != dict {expect}")
+    except (DecodeError, ValueError) as exc:
+        problems.add(where, f"decoded.payload is not a valid Position: {exc}")
 
     if rec.get("raw_b64"):
-        mp = mesh_pb2.MeshPacket()
-        mp.ParseFromString(base64.b64decode(rec["raw_b64"]))
-        inner = mesh_pb2.Position()
-        inner.ParseFromString(bytes(mp.decoded.payload))
-        if _position_xy(inner) != expect:
-            problems.add(where, f"raw_b64 position {_position_xy(inner)} != dict {expect}")
+        try:
+            mp = mesh_pb2.MeshPacket()
+            mp.ParseFromString(base64.b64decode(rec["raw_b64"]))
+            inner = mesh_pb2.Position()
+            inner.ParseFromString(bytes(mp.decoded.payload))
+            if _position_xy(inner) != expect:
+                problems.add(where, f"raw_b64 position {_position_xy(inner)} != dict {expect}")
+        except (DecodeError, ValueError) as exc:
+            problems.add(where, f"raw_b64 is not a valid MeshPacket: {exc}")
 
 
 # --- checks --------------------------------------------------------------
