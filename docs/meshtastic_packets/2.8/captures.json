@@ -1,0 +1,11 @@
+[
+  {"id": "2026-11-08-xiao-2.7.26", "short": "x27", "status": "captured", "path": "captures/2026-11-08-xiao-2.7.26", "purpose": "2.7 feeder x live senders"},
+  {"id": "2026-11-08-xiao-2.8.2", "short": "x28", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2", "purpose": "2.8 feeder: connect replay burst, then live senders, 83-node NodeDB"},
+  {"id": "2026-11-08-xiao-2.8.2-hop4", "short": "x28h4", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2-hop4", "purpose": "2.8 feeder at hop_limit 4: replay burst repeats, hopStart follows hop_limit, stable replay ids"},
+  {"id": "2026-11-08-xiao-2.8.2-faec6f41", "short": "x28f", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2-faec6f41", "purpose": "re-keyed 2.8 feeder with an empty NodeDB: no replay, no clock, fromId mostly null"},
+  {"id": "pdyt-2.8-signing", "status": "pending", "purpose": "2.8 feeder (PDYt) hearing a BALANCED sender: xeddsaSigned in raw_b64"},
+  {"id": "pdyb-2.7-x-2.8-sender", "status": "pending", "purpose": "2.7 feeder x 2.8 sender (the Xiao as sender)"},
+  {"id": "pdyt-2.8-x-2.7-sender", "status": "pending", "purpose": "2.8 feeder x 2.7 sender, bot dump with replay/ folder"},
+  {"id": "tm-dedup", "status": "pending", "purpose": "Traffic Management position dedup timeline"},
+  {"id": "new-ports", "status": "pending", "purpose": "PAGING_APP / MESH_BEACON_APP / NODE_STATUS_APP, TEXT test traffic"}
+]

@@ -1,0 +1,81 @@
+{
+  "capture_id": "2026-11-08-xiao-2.7.26",
+  "short": "x27",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 444845961,
+    "id": "!1a83cf89",
+    "firmware": "2.7.26.54e0d8d",
+    "hw_model": "XIAO_NRF52_KIT",
+    "device_state_version": 24,
+    "hop_limit": 6,
+    "role": "CLIENT",
+    "signature_policy": null
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "meshtastic 2.7.11 from PyPI (the 2.7 venv)"
+  },
+  "start": "2026-11-08T12:49:47Z",
+  "end": "2026-11-08T13:19:46Z",
+  "duration_s": 1800,
+  "counts": {
+    "total": 63,
+    "by_kind": {
+      "live": 30,
+      "self": 33
+    },
+    "by_port": {
+      "ENCRYPTED": 2,
+      "NODEINFO_APP": 7,
+      "POSITION_APP": 12,
+      "TELEMETRY_APP": 42
+    },
+    "by_port_and_kind": {
+      "ENCRYPTED": {
+        "live": 2
+      },
+      "NODEINFO_APP": {
+        "live": 7
+      },
+      "POSITION_APP": {
+        "live": 12
+      },
+      "TELEMETRY_APP": {
+        "live": 9,
+        "self": 33
+      }
+    }
+  },
+  "senders": {
+    "count": 25,
+    "by_id_scheme": {
+      "mac": 10,
+      "crc32": 0,
+      "neither": 0,
+      "no_user": 15
+    },
+    "mac_zeroed": 0
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 31,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 2
+    }
+  },
+  "replay_burst": {
+    "count": 0,
+    "within_s_of_start": 0,
+    "hop_start_values": [],
+    "stable_ids_shared_with": []
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 12,
+    "nodedb_positions_rounded": 58
+  },
+  "notes": "Seeed Xiao nRF52840 kit on a desk, indoors, local public mesh; 2.7.26 flashed 12:40-12:47 local, config, key and 80-node NodeDB kept. Capture 12:49-13:19 local over serial. hop_limit was still the factory 6 (changed to 3 at 13:33, after this capture). Hears about 2 packets a minute. hopStart 3-7 on over-the-air packets; None on the radio's own. No replay burst on 2.7. Self telemetry to the client: deviceMetrics and localStats."
+}
