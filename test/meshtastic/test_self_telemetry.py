@@ -144,7 +144,8 @@ class TestBotIntegration(unittest.TestCase):
         self.bot.node_info = MagicMock()
         with patch("src.bot.time.sleep", side_effect=KeyboardInterrupt):
             self.bot.start_scheduler()
-        self.assertEqual(len(schedule.get_jobs()), 1)  # only the daily reset
+        # the daily reset and the hourly feeder-URL probe; no telemetry job
+        self.assertEqual(len(schedule.get_jobs()), 2)
 
     def test_job_scheduled_at_interval_when_enabled(self):
         self.bot.self_telemetry = SelfTelemetryThrottle(120)

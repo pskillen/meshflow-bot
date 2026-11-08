@@ -30,7 +30,7 @@ logging.getLogger("mesh_interface").setLevel(logging.WARNING)
 from src.api.packet_serializer import PacketSerializer
 
 # Now we can import the rest of our local files
-from src.api.StorageAPI import StorageAPIWrapper
+from src.api.StorageAPI import StorageAPIWrapper, parse_feeder_urls_mode
 from src.bot import MeshflowBot
 from src.meshcore.radio import MeshCoreRadio
 from src.meshcore.serializers import MeshCorePacketSerializer
@@ -65,6 +65,13 @@ STORAGE_API_VERSION = int(os.getenv("STORAGE_API_VERSION", 1))
 STORAGE_API_2_ROOT = os.getenv("STORAGE_API_2_ROOT")
 STORAGE_API_2_TOKEN = os.getenv("STORAGE_API_2_TOKEN") or STORAGE_API_TOKEN
 STORAGE_API_2_VERSION = int(os.getenv("STORAGE_API_2_VERSION", 1))
+# auto (probe /api/v4/feeder/identity/), on, or off; Meshtastic only
+STORAGE_API_FEEDER_URLS = parse_feeder_urls_mode(
+    os.getenv("STORAGE_API_FEEDER_URLS"), "STORAGE_API_FEEDER_URLS"
+)
+STORAGE_API_2_FEEDER_URLS = parse_feeder_urls_mode(
+    os.getenv("STORAGE_API_2_FEEDER_URLS"), "STORAGE_API_2_FEEDER_URLS"
+)
 MESHFLOW_WS_URL = os.getenv("MESHFLOW_WS_URL")
 
 REPLAYED_PACKETS = parse_replay_mode(os.getenv("REPLAYED_PACKETS"))
@@ -130,18 +137,24 @@ def main() -> None:
     node_info = InMemoryNodeInfoStore()
     bot.node_info = node_info
 
+    primary_api: StorageAPIWrapper | None = None
     if STORAGE_API_ROOT and RADIO_PROTOCOL == "meshtastic":
-        bot.storage_apis.append(
-            StorageAPIWrapper(
-                STORAGE_API_ROOT,
-                STORAGE_API_TOKEN,
-                STORAGE_API_VERSION,
-                failed_packets_dir,
-                serializer=serializer,
-                local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
-                meshtastic_identity_provider=lambda: radio.identity,
-            )
+        primary_api = StorageAPIWrapper(
+            STORAGE_API_ROOT,
+            STORAGE_API_TOKEN,
+            STORAGE_API_VERSION,
+            failed_packets_dir,
+            serializer=serializer,
+            local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
+            meshtastic_identity_provider=lambda: radio.identity,
+            feeder_urls_mode=STORAGE_API_FEEDER_URLS,
+            # The WebSocket follows the primary destination: resubscribe
+            # (scoped or by node number) when its URL generation changes.
+            on_feeder_urls_change=lambda _v4: (
+                bot.ws_client.reconnect() if bot.ws_client else None
+            ),
         )
+        bot.storage_apis.append(primary_api)
     elif STORAGE_API_ROOT and RADIO_PROTOCOL == "meshcore" and MESHCORE_UPLOAD_ENABLED:
         bot.storage_apis.append(
             StorageAPIWrapper(
@@ -173,6 +186,7 @@ def main() -> None:
                 serializer=serializer,
                 local_meshtastic_nodenum_provider=lambda: bot.my_nodenum,
                 meshtastic_identity_provider=lambda: radio.identity,
+                feeder_urls_mode=STORAGE_API_2_FEEDER_URLS,
             )
         )
     elif (
@@ -234,6 +248,9 @@ def main() -> None:
             ),
             feeder_node_id_provider=(
                 (lambda: bot.my_nodenum) if RADIO_PROTOCOL == "meshtastic" else None
+            ),
+            feeder_scoped_provider=(
+                (lambda: primary_api.uses_v4) if primary_api is not None else None
             ),
         )
 
