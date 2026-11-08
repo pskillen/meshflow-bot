@@ -41,8 +41,11 @@ class TestClassifier(unittest.TestCase):
         # Every non-self record without an RSSI is a replay; the few with one
         # are live receptions that arrived mixed into the burst.
         replayed = [p for p in others if is_replayed(p, SELF_NUM)]
-        self.assertEqual(len(replayed), len([p for p in others if "rxRssi" not in p]))
-        self.assertGreaterEqual(len(replayed), 70)
+        self.assertEqual(len(replayed), 78)
+        live_rssi = [p for p in others if "rxRssi" in p]
+        self.assertEqual(len(live_rssi), 5)
+        for p in live_rssi:
+            self.assertFalse(is_replayed(p, SELF_NUM), p)
         for p in replayed:
             self.assertNotIn("rxRssi", p)
             self.assertEqual(p.get("priority"), "BACKGROUND")
@@ -53,6 +56,29 @@ class TestClassifier(unittest.TestCase):
         for p in live:
             self.assertIn("rxRssi", p)
             self.assertFalse(is_replayed(p, SELF_NUM), p)
+
+    def test_mqtt_downlink_without_rssi_is_not_replayed(self):
+        base = {"from": 1, "id": 2, "decoded": {"portnum": "TEXT_MESSAGE_APP"}}
+        self.assertTrue(is_replayed(base, SELF_NUM))
+        self.assertFalse(is_replayed({**base, "viaMqtt": True}, SELF_NUM))
+        self.assertFalse(
+            is_replayed({**base, "transportMechanism": "TRANSPORT_MQTT"}, SELF_NUM)
+        )
+        event = packet_to_incoming(
+            {**base, "viaMqtt": True}, local_node_id="!e0a76739", local_nodenum=SELF_NUM
+        )
+        self.assertFalse(event.replayed)
+
+    def test_summary_logs_once_per_connect(self):
+        summary = ReplaySummary("drop", clock=lambda: 5.0, use_timer=False)
+        summary.start_connect()
+        summary.record()
+        self.assertIsNotNone(summary.flush())
+        summary.record()
+        self.assertIsNone(summary.flush())
+        summary.start_connect()
+        summary.record()
+        self.assertIsNotNone(summary.flush())
 
     def test_unknown_local_nodenum_never_classifies(self):
         p = {"from": 1, "id": 2}

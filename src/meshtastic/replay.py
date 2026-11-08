@@ -4,10 +4,11 @@ After ``config_complete_id`` a 2.8 radio sends the client one synthetic
 POSITION_APP, TELEMETRY_APP and NODE_STATUS_APP packet per NodeDB node, built
 from stored history (``rx_time`` = the node's ``last_heard``). They look like
 received packets but were not received now. The 2.8 proto marks them by
-leaving ``rx_rssi`` unset; real LoRa receptions always carry a negative RSSI.
+leaving ``rx_rssi`` unset; real LoRa receptions always carry a negative RSSI (MQTT-downlinked packets
+have none either, so they are excluded via ``viaMqtt``/``transportMechanism``).
 
-Detection rule (lib 2.7.11 dict): ``from`` is not our node number and the dict
-has no ``rxRssi`` key. A 2.8 library exposes ``has_rx_rssi`` explicitly; swap
+Detection rule (lib 2.7.11 dict): ``from`` is not our node number, the packet
+did not arrive via MQTT and the dict has no ``rxRssi`` key. A 2.8 library exposes ``has_rx_rssi`` explicitly; swap
 :func:`_has_rx_rssi` for that and nothing else changes.
 
 ``REPLAYED_PACKETS`` = ``drop`` (default) | ``flag`` | ``pass`` decides what the
@@ -56,14 +57,24 @@ def _has_rx_rssi(packet: dict) -> bool:
     return "rxRssi" in packet
 
 
+def _via_mqtt(packet: dict) -> bool:
+    # MQTT-downlinked packets are live but, like replays, carry no RSSI.
+    if packet.get("viaMqtt"):
+        return True
+    return "MQTT" in str(packet.get("transportMechanism") or "").upper()
+
+
 def is_replayed(packet: dict, local_nodenum: Optional[int]) -> bool:
     """True if *packet* is a connect-time replay rather than a live reception.
 
-    Our own packets (no RSSI either) are never replays. With the local node
+    Our own packets and MQTT-downlinked packets (no RSSI either) are never
+    replays. With the local node
     number unknown nothing is classified as a replay."""
     if local_nodenum is None or not isinstance(packet, dict):
         return False
     if packet.get("from") == local_nodenum:
+        return False
+    if _via_mqtt(packet):
         return False
     if _has_rx_rssi(packet):
         return False
@@ -102,10 +113,12 @@ class ReplaySummary:
         self._last_at: Optional[float] = None
         self._count = 0
         self._timer: Optional[threading.Timer] = None
+        self._logged = False
 
     def start_connect(self) -> None:
         self.flush()
         with self._lock:
+            self._logged = False
             self._connected_at = self._clock()
 
     def record(self) -> None:
@@ -137,6 +150,10 @@ class ReplaySummary:
             window = (self._last_at or 0) - (self._connected_at or 0)
             count, self._count = self._count, 0
             self._last_at = None
+            if self._logged:
+                # Late stragglers after the line: one line per connect.
+                return None
+            self._logged = True
         verb = {MODE_DROP: "dropped", MODE_FLAG: "flagged"}.get(self.mode, "passed")
         line = f"replayed packets: {count} {verb} in the first {window:.0f} s"
         logger.info(line)
