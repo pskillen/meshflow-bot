@@ -60,6 +60,48 @@ def test_reconnect_closes_live_connection_so_loop_rebuilds_endpoint():
     assert client._get_ws_endpoint().endswith("feeder_node_id=2")
 
 
+def test_ws_endpoint_feeder_scoped_when_primary_is_v4():
+    state = {"v4": True}
+    client = MeshflowWSClient(
+        ws_url="ws://localhost:8000",
+        api_key="test-key",
+        on_traceroute=lambda _target: None,
+        feeder_node_id_provider=lambda: 1127973616,
+        feeder_scoped_provider=lambda: state["v4"],
+    )
+    assert (
+        client._get_ws_endpoint()
+        == "ws://localhost:8000/ws/nodes/?api_key=test-key&feeder_scoped=1"
+    )
+    state["v4"] = False
+    assert (
+        client._get_ws_endpoint()
+        == "ws://localhost:8000/ws/nodes/?api_key=test-key&feeder_node_id=1127973616"
+    )
+
+
+def test_primary_mode_change_reconnects_the_ws_client():
+    from unittest.mock import MagicMock, patch
+
+    from src.api.StorageAPI import StorageAPIWrapper
+    from src.meshtastic.serializers import MeshtasticPacketSerializer
+
+    ws = MagicMock()
+    api = StorageAPIWrapper(
+        "http://api.test",
+        token="k",
+        api_version=3,
+        serializer=MeshtasticPacketSerializer(),
+        local_meshtastic_nodenum_provider=lambda: 1,
+        on_feeder_urls_change=lambda _v4: ws.reconnect(),
+    )
+    with patch("requests.get", return_value=MagicMock()):
+        api.probe_feeder_urls()
+        api.probe_feeder_urls()  # unchanged: no second reconnect
+    ws.reconnect.assert_called_once()
+    assert api.uses_v4
+
+
 def test_ws_endpoint_api_key_only_when_no_providers():
     client = MeshflowWSClient(
         ws_url="ws://localhost:8000",
