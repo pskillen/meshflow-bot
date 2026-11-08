@@ -25,7 +25,12 @@ src/
 docs/
 ├── MESHTASTIC.md           # Meshtastic env + behaviour
 ├── MESHCORE.md             # MeshCore capture-only (Phase 0.3)
-└── packets/                # Sample Meshtastic JSON fixtures
+├── meshtastic_packets/     # Sample Meshtastic JSON; 2.8/ = scrubbed hardware-session captures + subset.json
+└── meshcore_packets/       # MeshCore capture bundle
+
+tools/
+├── meshtastic_capture/     # capture.py, identity.py (radio -> raw capture; never commit raw output)
+└── meshtastic_fixtures/    # build_fixtures.py (scrub + label), check_fixtures.py, load.py (stdlib)
 
 test/
 deploy/

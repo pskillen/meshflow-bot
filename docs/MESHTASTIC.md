@@ -100,7 +100,27 @@ Code: [`src/meshtastic/self_telemetry.py`](../src/meshtastic/self_telemetry.py).
 
 ## Sample packet JSON
 
-Example Meshtastic-shaped packets for tests/docs live under [`docs/packets/`](packets/) (encrypted, nodeinfo, position, routing, telemetry, text).
+Example Meshtastic-shaped packets for tests/docs live under [`docs/meshtastic_packets/`](meshtastic_packets/) (encrypted, nodeinfo, position, routing, telemetry, text).
+
+## Packet fixtures
+
+Real radio output from a 2.7 / 2.8 hardware session (scrubbed: every position rounded to 0.1 degrees) lives in
+[`docs/meshtastic_packets/2.8/`](meshtastic_packets/2.8/README.md): four captures, each with a manifest, a labelled
+`subset.json` that meshflow-api's tests read by key, identity snapshots for the crc32 node-number checks, and the list of
+captures still pending. Every record is labelled `self`, `live` or `replay` (the 2.8 connect replay).
+
+- [`tools/meshtastic_capture/`](../tools/meshtastic_capture/): `capture.py` (lossless serial/TCP capture) and
+  `identity.py` (public identity snapshot). Never commit their raw output.
+- [`tools/meshtastic_fixtures/`](../tools/meshtastic_fixtures/): `build_fixtures.py` (raw capture or a bot dump tree to a
+  scrubbed capture directory), `check_fixtures.py` (verifies the committed tree) and `load.py` (stdlib-only loader).
+
+```bash
+python tools/meshtastic_fixtures/check_fixtures.py docs/meshtastic_packets/2.8
+pytest test/fixtures -q
+```
+
+To add a capture, dump with `DUMP_PACKETS_PORTNUMS=*` and `DUMP_NODEDB=true`, then run `build_fixtures.py` on the
+`DATA_DIR`; the README there has the steps.
 
 ## Running
 
