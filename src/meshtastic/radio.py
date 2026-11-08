@@ -17,6 +17,7 @@ from typing import Optional
 from meshtastic import BROADCAST_ADDR
 from pubsub import pub
 
+from src.meshtastic.replay import DEFAULT_MODE, ReplaySummary
 from src.meshtastic.tcp_interface import (
     AutoReconnectTcpInterface,
     SupportsMessageReactionInterface,
@@ -47,7 +48,7 @@ IDENTITY_CHECK_INTERVAL_SECONDS = 60.0
 class MeshtasticRadio(RadioInterface):
     """RadioInterface backed by the Meshtastic Python library over TCP."""
 
-    def __init__(self, hostname: str):
+    def __init__(self, hostname: str, replay_mode: str = DEFAULT_MODE):
         self._hostname = hostname
         self._handlers = RadioHandlers()
         self._interface: Optional[SupportsMessageReactionInterface] = None
@@ -60,6 +61,7 @@ class MeshtasticRadio(RadioInterface):
         self._identity = FeederIdentity()
         self._identity_lock = threading.Lock()
         self._identity_timer: Optional[threading.Timer] = None
+        self._replay_summary = ReplaySummary(replay_mode, counter=self._error_counter)
 
     # --- RadioInterface ---------------------------------------------------
 
@@ -197,6 +199,7 @@ class MeshtasticRadio(RadioInterface):
         with self._identity_lock:
             self._identity = read_identity(interface)
         logger.info("MeshtasticRadio: connection established (%s)", self._local_id)
+        self._replay_summary.start_connect()
         if previous_nodenum is not None and previous_nodenum != self._local_nodenum:
             self._log_nodenum_change(previous_nodenum, self._local_nodenum)
             self._emit_identity_changed(previous_nodenum, self._local_nodenum)
@@ -220,7 +223,13 @@ class MeshtasticRadio(RadioInterface):
             )
 
     def _on_receive(self, packet, interface):
-        event = packet_to_incoming(packet, local_node_id=self._local_id)
+        event = packet_to_incoming(
+            packet,
+            local_node_id=self._local_id,
+            local_nodenum=self._local_nodenum,
+        )
+        if event.replayed:
+            self._replay_summary.record()
         if self._handlers.on_packet:
             call_safely(
                 "radio.on_packet",
