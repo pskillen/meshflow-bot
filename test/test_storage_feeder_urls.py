@@ -1,6 +1,7 @@
 """v4 feeder-scoped URLs: probe, URL mapping, 404 fallback, per-destination mode."""
 
 import logging
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -329,4 +330,288 @@ def test_legacy_bot_version_path_unchanged_when_not_v4():
     with patch("requests.put", return_value=ok()) as put:
         wrapper.report_bot_version()
     assert put.call_args.args[0].endswith(f"/api/packets/{NODENUM}/bot-version/")
+    wrapper.shutdown()
+
+
+# --- the first NodeDB upload waits for the v4 probe ---------------------
+
+
+def test_first_node_upload_probes_first_and_goes_v4():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert get.call_count == 1
+    assert post.call_args.args[0] == "http://api.test/api/v4/feeder/meshtastic/nodes/"
+    wrapper.shutdown()
+
+
+def test_first_node_upload_goes_legacy_when_probe_says_404():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=error(404)), patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert post.call_args.args[0] == f"http://api.test/api/v3/packets/{NODENUM}/nodes/"
+    wrapper.shutdown()
+
+
+def test_probe_runs_only_once_across_uploads():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.post", return_value=ok()
+    ):
+        wrapper.store_node(a_node())
+        wrapper.store_node(a_node())
+        wrapper.store_raw_packet(PACKET)
+    assert get.call_count == 1
+    wrapper.shutdown()
+
+
+@pytest.mark.parametrize("mode", ["on", "off"])
+def test_on_and_off_do_not_probe_for_an_upload(mode):
+    wrapper = make_wrapper(mode=mode)
+    with patch("requests.get") as get, patch("requests.post", return_value=ok()):
+        wrapper.store_node(a_node())
+    get.assert_not_called()
+    wrapper.shutdown()
+
+
+def test_node_is_held_while_api_unreachable_then_sent_on_v4_after_a_probe():
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    with patch("requests.get", side_effect=RequestsConnectionError("down")), patch(
+        "requests.post"
+    ) as post:
+        assert wrapper.store_node(a_node()) is None
+    post.assert_not_called()
+    assert not wrapper.uses_v4
+    sent = []
+    with patch("requests.get", return_value=ok()), patch(
+        "requests.post", side_effect=lambda url, **kw: sent.append(url) or ok()
+    ):
+        now[0] += 3600
+        wrapper.probe_feeder_urls()
+        for thread in threading.enumerate():
+            if thread.name == "held-node-sync":
+                thread.join(5)
+    assert sent == ["http://api.test/api/v4/feeder/meshtastic/nodes/"]
+    wrapper.shutdown()
+
+
+def test_unreachable_probe_is_not_repeated_on_every_upload():
+    wrapper = make_wrapper()
+    with patch("requests.get", side_effect=RequestsConnectionError("down")) as get:
+        wrapper.store_node(a_node())
+        wrapper.store_node(a_node())
+    assert get.call_count == 1
+    wrapper.shutdown()
+
+
+def join_held_sync():
+    for thread in threading.enumerate():
+        if thread.name == "held-node-sync":
+            thread.join(5)
+
+
+def release_with(wrapper, now, response):
+    """Advance past the probe throttle, probe with ``response`` and collect the
+    URLs the held nodes were sent to."""
+    sent = []
+    with patch("requests.get", return_value=response), patch(
+        "requests.post", side_effect=lambda url, **kw: sent.append(url) or ok()
+    ):
+        now[0] += 3600
+        wrapper.probe_feeder_urls()
+        join_held_sync()
+    return sent
+
+
+V4_NODES = "http://api.test/api/v4/feeder/meshtastic/nodes/"
+LEGACY_NODES = f"http://api.test/api/v3/packets/{NODENUM}/nodes/"
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 408, 429])
+def test_a_probe_answered_5xx_408_or_429_holds_nodes_then_sends_v4(status):
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    with patch("requests.get", return_value=error(status)), patch(
+        "requests.post"
+    ) as post:
+        assert wrapper.store_node(a_node()) is None
+    post.assert_not_called()
+    assert not wrapper._probe_decided
+    assert release_with(wrapper, now, ok()) == [V4_NODES]
+    assert wrapper.uses_v4
+    wrapper.shutdown()
+
+
+@pytest.mark.parametrize("status", [401, 403, 400])
+def test_a_probe_answered_other_4xx_is_decided_and_does_not_hold(status):
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=error(status)), patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert post.call_args.args[0] == LEGACY_NODES
+    wrapper.shutdown()
+
+
+def test_a_probe_answering_200_without_the_identity_does_not_hold_uploads():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok({"html": "proxy"})), patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert post.call_args.args[0] == LEGACY_NODES
+    wrapper.shutdown()
+
+
+def test_probe_is_not_decided_until_uses_v4_is_set():
+    """A concurrent upload must not see "decided" while v4 is still unset."""
+    wrapper = make_wrapper()
+    in_json, release = threading.Event(), threading.Event()
+    response = ok()
+
+    def slow_json():
+        in_json.set()
+        release.wait(5)
+        return {"internal_id": 7}
+
+    response.json.side_effect = slow_json
+    results = {}
+    with patch("requests.get", return_value=response), patch(
+        "requests.post", side_effect=lambda url, **kw: results.setdefault("url", url) and ok()
+    ):
+        first = threading.Thread(target=wrapper.probe_feeder_urls)
+        first.start()
+        assert in_json.wait(5)
+        second = threading.Thread(target=lambda: wrapper.store_node(a_node()))
+        second.start()
+        second.join(0.3)
+        assert "url" not in results  # still waiting on the probe, not on legacy
+        release.set()
+        first.join(5)
+        second.join(5)
+    assert results["url"] == V4_NODES
+    wrapper.shutdown()
+
+
+def test_unreachable_probe_is_throttled_from_the_probe_end():
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+
+    def slow_failure(*args, **kwargs):
+        now[0] += 30  # a read timeout: the probe itself takes the throttle time
+        raise ReadTimeout("slow")
+
+    with patch("requests.get", side_effect=slow_failure) as get:
+        for _ in range(5):
+            wrapper.store_node(a_node())
+    assert get.call_count == 1
+    wrapper.shutdown()
+
+
+def test_node_held_after_the_releasing_probe_is_not_stranded():
+    wrapper = make_wrapper()
+    sent = []
+    # The probe decides (nothing held yet) between the caller's check and insert.
+    calls = iter([False])
+
+    def ensure():
+        if next(calls, True) is False:
+            wrapper._probe_decided = True
+            return False
+        return True
+
+    wrapper._ensure_probed = ensure
+    with patch("requests.post", side_effect=lambda url, **kw: sent.append(url) or ok()):
+        assert wrapper.store_node(a_node()) is None
+        join_held_sync()
+    assert sent == [LEGACY_NODES]
+    assert not wrapper._held_nodes
+    wrapper.shutdown()
+
+
+def test_first_raw_packet_upload_probes_first():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_raw_packet(PACKET)
+    assert get.call_count == 1
+    assert "/api/v4/feeder/" in post.call_args.args[0]
+    wrapper.shutdown()
+
+
+def test_first_bot_version_report_probes_first():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.put", return_value=ok()
+    ) as put:
+        wrapper.report_bot_version()
+    assert get.call_count == 1
+    assert put.call_args.args[0] == "http://api.test/api/v4/feeder/bot-version/"
+    wrapper.shutdown()
+
+
+def test_concurrent_first_uploads_share_one_probe():
+    wrapper = make_wrapper()
+    gate = threading.Event()
+    gets = []
+
+    def slow_get(*args, **kwargs):
+        gets.append(1)
+        gate.wait(5)
+        return ok()
+
+    urls = []
+    with patch("requests.get", side_effect=slow_get), patch(
+        "requests.post", side_effect=lambda url, **kw: urls.append(url) or ok()
+    ):
+        threads = [
+            threading.Thread(target=lambda: wrapper.store_node(a_node()))
+            for _ in range(6)
+        ]
+        for thread in threads:
+            thread.start()
+        threading.Event().wait(0.3)
+        gate.set()
+        for thread in threads:
+            thread.join(5)
+    assert len(gets) == 1
+    assert urls == [V4_NODES] * 6
+    wrapper.shutdown()
+
+
+def test_held_node_is_sent_on_legacy_once_when_the_probe_says_404():
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    with patch("requests.get", side_effect=RequestsConnectionError("down")):
+        wrapper.store_node(a_node())
+    assert release_with(wrapper, now, error(404)) == [LEGACY_NODES]
+    wrapper.shutdown()
+
+
+def test_a_second_release_sends_nothing():
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    with patch("requests.get", side_effect=RequestsConnectionError("down")):
+        wrapper.store_node(a_node())
+    assert release_with(wrapper, now, ok()) == [V4_NODES]
+    assert release_with(wrapper, now, ok()) == []
+    wrapper.shutdown()
+
+
+def test_identity_rejection_names_the_local_nodenum_when_identity_is_empty(caplog):
+    empty = MagicMock()
+    empty.node_num = None
+    wrapper = make_wrapper(api_version=2, mode="off")
+    wrapper._meshtastic_identity_provider = lambda: empty
+    with patch("requests.post", return_value=error(403)), caplog.at_level(
+        logging.ERROR
+    ):
+        wrapper.store_node(a_node())
+    assert f"reporting node number {NODENUM}" in caplog.text
     wrapper.shutdown()
