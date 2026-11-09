@@ -63,9 +63,13 @@ class TestRealSignedSample(unittest.TestCase):
         self.assertFalse(fields.signature)
 
     def test_signed_record_serialises_signed_with_signature(self):
+        packet = _packet(self.signed)
+        # Strip the dict's own keys so the shim, not the "dict wins" exit, supplies them.
+        packet.pop("xeddsaSigned", None)
+        packet["decoded"].pop("xeddsaSignature", None)
         out = MeshtasticPacketSerializer(
             firmware_version=lambda: FW_2_8
-        ).serialise_raw_packet(_packet(self.signed))
+        ).serialise_raw_packet(packet)
         self.assertIs(out["xeddsaSigned"], True)
         sig = read_signing_fields(_raw(self.signed)).signature
         self.assertEqual(
