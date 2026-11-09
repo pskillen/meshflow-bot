@@ -162,6 +162,15 @@ python tools/meshtastic_fixtures/check_fixtures.py docs/meshtastic_packets/2.8
 pytest test/fixtures -q
 ```
 
+### Contract job
+
+Every pull request runs a `Contract` job that calls `pskillen/meshflow-api/.github/workflows/contract.yaml@main` with
+the PR head SHA. It replays `subset.json` through this repo's `MeshtasticPacketSerializer` and `is_replayed`, then
+through meshflow-api's ingest, and compares with the API's goldens (the next API, `main`, is used). A failure means the
+bot output no longer matches the API goldens: revert the bot change, or land the API side first (accept old and new
+shapes, update goldens), then the bot, then the API's `.github/contract/bot-ref` pin bump. Changing
+`docs/meshtastic_packets/2.8/` needs matching API goldens in the same sequence.
+
 To add a capture, dump with `DUMP_PACKETS_PORTNUMS=*` and `DUMP_NODEDB=true`, then run `build_fixtures.py` on the
 `DATA_DIR`; the README there has the steps.
 
