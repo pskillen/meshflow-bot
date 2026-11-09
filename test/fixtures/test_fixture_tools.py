@@ -153,6 +153,25 @@ class TestScrub(unittest.TestCase):
         self.assertEqual(rules.secret_keys({"publicKey": 1, "psk_like": 0}), ["psk_like"])
 
 
+class TestTransportLabel(unittest.TestCase):
+    def _labels(self, transport, **kw):
+        packet = {"from": 7, "decoded": {"portnum": "POSITION_APP"}, "rxTime": 1}
+        if transport:
+            packet["transportMechanism"] = transport
+        record = {"packet": packet, "kind": "live"}
+        return rules.labels_for(record, feeder_fw="2.7.20", scheme="mac", **kw)
+
+    def test_wifi_rows_are_labelled_lora_and_absent_are_not(self):
+        self.assertIn("transport:udp-multicast", self._labels("TRANSPORT_MULTICAST_UDP"))
+        self.assertFalse([x for x in self._labels("TRANSPORT_LORA") if x.startswith("transport:")])
+        self.assertFalse([x for x in self._labels(None) if x.startswith("transport:")])
+
+    def test_frozen_rows_never_get_it(self):
+        self.assertFalse(
+            [x for x in self._labels("TRANSPORT_MULTICAST_UDP", transport_label=False) if x.startswith("transport:")]
+        )
+
+
 class TestIdentityScheme(unittest.TestCase):
     def test_schemes(self):
         import zlib
@@ -281,6 +300,48 @@ class TestBuildAndCheck(unittest.TestCase):
             self.assertIn("capture.jsonl:2", joined)
             self.assertIn("replay rule", joined)
             self.assertIn("secret-looking keys", joined)
+
+    @staticmethod
+    def _text_last_received(sender: int) -> dict:
+        data = {"portnum": "TEXT_MESSAGE_APP", "payload": "c3ludGhldGlj", "text": "synthetic"}
+        return {"from": sender, "to": 4294967295, "id": 41, "decoded": data, "raw": {"from": sender, "decoded": dict(data)}}
+
+    def test_check_rejects_third_party_text_in_a_nodedb(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            root = self._root(tmp)
+            out = root / "captures" / "t-1"
+            build_fixtures.build(self._args(self._fx1(tmp), out))
+            self.assertEqual(check_fixtures.check_tree(root)[1], [])
+            path = out / "nodedb.json"
+            nodedb = json.loads(path.read_text())
+            nodedb["!00000007"]["lastReceived"] = self._text_last_received(7)
+            path.write_text(json.dumps(nodedb))
+            _, problems = check_fixtures.check_tree(root)
+            self.assertTrue(any("nodedb.json" in p and "text message" in p for p in problems), problems)
+            # the feeder's own text in its NodeDB is allowed
+            nodedb["!00000007"]["lastReceived"] = self._text_last_received(FEEDER)
+            path.write_text(json.dumps(nodedb))
+            _, problems = check_fixtures.check_tree(root)
+            self.assertFalse(any("text message" in p for p in problems), problems)
+
+    def test_build_drops_third_party_text_from_a_nodedb_and_keeps_own(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            root = self._root(tmp)
+            src = self._fx1(tmp)
+            stem = tmp / "cap_nodedb.json"
+            nodedb = json.loads(stem.read_text())
+            nodedb["!00000007"]["lastReceived"] = self._text_last_received(7)
+            nodedb["!00000008"] = {"num": 8, "lastReceived": self._text_last_received(FEEDER)}
+            stem.write_text(json.dumps(nodedb))
+            out = root / "captures" / "t-1"
+            build_fixtures.build(self._args(src, out))
+            built = json.loads((out / "nodedb.json").read_text())
+            self.assertNotIn("lastReceived", built["!00000007"])
+            self.assertIn("lastReceived", built["!00000008"])
+            self.assertNotIn("c3ludGhldGlj", json.dumps(built["!00000007"]))
+            self.assertEqual(check_fixtures.check_tree(root)[1], [])
 
     def test_bot_dump_input_orders_by_captured_at_and_labels_replay_folder(self):
         with tempfile.TemporaryDirectory() as t:

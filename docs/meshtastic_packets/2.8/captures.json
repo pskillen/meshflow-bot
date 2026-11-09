@@ -3,9 +3,12 @@
   {"id": "2026-11-08-xiao-2.8.2", "short": "x28", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2", "purpose": "2.8 feeder: connect replay burst, then live senders, 83-node NodeDB"},
   {"id": "2026-11-08-xiao-2.8.2-hop4", "short": "x28h4", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2-hop4", "purpose": "2.8 feeder at hop_limit 4: replay burst repeats, hopStart follows hop_limit, stable replay ids"},
   {"id": "2026-11-08-xiao-2.8.2-faec6f41", "short": "x28f", "status": "captured", "path": "captures/2026-11-08-xiao-2.8.2-faec6f41", "purpose": "re-keyed 2.8 feeder with an empty NodeDB: no replay, no clock, fromId mostly null"},
-  {"id": "pdyt-2.8-signing", "status": "pending", "purpose": "2.8 feeder (PDYt) hearing a BALANCED sender: xeddsaSigned in raw_b64"},
-  {"id": "pdyb-2.7-x-2.8-sender", "status": "pending", "purpose": "2.7 feeder x 2.8 sender (the Xiao as sender)"},
-  {"id": "pdyt-2.8-x-2.7-sender", "status": "pending", "purpose": "2.8 feeder x 2.7 sender, bot dump with replay/ folder"},
+  {"id": "2026-11-09-pdyt-2.7.20", "short": "p27", "status": "captured", "path": "captures/2026-11-09-pdyt-2.7.20", "slot": "pdyt-2.7-baseline", "purpose": "2.7 feeder on a second radio (Heltec Wireless Paper, ESP32-S3): live senders, two encrypted packets, one STORE_FORWARD, no replay. The 13 non-self packets came over wifi (UDP multicast), not LoRa, and carry no RSSI/SNR: not a 2.7 radio-metrics reference"},
+  {"id": "2026-11-09-pdyt-2.8.2-traceroute", "short": "p28t", "status": "captured", "path": "captures/2026-11-09-pdyt-2.8.2-traceroute", "slot": "pdyt-2.8-xiao-traceroute", "purpose": "2.8 ESP32 feeder x the Xiao (2.8): TRACEROUTE, ROUTING, POSITION; replay burst over serial"},
+  {"id": "2026-11-09-pdyt-2.8.2-signed", "short": "p28s", "status": "captured", "path": "captures/2026-11-09-pdyt-2.8.2-signed", "slot": "pdyt-2.8-signing", "purpose": "2.8 feeder (PDYt) hearing a BALANCED sender: one NODEINFO_APP with xeddsaSigned true"},
+  {"id": "2026-11-09-pdyt-2.8.2-passive", "short": "p28", "status": "captured", "path": "captures/2026-11-09-pdyt-2.8.2-passive", "slot": "pdyt-2.8-x-2.7-sender", "purpose": "2.8 feeder x live 2.7 and 2.8 senders over 60 min, with a 32-packet connect replay burst (read over serial, not a bot dump)"},
+  {"id": "2026-11-09-pdyt-2.8.2-dm", "short": "p28d", "status": "captured", "path": "captures/2026-11-09-pdyt-2.8.2-dm", "slot": "new-ports (TEXT_MESSAGE_APP, PAGING_APP)", "purpose": "pkiEncrypted text DM and PAGING_APP (port 38) DM from the Xiao to the 2.8 feeder"},
+  {"id": "pdyb-2.7-x-2.8-sender", "status": "pending", "purpose": "2.7 feeder x 2.8 sender: needs a 2.7 feeder that is not prod's PDYb (the 2.7 baseline here is PDYt, and it heard no crc32 sender)"},
   {"id": "tm-dedup", "status": "pending", "purpose": "Traffic Management position dedup timeline"},
-  {"id": "new-ports", "status": "pending", "purpose": "PAGING_APP / MESH_BEACON_APP / NODE_STATUS_APP, TEXT test traffic"}
+  {"id": "new-ports", "status": "pending", "purpose": "MESH_BEACON_APP / NODE_STATUS_APP (PAGING_APP and TEXT_MESSAGE_APP are covered by the p28d capture)"}
 ]

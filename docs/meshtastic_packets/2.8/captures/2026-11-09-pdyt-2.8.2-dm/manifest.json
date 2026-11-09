@@ -1,0 +1,101 @@
+{
+  "capture_id": "2026-11-09-pdyt-2.8.2-dm",
+  "short": "p28d",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 2304338203,
+    "id": "!8959691b",
+    "firmware": "2.8.2.d5f1619",
+    "hw_model": "HELTEC_WIRELESS_PAPER",
+    "device_state_version": 25,
+    "hop_limit": 7,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "python master 0a18357 (2.8 protos), reports 2.7.11; version not in the capture metadata"
+  },
+  "start": "2026-11-09T20:44:39Z",
+  "end": "2026-11-09T20:47:57Z",
+  "duration_s": 198,
+  "counts": {
+    "total": 63,
+    "by_kind": {
+      "live": 12,
+      "replay": 46,
+      "self": 5
+    },
+    "by_port": {
+      "NODEINFO_APP": 5,
+      "PAGING_APP": 1,
+      "POSITION_APP": 35,
+      "ROUTING_APP": 1,
+      "TELEMETRY_APP": 20,
+      "TEXT_MESSAGE_APP": 1
+    },
+    "by_port_and_kind": {
+      "NODEINFO_APP": {
+        "live": 5
+      },
+      "PAGING_APP": {
+        "live": 1
+      },
+      "POSITION_APP": {
+        "live": 4,
+        "replay": 31
+      },
+      "ROUTING_APP": {
+        "live": 1
+      },
+      "TELEMETRY_APP": {
+        "replay": 15,
+        "self": 5
+      },
+      "TEXT_MESSAGE_APP": {
+        "live": 1
+      }
+    }
+  },
+  "senders": {
+    "count": 43,
+    "by_id_scheme": {
+      "mac": 4,
+      "crc32": 1,
+      "neither": 24,
+      "no_user": 14
+    },
+    "mac_zeroed": 24
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 4,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 1
+    }
+  },
+  "replay_burst": {
+    "count": 46,
+    "within_s_of_start": 0.3,
+    "hop_start_values": [
+      7
+    ],
+    "stable_ids_shared_with": [
+      "2026-11-09-pdyt-2.8.2-passive",
+      "2026-11-09-pdyt-2.8.2-signed",
+      "2026-11-09-pdyt-2.8.2-traceroute"
+    ]
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 34,
+    "nodedb_positions_rounded": 30
+  },
+  "notes": "PDYt on 2.8.2: the Xiao's text DM and PAGING_APP (port 38) DM to PDYt, both pkiEncrypted true and delivered once the Xiao had PDYt's key (the first attempt an hour earlier was NAKed PKI_SEND_FAIL_PUBLIC_KEY). Two third-party texts were dropped by the builder. hop_limit 7 read from the feeder's own packets.",
+  "own_nodes": [
+    "!8959691b",
+    "!faec6f41"
+  ]
+}

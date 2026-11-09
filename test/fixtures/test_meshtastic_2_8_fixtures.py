@@ -69,7 +69,7 @@ class TestCheckerOnCommittedTree(unittest.TestCase):
     def test_check_passes(self):
         ok, problems = check_fixtures.check_tree(ROOT)
         self.assertEqual(problems, [])
-        self.assertEqual(len([line for line in ok if "subset" not in line]), 4)
+        self.assertEqual(len([line for line in ok if "subset" not in line]), 9)
 
     def test_main_exit_code_and_one_ok_line_per_capture(self):
         out = io.StringIO()
@@ -78,14 +78,14 @@ class TestCheckerOnCommittedTree(unittest.TestCase):
         self.assertEqual(code, 0)
         lines = out.getvalue().splitlines()
         self.assertTrue(all(line.startswith("OK ") for line in lines), lines)
-        self.assertEqual(len(lines), 5)
+        self.assertEqual(len(lines), 10)
 
     def test_pending_slots_are_listed_and_have_no_directory(self):
         index = json.loads((ROOT / "captures.json").read_text())
         pending = [e for e in index if e["status"] == "pending"]
         self.assertEqual(
             {e["id"] for e in pending},
-            {"pdyt-2.8-signing", "pdyb-2.7-x-2.8-sender", "pdyt-2.8-x-2.7-sender", "tm-dedup", "new-ports"},
+            {"pdyb-2.7-x-2.8-sender", "tm-dedup", "new-ports"},
         )
         for entry in pending:
             self.assertFalse((ROOT / "captures" / entry["id"]).exists())
@@ -95,8 +95,13 @@ class TestSubset(unittest.TestCase):
     def test_contract_keys_are_all_present_and_unique(self):
         keys = [e["key"] for e in _entries()]
         self.assertEqual(len(keys), len(set(keys)))
-        self.assertEqual(len(CONTRACT_KEYS), 36)
+        # The 36 Xiao rows are frozen (api goldens read them); the PDYt rows are additions.
+        self.assertEqual(len(CONTRACT_KEYS), 55)
         self.assertEqual(set(CONTRACT_KEYS) - set(keys), set())
+        self.assertEqual(
+            [k for k in CONTRACT_KEYS if k.split("-L")[0] in build_fixtures.FROZEN_SHORTS],
+            CONTRACT_KEYS[:36],
+        )
 
     def test_known_facts_behind_the_labels(self):
         by_key = {e["key"]: e for e in _entries()}
@@ -112,6 +117,27 @@ class TestSubset(unittest.TestCase):
         self.assertIn("no-rx-time", by_key["x28f-L1"]["labels"])
         self.assertNotIn("decoded", by_key["x27-L37"]["record"]["packet"])
         self.assertIn("port:ENCRYPTED", by_key["x27-L37"]["labels"])
+        # The Xiao rows never gain the pki-encrypted label (x28h4-L1 is pkiEncrypted).
+        self.assertTrue(by_key["x28h4-L1"]["record"]["packet"]["pkiEncrypted"])
+        self.assertNotIn("pki-encrypted", by_key["x28h4-L1"]["labels"])
+
+    def test_pdyt_rows(self):
+        by_key = {e["key"]: e for e in _entries()}
+        signed = by_key["p28s-L16"]
+        self.assertIs(signed["record"]["packet"]["xeddsaSigned"], True)
+        self.assertIn("signed", signed["labels"])
+        self.assertEqual([k for k, e in by_key.items() if "signed" in e["labels"]], ["p28s-L16"])
+        for key in ("p28d-L55", "p28d-L58"):
+            self.assertIn("pki-encrypted", by_key[key]["labels"])
+            self.assertTrue(by_key[key]["record"]["packet"]["pkiEncrypted"])
+        self.assertEqual(by_key["p28d-L55"]["record"]["packet"]["decoded"]["text"], "fx1 D")
+        self.assertEqual(by_key["p28d-L58"]["port"], "PAGING_APP")
+        self.assertEqual(by_key["p28-L9"]["feeder_num"], 2304338203)
+        self.assertEqual(by_key["p27-L1"]["feeder_num"], 1127973616)
+        self.assertIn("feeder:2.7", by_key["p27-L4"]["labels"])
+        self.assertIn("fake-direct", by_key["p28-L55"]["labels"])
+        for key in ("p28-L8", "p28-L9", "p28-L10"):
+            self.assertIn("sender-id:mac", by_key[key]["labels"])
 
 
 class TestTranslationAndSerialiser(unittest.TestCase):
@@ -222,7 +248,7 @@ class TestClassifier(unittest.TestCase):
                     rec["kind"] == "replay",
                     f"{entry['id']} line {rec['src_line']}",
                 )
-        self.assertEqual(total, 63 + 135 + 89 + 128)
+        self.assertEqual(total, 63 + 135 + 89 + 128 + 24 + 67 + 26 + 156 + 63)
 
 
 class TestIdentityFacts(unittest.TestCase):
@@ -255,6 +281,20 @@ class TestIdentityFacts(unittest.TestCase):
     def test_rekey_prediction_matches(self):
         predicted = (ROOT / "identity" / "rekey_predicted.txt").read_text().strip()
         self.assertEqual(predicted, self._identity("niav_2.8_rekeyed.json")["id"])
+
+    def test_pdyt_update_moves_the_number_and_keeps_the_mac(self):
+        before = self._identity("pdyt_2.7.json")
+        after = self._identity("pdyt_2.8.json")
+        self.assertEqual(before["pubkey_b64"], after["pubkey_b64"])
+        self.assertEqual(self._crc(before), after["num"])
+        self.assertEqual(self._crc(after), after["num"])
+        self.assertNotEqual(self._crc(before), before["num"])
+        self.assertFalse(before["match"])
+        self.assertTrue(after["match"])
+        # The 2.7 number is the last four bytes of the MAC; the MAC survives the update.
+        mac = base64.b64decode(before["macaddr"])
+        self.assertEqual(int.from_bytes(mac[2:], "big"), before["num"])
+        self.assertEqual(after["macaddr"], before["macaddr"])
 
     def test_wild_2_8_sender_matches(self):
         entry = next(e for e in _entries() if e["key"] == "x28-L85")

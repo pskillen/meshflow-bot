@@ -49,6 +49,8 @@ BASE_SCRUB = {"rule": SCRUB_RULE}
 
 # --- the subset (the contract with the api repo's tests) ----------------
 # key, kind, port, telemetry variant, sender, why
+# The Xiao captures' rows are a contract with the api repo: their labels never change.
+FROZEN_SHORTS = frozenset({"x27", "x28", "x28h4", "x28f"})
 SUBSET: list[tuple[str, str, str, Optional[str], str, str]] = [
     ("x27-L1", "self", "TELEMETRY_APP", "deviceMetrics", "!1a83cf89", "2.7 self telemetry (cadence)"),
     ("x27-L27", "self", "TELEMETRY_APP", "localStats", "!1a83cf89", "2.7 self localStats"),
@@ -86,6 +88,25 @@ SUBSET: list[tuple[str, str, str, Optional[str], str, str]] = [
     ("x28f-L12", "live", "NODEINFO_APP", None, "!43596b18", "channel 1"),
     ("x28f-L25", "live", "STORE_FORWARD_APP", None, "!a35ae558", "router heartbeat"),
     ("x28f-L42", "live", "TELEMETRY_APP", "environmentMetrics", "!8ec343c3", ""),
+    ("p27-L1", "self", "TELEMETRY_APP", "deviceMetrics", "!433b82f0", "PDYt (ESP32) 2.7 self telemetry"),
+    ("p27-L4", "live", "POSITION_APP", None, "!f101391a", "2.7 feeder (PDYt) x 2.7 sender, 7/3; arrived over wifi (UDP multicast), not LoRa: no RSSI/SNR"),
+    ("p27-L5", "live", "STORE_FORWARD_APP", None, "!a35ae558", "2.7 feeder, router heartbeat; arrived over wifi (UDP multicast), not LoRa: no RSSI/SNR"),
+    ("p27-L7", "live", "NODEINFO_APP", None, "!433b10bc", "2.7 feeder (PDYt), MAC-id sender; arrived over wifi (UDP multicast), not LoRa: no RSSI/SNR"),
+    ("p27-L12", "live", "TELEMETRY_APP", "deviceMetrics", "!2b6a77f6", "2.7 feeder, 6/4; arrived over wifi (UDP multicast), not LoRa: no RSSI/SNR"),
+    ("p27-L19", "live", "ENCRYPTED", None, "!43596b18", "channel 68, no decoded: bot never uploads; arrived over wifi (UDP multicast), not LoRa: no RSSI/SNR"),
+    ("p28-L1", "self", "TELEMETRY_APP", "deviceMetrics", "!8959691b", "PDYt (ESP32) 2.8 self telemetry"),
+    ("p28-L8", "live", "NODEINFO_APP", None, "!46220165", "2.8 feeder x 2.7 sender (MAC-id)"),
+    ("p28-L9", "live", "TELEMETRY_APP", "deviceMetrics", "!46220165", "2.8 feeder x 2.7 sender"),
+    ("p28-L10", "live", "POSITION_APP", None, "!46220165", "2.8 feeder x 2.7 sender"),
+    ("p28-L38", "replay", "POSITION_APP", None, "!46220165", "replay burst over serial on a 61-node NodeDB, 7/6"),
+    ("p28-L55", "replay", "POSITION_APP", None, "!faec6f41", "replay of the Xiao's own node, hopStart == hopLimit: fake direct"),
+    ("p28-L61", "replay", "TELEMETRY_APP", "deviceMetrics", "!46220165", "replay burst telemetry, 7/6"),
+    ("p28s-L16", "live", "NODEINFO_APP", None, "!faec6f41", "xeddsaSigned true: the Xiao on BALANCED, 2.8 feeder x 2.8 signer"),
+    ("p28s-L2", "live", "NODEINFO_APP", None, "!faec6f41", "2.8 x 2.8, unsigned unicast NodeInfo to the feeder"),
+    ("p28t-L41", "live", "TRACEROUTE_APP", None, "!faec6f41", "2.8 x 2.8 traceroute from the Xiao to the feeder"),
+    ("p28t-L49", "live", "POSITION_APP", None, "!faec6f41", "2.8 x 2.8 position from the Xiao, unicast to the feeder"),
+    ("p28d-L55", "live", "TEXT_MESSAGE_APP", None, "!faec6f41", "text DM between our nodes, pkiEncrypted"),
+    ("p28d-L58", "live", "PAGING_APP", None, "!faec6f41", "port 38 DM, pkiEncrypted"),
 ]
 
 
@@ -178,6 +199,18 @@ def scrub_tree(obj: Any, where: str) -> None:
             d["payload"] = base64.b64encode(
                 scrub_position_bytes(base64.b64decode(d["payload"]), where)
             ).decode("ascii")
+
+
+def drop_foreign_text(obj: Any, own: set[int]) -> int:
+    """In place: remove every text packet from a node outside *own*, however nested.
+
+    A NodeDB entry's ``lastReceived`` can be somebody's text message; the whole
+    ``lastReceived`` goes (text, payload and its ``raw`` copy). Returns how many.
+    """
+    hits = rules.foreign_text_keys(obj, own)
+    for parent, key in hits:
+        parent.pop(key, None)
+    return len(hits)
 
 
 def drop_str_raw(obj: Any) -> Any:
@@ -321,7 +354,8 @@ def build_manifest(
     meta = src.meta
     feeder = meta["feeder_num"]
     derived = rules.recount(records, nodedb, feeder)
-    return {
+    own = sorted(rules.node_id_str(parse_node(v)) for v in (args.own_node or []))
+    manifest = {
         "capture_id": args.capture_id,
         "short": args.short or args.capture_id,
         "source": src.kind,
@@ -349,6 +383,10 @@ def build_manifest(
         "scrub": {**BASE_SCRUB, **derived["scrub_positions"]},
         "notes": args.notes or "",
     }
+    if own:
+        # Test nodes whose text messages may be kept (the checker allows exactly these).
+        manifest["own_nodes"] = own
+    return manifest
 
 
 def link_replay_ids(captures_dir: Path) -> None:
@@ -380,6 +418,7 @@ def build(args: argparse.Namespace) -> None:
     records = build_records(src, own)
 
     nodedb = json.loads(json.dumps(src.nodedb))
+    drop_foreign_text(nodedb, own | {src.meta["feeder_num"]})
     scrub_tree(nodedb, "nodedb")
     for what, obj in (("records", [r["packet"] for r in records]), ("nodedb", nodedb)):
         bad = rules.secret_keys(obj)
@@ -452,6 +491,8 @@ def build_subset(root: Path) -> list[dict]:
                     feeder_fw=feeder["firmware"],
                     scheme=schemes[packet["from"]],
                     stable_replay=(short, packet["id"]) in stable and kind == "replay",
+                    pki_label=short not in FROZEN_SHORTS,
+                    transport_label=short not in FROZEN_SHORTS,
                 ),
                 "feeder_num": feeder["num"],
                 "t_host": rec["t_host"],

@@ -1,0 +1,90 @@
+{
+  "capture_id": "2026-11-09-pdyt-2.8.2-signed",
+  "short": "p28s",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 2304338203,
+    "id": "!8959691b",
+    "firmware": "2.8.2.d5f1619",
+    "hw_model": "HELTEC_WIRELESS_PAPER",
+    "device_state_version": 25,
+    "hop_limit": 7,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "python master 0a18357 (2.8 protos), reports 2.7.11; version not in the capture metadata"
+  },
+  "start": "2026-11-09T18:08:09Z",
+  "end": "2026-11-09T18:15:01Z",
+  "duration_s": 412,
+  "counts": {
+    "total": 26,
+    "by_kind": {
+      "live": 8,
+      "replay": 11,
+      "self": 7
+    },
+    "by_port": {
+      "NODEINFO_APP": 6,
+      "POSITION_APP": 10,
+      "TELEMETRY_APP": 10
+    },
+    "by_port_and_kind": {
+      "NODEINFO_APP": {
+        "live": 6
+      },
+      "POSITION_APP": {
+        "live": 1,
+        "replay": 9
+      },
+      "TELEMETRY_APP": {
+        "live": 1,
+        "replay": 2,
+        "self": 7
+      }
+    }
+  },
+  "senders": {
+    "count": 16,
+    "by_id_scheme": {
+      "mac": 3,
+      "crc32": 2,
+      "neither": 11,
+      "no_user": 0
+    },
+    "mac_zeroed": 11
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 7,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 0
+    }
+  },
+  "replay_burst": {
+    "count": 11,
+    "within_s_of_start": 0.0,
+    "hop_start_values": [
+      7
+    ],
+    "stable_ids_shared_with": [
+      "2026-11-09-pdyt-2.8.2-dm",
+      "2026-11-09-pdyt-2.8.2-passive",
+      "2026-11-09-pdyt-2.8.2-traceroute"
+    ]
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 9,
+    "nodedb_positions_rounded": 8
+  },
+  "notes": "PDYt on 2.8.2 hearing the Xiao (!faec6f41, 2.8.2) on signature policy BALANCED after two reboots: one NODEINFO_APP carries xeddsaSigned true (2.8 feeder x 2.8 signer). The field is in the lib dict because the capturing lib carried the 2.8 protos; the bot's serializer keeps unknown keys. hop_limit 7 read from the feeder's own packets.",
+  "own_nodes": [
+    "!8959691b",
+    "!faec6f41"
+  ]
+}

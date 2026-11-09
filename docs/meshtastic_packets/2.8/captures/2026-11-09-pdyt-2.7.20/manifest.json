@@ -1,0 +1,89 @@
+{
+  "capture_id": "2026-11-09-pdyt-2.7.20",
+  "short": "p27",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 1127973616,
+    "id": "!433b82f0",
+    "firmware": "2.7.20.6658ec2",
+    "hw_model": "HELTEC_WIRELESS_PAPER",
+    "device_state_version": 24,
+    "hop_limit": 7,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "meshtastic 2.7.11 from PyPI (the 2.7 venv); version not in the capture metadata"
+  },
+  "start": "2026-11-09T16:32:05Z",
+  "end": "2026-11-09T16:41:56Z",
+  "duration_s": 591,
+  "counts": {
+    "total": 24,
+    "by_kind": {
+      "live": 13,
+      "self": 11
+    },
+    "by_port": {
+      "ENCRYPTED": 2,
+      "NODEINFO_APP": 2,
+      "POSITION_APP": 5,
+      "STORE_FORWARD_APP": 1,
+      "TELEMETRY_APP": 14
+    },
+    "by_port_and_kind": {
+      "ENCRYPTED": {
+        "live": 2
+      },
+      "NODEINFO_APP": {
+        "live": 2
+      },
+      "POSITION_APP": {
+        "live": 5
+      },
+      "STORE_FORWARD_APP": {
+        "live": 1
+      },
+      "TELEMETRY_APP": {
+        "live": 3,
+        "self": 11
+      }
+    }
+  },
+  "senders": {
+    "count": 13,
+    "by_id_scheme": {
+      "mac": 11,
+      "crc32": 0,
+      "neither": 0,
+      "no_user": 2
+    },
+    "mac_zeroed": 0
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 11,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 0
+    }
+  },
+  "replay_burst": {
+    "count": 0,
+    "within_s_of_start": 0,
+    "hop_start_values": [],
+    "stable_ids_shared_with": []
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 5,
+    "nodedb_positions_rounded": 129
+  },
+  "notes": "Heltec Wireless Paper (ESP32-S3) on 2.7.20, over USB serial, 10 min, 200-node NodeDB, wifi on. All 13 non-self packets arrived over wifi (UDP multicast), not LoRa, so none has rxRssi or rxSnr and the hop counts are not radio hops; this is not a 2.7 LoRa reference. Feeder number is its MAC tail (2.7). No replay burst on 2.7; two encrypted packets and one STORE_FORWARD. hop_limit 7 read from the feeder's own packets.",
+  "own_nodes": [
+    "!8959691b",
+    "!faec6f41"
+  ]
+}
