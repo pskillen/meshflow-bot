@@ -70,11 +70,11 @@ Meshtastic 2.8 can sign packets (XEdDSA). The bot forwards what the radio report
 
 Absent means unknown, not false: a 2.7 feeder cannot report signing, and 2.8's default policy does not sign, so "unsigned" is normal and is not a warning.
 
-The library is still 2.7 (`meshtastic<2.8`), which does not know these fields, so they are missing from the packet dict. They survive in the raw protobuf as unknown fields; [`src/meshtastic/wire_fields.py`](../src/meshtastic/wire_fields.py) reads them from the serialised bytes (`MeshPacket` fields 22 and 23, `Data` field 10) and the packet serializer adds them. If the dict already has `xeddsaSigned` (a 2.8 library) the dict wins. This shim goes away with the library bump (LB-1, #148).
+The library is still 2.7 (`meshtastic<2.8`), which does not know these fields, so they are missing from the packet dict. They survive in the raw protobuf as unknown fields; [`src/meshtastic/wire_fields.py`](../src/meshtastic/wire_fields.py) reads them from the serialised bytes (`MeshPacket` fields 22 and 23, `Data` field 10) and the packet serializer adds them. If the dict already has `xeddsaSigned` (a 2.8 library) the dict wins. This shim goes away with the library bump to 2.8.
 
-Real sample: capture `2026-11-09-pdyt-2.8.2-signed`, subset key `p28s-L16` (a NODEINFO_APP signed by a 2.8.2 node, heard by a 2.8.2 feeder). Its bytes carry the flag and a 64-byte signature, no `ackProofStatus`; the same capture's `p28s-L2` is unsigned and reads `false` on 2.8 firmware. `test/meshtastic/test_signing_real_sample.py` runs both through the pinned library and the serializer.
+Real sample: capture `2026-11-09-pdyt-2.8.2-signed`, subset key `p28s-L16` (a NODEINFO_APP signed by a 2.8.2 node, heard by a 2.8.2 feeder). Its bytes carry the flag and a 64-byte signature, no `ackProofStatus` (MeshPacket 23); the same capture's `p28s-L2` is unsigned and reads `false` on 2.8 firmware. `test/meshtastic/test_signing_real_sample.py` runs both through the pinned library and the serializer. `ackProofStatus` is covered by hand-assembled bytes only: no real capture carries field 23 yet, so the enum names come from the 2.8.2 protobufs, not from observed traffic.
 
-Testing note: after a node re-keys, a peer cannot DM its new number until it learns the key; the first DM is NAK'd `PKI_SEND_FAIL_PUBLIC_KEY`, and the key can take about an hour to arrive (seen in the hardware session, G48). Allow for that when generating test traffic.
+Testing note: after a node re-keys, a peer cannot DM its new number until it learns the key; the first DM is NAK'd `PKI_SEND_FAIL_PUBLIC_KEY`, and the key can take about an hour to arrive (seen in the hardware session). Allow for that when generating test traffic.
 
 ## Feeder-scoped URLs (v4)
 
