@@ -185,18 +185,43 @@ class StorageAPIWrapper(BaseAPIWrapper):
         """Ask ``GET /api/v4/feeder/identity/`` whether this API has the v4
         feeder URLs: a 200 with a JSON body carrying ``internal_id`` switches to
         v4 (unless a v4 upload 404 happened less than a probe interval ago), 404
-        to legacy, 403 ``shared_api_key`` stays legacy (ERROR). Any other answer
-        (including a 200 that is not the identity JSON, such as a proxy page) or
-        a network error leaves the mode unchanged. A probe is not an upload, so
+        to legacy, 403 ``shared_api_key`` stays legacy (ERROR). Any other 4xx or a
+        200 that is not the identity JSON (a proxy page) keeps the current URLs
+        and counts as decided; a 5xx, 408, 429 or a network error decides
+        nothing (uploads are held and the probe retried). A probe is not an upload, so
         it never starts the identity back-off."""
         if not self._v4_eligible() or self.feeder_urls_mode == "off":
             return
-        self._last_probe_at = self._clock()
+        try:
+            self._probe_once()
+        finally:
+            # Throttle from the probe's end, so a slow probe (read timeout) does
+            # not make the next upload probe again at once.
+            self._last_probe_at = self._clock()
+
+    @staticmethod
+    def _probe_unanswered(exc: HTTPError) -> bool:
+        """A 5xx, 408 or 429 answer (an API mid-deploy, a proxy error page) says
+        nothing about v4: treated like a network failure."""
+        status = getattr(exc.response, "status_code", None)
+        return status is not None and (status >= 500 or status in (408, 429))
+
+    def _probe_once(self) -> None:
+        # ``_probe_decided`` is set last on every deciding path: uploads read it
+        # without the lock, so it must not turn True before ``uses_v4`` is set.
         try:
             response = self._get(FEEDER_IDENTITY_PATH)
         except HTTPError as exc:
-            self._probe_decided = True
+            if self._probe_unanswered(exc):
+                logger.warning(
+                    "API %s: feeder URL probe answered HTTP %s; keeping current "
+                    "URLs",
+                    self.base_url,
+                    getattr(exc.response, "status_code", None),
+                )
+                return
             self._handle_probe_rejection(exc)
+            self._probe_decided = True
             self._release_held_nodes()
             return
         except RequestException as exc:
@@ -210,8 +235,8 @@ class StorageAPIWrapper(BaseAPIWrapper):
         except Exception as exc:
             logger.warning("Unexpected error probing %s: %s", self.base_url, exc)
             self._probe_decided = True
+            self._release_held_nodes()
             return
-        self._probe_decided = True
         try:
             body = response.json()
             is_identity = isinstance(body, dict) and "internal_id" in body
@@ -223,14 +248,13 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 "identity; keeping current URLs",
                 self.base_url,
             )
-            self._release_held_nodes()
-            return
-        if self._clock() < self._v4_suspect_until:
+        elif self._clock() < self._v4_suspect_until:
             logger.debug(
                 "API %s: ignoring v4 probe, backing off after a v4 404", self.base_url
             )
         else:
             self._set_uses_v4(True)
+        self._probe_decided = True
         self._release_held_nodes()
 
     def _release_held_nodes(self) -> None:
@@ -688,6 +712,10 @@ class StorageAPIWrapper(BaseAPIWrapper):
             with self._held_lock:
                 self._held_nodes[node_id] = node
             self._error_counter.increment("storage.store_node.held")
+            if self._probe_decided:
+                # A probe decided between the check and the insert and found
+                # nothing to release: do it now so the node is not stranded.
+                self._release_held_nodes()
             return None
         gen = self._retry_worker.begin(f"node:{node_id}")
         return self._store_node_attempt(node, gen, 0)
