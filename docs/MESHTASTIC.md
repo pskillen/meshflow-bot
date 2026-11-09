@@ -72,6 +72,10 @@ Absent means unknown, not false: a 2.7 feeder cannot report signing, and 2.8's d
 
 The library is still 2.7 (`meshtastic<2.8`), which does not know these fields, so they are missing from the packet dict. They survive in the raw protobuf as unknown fields; [`src/meshtastic/wire_fields.py`](../src/meshtastic/wire_fields.py) reads them from the serialised bytes (`MeshPacket` fields 22 and 23, `Data` field 10) and the packet serializer adds them. If the dict already has `xeddsaSigned` (a 2.8 library) the dict wins. This shim goes away with the library bump (LB-1, #148).
 
+Real sample: capture `2026-11-09-pdyt-2.8.2-signed`, subset key `p28s-L16` (a NODEINFO_APP signed by a 2.8.2 node, heard by a 2.8.2 feeder). Its bytes carry the flag and a 64-byte signature, no `ackProofStatus`; the same capture's `p28s-L2` is unsigned and reads `false` on 2.8 firmware. `test/meshtastic/test_signing_real_sample.py` runs both through the pinned library and the serializer.
+
+Testing note: after a node re-keys, a peer cannot DM its new number until it learns the key; the first DM is NAK'd `PKI_SEND_FAIL_PUBLIC_KEY`, and the key can take about an hour to arrive (seen in the hardware session, G48). Allow for that when generating test traffic.
+
 ## Feeder-scoped URLs (v4)
 
 Needs meshflow-api with the release that adds the v4 feeder URLs (2.3.0 or later, once released). The API then identifies the feeder by its API key alone, so the node number is not in the path and a changed number (Meshtastic 2.8) is accepted rather than refused. Design: ADR-0005 in meshflow-api; upgrade steps: `docs/features/packet-ingestion/meshtastic-2.8-upgrade-runbook.md` in meshflow-api.
