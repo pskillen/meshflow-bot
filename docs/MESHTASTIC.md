@@ -56,6 +56,22 @@ Change detection: on local `node.updated` events and every 60 seconds the bot re
 
 If the API answers an upload with **403 or 409**, the bot logs an ERROR naming the node number it reported and pointing at the 2.8 identity change, then pauses uploads with exponential backoff (30 s, doubling to 15 min) instead of retrying every packet. The first success resets the backoff. Check the feeder's API key and linked node in Meshflow; for the upgrade steps see the 2.8 upgrade runbook (`docs/features/packet-ingestion/meshtastic-2.8-upgrade-runbook.md` in meshflow-api). Feeder-scoped (v4) URLs avoid this class of rejection: see below.
 
+## Signing fields (2.8)
+
+Meshtastic 2.8 can sign packets (XEdDSA). The bot forwards what the radio reports in the ingest body; it never verifies signatures.
+
+| Key | Value | When |
+|-----|-------|------|
+| `xeddsaSigned` | `true` | the packet says it is signed |
+| `xeddsaSigned` | `false` | not signed **and** the feeder firmware is known to be 2.8 or later |
+| (absent) | | anything else: unknown, as on a 2.7 feeder or when the firmware version cannot be read |
+| `decoded.xeddsaSignature` | base64 string | a signature is present |
+| `ackProofStatus` | enum name, e.g. `ACK_PROOF_VALID` | non-zero only |
+
+Absent means unknown, not false: a 2.7 feeder cannot report signing, and 2.8's default policy does not sign, so "unsigned" is normal and is not a warning.
+
+The library is still 2.7 (`meshtastic<2.8`), which does not know these fields, so they are missing from the packet dict. They survive in the raw protobuf as unknown fields; [`src/meshtastic/wire_fields.py`](../src/meshtastic/wire_fields.py) reads them from the serialised bytes (`MeshPacket` fields 22 and 23, `Data` field 10) and the packet serializer adds them. If the dict already has `xeddsaSigned` (a 2.8 library) the dict wins. This shim goes away with the library bump (LB-1, #148).
+
 ## Feeder-scoped URLs (v4)
 
 Needs meshflow-api with the release that adds the v4 feeder URLs (2.3.0 or later, once released). The API then identifies the feeder by its API key alone, so the node number is not in the path and a changed number (Meshtastic 2.8) is accepted rather than refused. Design: ADR-0005 in meshflow-api; upgrade steps: `docs/features/packet-ingestion/meshtastic-2.8-upgrade-runbook.md` in meshflow-api.
