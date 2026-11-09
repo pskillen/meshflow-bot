@@ -33,3 +33,13 @@ jobs:
           push: false
           cache-from: type=gha,scope=pr-meshflow-bot
           cache-to: type=gha,mode=max,scope=pr-meshflow-bot
+
+  Contract:
+    # Replays the fixture subset through this PR's serialiser and meshflow-api's ingest and
+    # compares with the API goldens. The workflow lives in meshflow-api (next API: `main`).
+    uses: pskillen/meshflow-api/.github/workflows/contract.yaml@main
+    with:
+      bot_ref: ${{ github.event.pull_request.head.sha }}
+      api_ref: main
+    permissions:
+      contents: read

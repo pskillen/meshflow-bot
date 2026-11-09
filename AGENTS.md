@@ -65,6 +65,7 @@ python -m src.main
 
 - **Unit tests**: `pytest test/ --doctest-modules`
 - CI runs on Python 3.12, 3.13, 3.14
+- **Contract job**: PRs call meshflow-api's `contract.yaml@main` (serialiser and fixtures vs the API goldens); see `docs/MESHTASTIC.md` "Contract job"
 
 ## Tech Stack
 
