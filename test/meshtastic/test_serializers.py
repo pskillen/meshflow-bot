@@ -206,8 +206,11 @@ class TestSigningFields(unittest.TestCase):
             out.pop("channel", None)
             baseline.pop("channel", None)
             self.assertEqual(out, baseline, entry["id"])
-            for key in ("xeddsaSigned", "ackProofStatus"):
-                self.assertNotIn(key, baseline)
+            # A record whose dict already carries xeddsaSigned (the real signed
+            # sample p28s-L16) keeps it: the dict wins. Nothing else is added.
+            if "xeddsaSigned" not in rec["packet"]:
+                self.assertNotIn("xeddsaSigned", baseline)
+            self.assertNotIn("ackProofStatus", baseline)
 
 
 if __name__ == "__main__":
