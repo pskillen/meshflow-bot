@@ -212,7 +212,7 @@ class MeshtasticPacketSerializer(PacketSerializer):
         # The API requires rxTime; locally generated packets (self telemetry)
         # may not carry one, so fall back to the host clock.
         if not cleaned.get("rxTime"):
-            cleaned["rxTime"] = int(time.time())
+            cleaned.pop("rxTime", None)
         return cleaned
 
     def serialise_node(self, node: MeshNode) -> dict:
