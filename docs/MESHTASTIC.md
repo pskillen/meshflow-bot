@@ -89,6 +89,8 @@ Probe answers:
 | 403 `shared_api_key` | use legacy and log an ERROR (see below) |
 | any other 403 (for example `feeder_not_linked`), 401, 5xx, timeout, network error | keep the current mode; WARNING |
 
+**Order at connect:** the Meshtastic library reports every NodeDB entry as the connection comes up, before the bot's own connect handler runs. So each destination probes itself the first time anything is uploaded to it (the connect handler's probe then finds it already decided): the connect-time NodeDB sync goes to `POST /api/v4/feeder/meshtastic/nodes/` when v4 is available, and to the legacy URL only when the probe answered otherwise. If the API cannot be reached at that moment (nothing decided), node uploads are held, newest per node, and sent by the next probe that gets an answer (a retry of the probe is attempted at most every 30 s, then hourly); any other probe answer counts as decided and uploads proceed on the current URLs. `on` and `off` need no probe to choose.
+
 A probe is not an upload: it never starts the identity back-off. Every change of mode is logged at INFO with the destination. A 404 from a v4 upload (the API was rolled back) switches to legacy, re-sends that packet once on the legacy URL (a node or bot-version upload is not re-sent; the next one goes legacy) and ignores a positive probe for the next hour, so a rolling deploy with mixed replicas cannot flip it back and forth; 403/409 on uploads back off as described under Feeder identity.
 
 **`shared_api_key` ERROR:** v4 needs one API key per feeder, and this key is linked to more than one feeder. Until the Meshflow owner mints a separate key for each feeder (and you set it as `STORAGE_API_TOKEN`), the bot stays on the legacy URLs and repeats the ERROR at each hourly probe.

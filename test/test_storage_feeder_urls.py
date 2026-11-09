@@ -330,3 +330,101 @@ def test_legacy_bot_version_path_unchanged_when_not_v4():
         wrapper.report_bot_version()
     assert put.call_args.args[0].endswith(f"/api/packets/{NODENUM}/bot-version/")
     wrapper.shutdown()
+
+
+# --- G47: the first NodeDB upload waits for the v4 probe ---------------------
+
+
+def test_first_node_upload_probes_first_and_goes_v4():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert get.call_count == 1
+    assert post.call_args.args[0] == "http://api.test/api/v4/feeder/meshtastic/nodes/"
+    wrapper.shutdown()
+
+
+def test_first_node_upload_goes_legacy_when_probe_says_404():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=error(404)), patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert post.call_args.args[0] == f"http://api.test/api/v3/packets/{NODENUM}/nodes/"
+    wrapper.shutdown()
+
+
+def test_probe_runs_only_once_across_uploads():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=ok()) as get, patch(
+        "requests.post", return_value=ok()
+    ):
+        wrapper.store_node(a_node())
+        wrapper.store_node(a_node())
+        wrapper.store_raw_packet(PACKET)
+    assert get.call_count == 1
+    wrapper.shutdown()
+
+
+@pytest.mark.parametrize("mode", ["on", "off"])
+def test_on_and_off_do_not_probe_for_an_upload(mode):
+    wrapper = make_wrapper(mode=mode)
+    with patch("requests.get") as get, patch("requests.post", return_value=ok()):
+        wrapper.store_node(a_node())
+    get.assert_not_called()
+    wrapper.shutdown()
+
+
+def test_node_is_held_while_api_unreachable_then_sent_on_v4_after_a_probe():
+    now = [1000.0]
+    wrapper = make_wrapper(clock=lambda: now[0])
+    with patch("requests.get", side_effect=RequestsConnectionError("down")), patch(
+        "requests.post"
+    ) as post:
+        assert wrapper.store_node(a_node()) is None
+    post.assert_not_called()
+    assert not wrapper.uses_v4
+    sent = []
+    with patch("requests.get", return_value=ok()), patch(
+        "requests.post", side_effect=lambda url, **kw: sent.append(url) or ok()
+    ):
+        now[0] += 3600
+        wrapper.probe_feeder_urls()
+        for thread in __import__("threading").enumerate():
+            if thread.name == "held-node-sync":
+                thread.join(5)
+    assert sent == ["http://api.test/api/v4/feeder/meshtastic/nodes/"]
+    wrapper.shutdown()
+
+
+def test_unreachable_probe_is_not_repeated_on_every_upload():
+    wrapper = make_wrapper()
+    with patch("requests.get", side_effect=RequestsConnectionError("down")) as get:
+        wrapper.store_node(a_node())
+        wrapper.store_node(a_node())
+    assert get.call_count == 1
+
+
+def test_a_probe_that_answers_oddly_does_not_hold_uploads():
+    wrapper = make_wrapper()
+    with patch("requests.get", return_value=error(500)), patch(
+        "requests.post", return_value=ok()
+    ) as post:
+        wrapper.store_node(a_node())
+    assert post.call_args.args[0] == f"http://api.test/api/v3/packets/{NODENUM}/nodes/"
+    wrapper.shutdown()
+
+
+def test_identity_rejection_names_the_local_nodenum_when_identity_is_empty(caplog):
+    empty = MagicMock()
+    empty.node_num = None
+    wrapper = make_wrapper(api_version=2, mode="off")
+    wrapper._meshtastic_identity_provider = lambda: empty
+    with patch("requests.post", return_value=error(403)), caplog.at_level(
+        logging.ERROR
+    ):
+        wrapper.store_node(a_node())
+    assert f"reporting node number {NODENUM}" in caplog.text
+    wrapper.shutdown()

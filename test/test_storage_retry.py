@@ -25,6 +25,7 @@ def make_wrapper(delays=(0.02, 0.02), gap=0.0):
         local_meshtastic_nodenum_provider=lambda: 42424242,
         retry_delays=delays,
         retry_gap=gap,
+        feeder_urls_mode="off",  # these tests are about retries, not the probe
     )
 
 

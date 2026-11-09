@@ -51,6 +51,8 @@ IDENTITY_BACKOFF_MAX_SECONDS = 900.0
 FEEDER_URLS_MODES = ("auto", "on", "off")
 FEEDER_IDENTITY_PATH = "/api/v4/feeder/identity/"
 V4_PREFIX = "/api/v4/feeder"
+# An upload that finds the probe undecided retries it at most this often.
+PROBE_RETRY_SECONDS = 30.0
 # The bot probes hourly (see ``Bot``). After a v4 upload 404 a positive probe is
 # ignored for this long, so replicas that disagree cannot make the bot flap.
 PROBE_INTERVAL_SECONDS = 3600.0
@@ -123,6 +125,18 @@ class StorageAPIWrapper(BaseAPIWrapper):
         # Monotonic time before which a positive probe is ignored (set by a
         # v4 upload 404).
         self._v4_suspect_until = 0.0
+        # True once a probe has decided v4 vs legacy for this destination (or
+        # nothing needs deciding). Uploads wait for it (see ``_ensure_probed``),
+        # so the first NodeDB upload at connect never goes to a legacy URL the
+        # API would refuse after a node number change.
+        self._probe_decided = not self._v4_eligible() or self.feeder_urls_mode != "auto"
+        self._probe_lock = threading.Lock()
+        self._last_probe_at: Optional[float] = None
+        # Nodes held back while the API was unreachable and the probe could not
+        # decide; keyed by node id so the newest entry wins. Sent when a probe
+        # decides.
+        self._held_nodes: dict[Any, MeshNode] = {}
+        self._held_lock = threading.Lock()
 
     def _v4_eligible(self) -> bool:
         return self._meshcore_feeder_prefix_provider is None and self.api_version != 1
@@ -145,6 +159,28 @@ class StorageAPIWrapper(BaseAPIWrapper):
 
     # --- v4 feeder URL probe ---------------------------------------------
 
+    def _ensure_probed(self) -> bool:
+        """Make sure the v4 probe has run before an upload picks its URL.
+        Returns ``True`` once v4 vs legacy is decided; ``False`` when the API
+        could not be reached (nothing was decided, callers decide what to do).
+        Any other answer counts as decided (the current URLs stand)."""
+        if self._probe_decided:
+            return True
+        with self._probe_lock:
+            recent = (
+                self._last_probe_at is not None
+                and self._clock() - self._last_probe_at < PROBE_RETRY_SECONDS
+            )
+            if not self._probe_decided and not recent:
+                self.probe_feeder_urls()
+        return self._probe_decided
+
+    def _flush_held_nodes(self) -> None:
+        with self._held_lock:
+            held, self._held_nodes = list(self._held_nodes.values()), {}
+        for node in held:
+            self.store_node(node)
+
     def probe_feeder_urls(self) -> None:
         """Ask ``GET /api/v4/feeder/identity/`` whether this API has the v4
         feeder URLs: a 200 with a JSON body carrying ``internal_id`` switches to
@@ -155,12 +191,16 @@ class StorageAPIWrapper(BaseAPIWrapper):
         it never starts the identity back-off."""
         if not self._v4_eligible() or self.feeder_urls_mode == "off":
             return
+        self._last_probe_at = self._clock()
         try:
             response = self._get(FEEDER_IDENTITY_PATH)
         except HTTPError as exc:
+            self._probe_decided = True
             self._handle_probe_rejection(exc)
+            self._release_held_nodes()
             return
         except RequestException as exc:
+            # Unreachable: nothing decided, so uploads wait for the next probe.
             logger.warning(
                 "API %s: feeder URL probe failed (%s); keeping current URLs",
                 self.base_url,
@@ -169,7 +209,9 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return
         except Exception as exc:
             logger.warning("Unexpected error probing %s: %s", self.base_url, exc)
+            self._probe_decided = True
             return
+        self._probe_decided = True
         try:
             body = response.json()
             is_identity = isinstance(body, dict) and "internal_id" in body
@@ -181,13 +223,25 @@ class StorageAPIWrapper(BaseAPIWrapper):
                 "identity; keeping current URLs",
                 self.base_url,
             )
+            self._release_held_nodes()
             return
         if self._clock() < self._v4_suspect_until:
             logger.debug(
                 "API %s: ignoring v4 probe, backing off after a v4 404", self.base_url
             )
-            return
-        self._set_uses_v4(True)
+        else:
+            self._set_uses_v4(True)
+        self._release_held_nodes()
+
+    def _release_held_nodes(self) -> None:
+        """Send the nodes held while the probe could not decide, off the
+        caller's thread (a probe must stay quick)."""
+        with self._held_lock:
+            if not self._held_nodes:
+                return
+        threading.Thread(
+            target=self._flush_held_nodes, name="held-node-sync", daemon=True
+        ).start()
 
     def _handle_probe_rejection(self, exc: HTTPError) -> None:
         status = getattr(exc.response, "status_code", None)
@@ -300,6 +354,12 @@ class StorageAPIWrapper(BaseAPIWrapper):
             return False
         identity = self._meshtastic_identity()
         reported = identity.node_num if identity else None
+        if reported is None:
+            # The identity is empty until the radio's connection event.
+            try:
+                reported = self._local_meshtastic_nodenum_provider()
+            except Exception:
+                reported = None
         code = None
         try:
             code = exc.response.json().get("code")
@@ -400,6 +460,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
         """Report meshflow-bot version to the API (v2/v3). Returns True on
         success; a transient failure is retried in the background. A newer
         call drops the pending retry."""
+        self._ensure_probed()
         gen = self._retry_worker.begin("bot_version")
         return self._report_bot_version_attempt(gen, 0)
 
@@ -574,6 +635,7 @@ class StorageAPIWrapper(BaseAPIWrapper):
             logger.exception("StorageAPIWrapper: serialise_raw_packet failed: %s", exc)
             return None
 
+        self._ensure_probed()
         if self._identity_backoff_active():
             self._error_counter.increment("storage.store_raw_packet.backoff")
             logger.debug("Skipping packet upload: backing off after identity rejection")
@@ -619,6 +681,14 @@ class StorageAPIWrapper(BaseAPIWrapper):
         (this is what makes the connect-time NodeDB sync resilient). A newer
         call for the same node drops that node's pending retry."""
         node_id = getattr(getattr(node, "user", None), "id", None)
+        if not self._ensure_probed():
+            # API unreachable, so v4 vs legacy is unknown: sending to legacy
+            # could be refused after a node number change. Keep the node; the
+            # next probe that gets an answer sends it.
+            with self._held_lock:
+                self._held_nodes[node_id] = node
+            self._error_counter.increment("storage.store_node.held")
+            return None
         gen = self._retry_worker.begin(f"node:{node_id}")
         return self._store_node_attempt(node, gen, 0)
 
