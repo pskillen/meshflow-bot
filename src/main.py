@@ -89,9 +89,10 @@ def build_radio(data_dir: Path) -> tuple[RadioInterface, PacketSerializer]:
             raise RuntimeError(
                 "MESHTASTIC_IP must be set when RADIO_PROTOCOL=meshtastic"
             )
+        radio = MeshtasticRadio(MESHTASTIC_IP, replay_mode=REPLAYED_PACKETS)
         return (
-            MeshtasticRadio(MESHTASTIC_IP, replay_mode=REPLAYED_PACKETS),
-            MeshtasticPacketSerializer(),
+            radio,
+            MeshtasticPacketSerializer(firmware_version=lambda: radio.firmware_version),
         )
     if RADIO_PROTOCOL == "meshcore":
         serial = MESHCORE_SERIAL_DEVICE

@@ -1,6 +1,12 @@
 """Tests for :class:`MeshtasticPacketSerializer`."""
 
+import base64
+import copy
+import json
 import unittest
+from pathlib import Path
+
+from meshtastic.protobuf import mesh_pb2
 
 from src.data_classes import MeshNode
 from src.meshtastic.serializers import MeshtasticPacketSerializer
@@ -97,6 +103,111 @@ class TestMeshtasticPacketSerializer(unittest.TestCase):
     def test_serialise_node_omits_last_heard_when_missing(self):
         out = self.serializer.serialise_node(self._node_with_last_heard(None))
         self.assertNotIn("last_heard", out)
+
+
+SIG = bytes(range(64))
+_DATA = b"\x08\x01\x52\x40" + SIG
+SIGNED_BYTES = b"\x22" + bytes([len(_DATA)]) + _DATA + b"\xb0\x01\x01\xb8\x01\x01"
+UNSIGNED_BYTES = b"\x08\x05"
+SUBSET = Path(__file__).resolve().parents[2] / "docs/meshtastic_packets/2.8/subset.json"
+
+
+def _proto(raw: bytes):
+    pkt = mesh_pb2.MeshPacket()
+    pkt.ParseFromString(raw)
+    return pkt
+
+
+def _packet(raw: bytes, **extra):
+    return {
+        "fromId": "!1",
+        "rxTime": 1,
+        "decoded": {"portnum": "TEXT_MESSAGE_APP", "text": "hi"},
+        "raw": _proto(raw),
+        **extra,
+    }
+
+
+class TestSigningFields(unittest.TestCase):
+    def test_signed_adds_all_fields(self):
+        out = MeshtasticPacketSerializer().serialise_raw_packet(_packet(SIGNED_BYTES))
+        self.assertIs(out["xeddsaSigned"], True)
+        self.assertEqual(
+            out["decoded"]["xeddsaSignature"], base64.b64encode(SIG).decode()
+        )
+        self.assertEqual(out["ackProofStatus"], "ACK_PROOF_VALID")
+
+    def test_unsigned_false_on_2_8_firmware(self):
+        s = MeshtasticPacketSerializer(firmware_version=lambda: "2.8.2.d5f1619")
+        out = s.serialise_raw_packet(_packet(UNSIGNED_BYTES))
+        self.assertIs(out["xeddsaSigned"], False)
+        self.assertNotIn("ackProofStatus", out)
+        self.assertNotIn("xeddsaSignature", out["decoded"])
+
+    def test_unsigned_absent_when_unknown(self):
+        for fw in (lambda: "2.7.26.abc", lambda: None, lambda: "garbage", None):
+            s = MeshtasticPacketSerializer(firmware_version=fw)
+            out = s.serialise_raw_packet(_packet(UNSIGNED_BYTES))
+            self.assertNotIn("xeddsaSigned", out)
+
+    def test_signed_true_even_on_old_firmware_string(self):
+        s = MeshtasticPacketSerializer(firmware_version=lambda: "2.7.26.abc")
+        out = s.serialise_raw_packet(_packet(SIGNED_BYTES))
+        self.assertIs(out["xeddsaSigned"], True)
+
+    def test_ack_proof_zero_is_absent(self):
+        out = MeshtasticPacketSerializer().serialise_raw_packet(
+            _packet(b"\xb8\x01\x00")
+        )
+        self.assertNotIn("ackProofStatus", out)
+
+    def test_existing_dict_key_wins(self):
+        packet = _packet(SIGNED_BYTES, xeddsaSigned=False)
+        out = MeshtasticPacketSerializer().serialise_raw_packet(packet)
+        self.assertIs(out["xeddsaSigned"], False)
+        self.assertNotIn("ackProofStatus", out)
+        self.assertNotIn("xeddsaSignature", out["decoded"])
+
+    def test_failure_never_stops_upload(self):
+        class Boom:
+            channel = 0
+
+            def SerializeToString(self):
+                raise RuntimeError("boom")
+
+        packet = {"fromId": "!1", "rxTime": 1, "raw": Boom()}
+        out = MeshtasticPacketSerializer(
+            firmware_version=lambda: "2.8.2"
+        ).serialise_raw_packet(packet)
+        self.assertEqual(out["fromId"], "!1")
+
+    def test_firmware_callable_raising_is_absent(self):
+        def bad():
+            raise RuntimeError("disconnected")
+
+        out = MeshtasticPacketSerializer(firmware_version=bad).serialise_raw_packet(
+            _packet(UNSIGNED_BYTES)
+        )
+        self.assertNotIn("xeddsaSigned", out)
+
+    def test_subset_output_unchanged(self):
+        """Every 2.8 fixture record serialises as before: with or without the
+        raw protobuf and no firmware callback, nothing is added."""
+        records = json.loads(SUBSET.read_text(encoding="utf-8"))
+        self.assertTrue(records)
+        serializer = MeshtasticPacketSerializer()
+        for entry in records:
+            rec = entry["record"]
+            baseline = serializer.serialise_raw_packet(copy.deepcopy(rec["packet"]))
+            with_raw = copy.deepcopy(rec["packet"])
+            with_raw["raw"] = _proto(base64.b64decode(rec["raw_b64"]))
+            out = serializer.serialise_raw_packet(with_raw)
+            # the existing raw-protobuf channel backfill is not ours
+            out.pop("channel", None)
+            baseline.pop("channel", None)
+            self.assertEqual(out, baseline, entry["id"])
+            for key in ("xeddsaSigned", "ackProofStatus"):
+                self.assertNotIn(key, baseline)
 
 
 if __name__ == "__main__":

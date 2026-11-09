@@ -12,12 +12,20 @@ from __future__ import annotations
 
 import base64
 import datetime
+import logging
 import time
 from abc import ABC
-from typing import Any
+from typing import Any, Callable, Optional
 
 from src.api.packet_serializer import PacketSerializer
 from src.data_classes import MeshNode
+from src.meshtastic.wire_fields import (
+    ACK_PROOF_NAMES,
+    is_firmware_2_8_or_later,
+    read_signing_fields,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _meshtastic_location_source_for_api(source: str | None) -> str:
@@ -196,7 +204,43 @@ def _sanitise_raw_packet(data: Any) -> Any:
 
 
 class MeshtasticPacketSerializer(PacketSerializer):
-    """Meshtastic-shaped concrete :class:`PacketSerializer`."""
+    """Meshtastic-shaped concrete :class:`PacketSerializer`.
+
+    ``firmware_version`` is a callable returning the feeder's firmware string
+    (or None); it decides whether "not signed" can be reported as ``false``.
+    """
+
+    def __init__(
+        self, firmware_version: Optional[Callable[[], Optional[str]]] = None
+    ) -> None:
+        self._firmware_version = firmware_version
+
+    def _add_signing_fields(self, cleaned: dict, raw_proto: Any) -> None:
+        """Add the 2.8 signing fields (read from the raw protobuf, since lib
+        2.7 drops them) to the ingest body. Absent means unknown. Removed with
+        the library bump (LB-1): a 2.8 library puts the keys in the dict."""
+        if "xeddsaSigned" in cleaned:
+            return
+        fields = read_signing_fields(raw_proto)
+        if fields.xeddsa_signed:
+            cleaned["xeddsaSigned"] = True
+        else:
+            try:
+                version = self._firmware_version() if self._firmware_version else None
+            except Exception:  # noqa: BLE001
+                version = None
+            if is_firmware_2_8_or_later(version):
+                cleaned["xeddsaSigned"] = False
+        if fields.signature:
+            decoded = cleaned.get("decoded")
+            if isinstance(decoded, dict):
+                decoded["xeddsaSignature"] = base64.b64encode(fields.signature).decode(
+                    "ascii"
+                )
+        if fields.ack_proof_status:
+            cleaned["ackProofStatus"] = ACK_PROOF_NAMES.get(
+                fields.ack_proof_status, str(fields.ack_proof_status)
+            )
 
     def serialise_raw_packet(self, packet: Any) -> dict:
         if not isinstance(packet, dict):
@@ -213,6 +257,11 @@ class MeshtasticPacketSerializer(PacketSerializer):
         # may not carry one, so fall back to the host clock.
         if not cleaned.get("rxTime"):
             cleaned["rxTime"] = int(time.time())
+        if raw_proto is not None:
+            try:
+                self._add_signing_fields(cleaned, raw_proto)
+            except Exception as exc:  # noqa: BLE001 - never stop an upload
+                logger.warning("signing fields skipped: %s", exc)
         return cleaned
 
     def serialise_node(self, node: MeshNode) -> dict:
