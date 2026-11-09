@@ -1,0 +1,1395 @@
+{
+ "!8959691b": {
+  "num": 2304338203,
+  "user": {
+   "id": "!8959691b",
+   "longName": "MeshFlow test 🤖🔇",
+   "shortName": "PDYt",
+   "macaddr": "SMpDO4Lw",
+   "hwModel": "HELTEC_WIRELESS_PAPER",
+   "publicKey": "I9+3Izg6g7w+TIU+EXGyFVYbh9m9sioXeo6RZdlwnS8=",
+   "isUnmessagable": false
+  },
+  "position": {
+   "time": 1794246435
+  },
+  "lastHeard": 1794246435,
+  "deviceMetrics": {
+   "batteryLevel": 67,
+   "voltage": 3.863,
+   "channelUtilization": 1.135,
+   "airUtilTx": 0.7081389,
+   "uptimeSeconds": 1696
+  },
+  "isFavorite": true
+ },
+ "!faec6f41": {
+  "num": 4209798977,
+  "user": {
+   "id": "!faec6f41",
+   "longName": "Paddy NIAV-1 🧪🚬",
+   "shortName": "NIAV",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "XIAO_NRF52_KIT",
+   "publicKey": "tHG7yKuK6bw2JfyKLtd5e7+uWGbPfsr0B1F4Av0zOWY="
+  },
+  "snr": 6.5,
+  "lastHeard": 1794246422,
+  "hopsAway": 0,
+  "heardOnCurrentLora": true
+ },
+ "!433b10bc": {
+  "num": 1127944380,
+  "user": {
+   "id": "!433b10bc",
+   "longName": "Nyan 0 🌈🐱",
+   "shortName": "NYA0",
+   "macaddr": "SMpDOxC8",
+   "hwModel": "HELTEC_V3",
+   "role": "ROUTER",
+   "publicKey": "CYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24=",
+   "raw": {
+    "id": "!433b10bc",
+    "longName": "Nyan 0 🌈🐱",
+    "shortName": "NYA0",
+    "macaddr": "SMpDOxC8",
+    "hwModel": "HELTEC_V3",
+    "role": "ROUTER",
+    "publicKey": "CYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24="
+   }
+  },
+  "snr": 7.5,
+  "lastHeard": 1794245706,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "lastReceived": {
+   "from": 1127944380,
+   "to": 4294967295,
+   "decoded": {
+    "portnum": "NODEINFO_APP",
+    "payload": "CgkhNDMzYjEwYmMSD055YW4gMCDwn4yI8J+QsRoETllBMCIGSMpDOxC8KCs4AkIgCYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24=",
+    "bitfield": 0,
+    "user": {
+     "id": "!433b10bc",
+     "longName": "Nyan 0 🌈🐱",
+     "shortName": "NYA0",
+     "macaddr": "SMpDOxC8",
+     "hwModel": "HELTEC_V3",
+     "role": "ROUTER",
+     "publicKey": "CYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24=",
+     "raw": {
+      "id": "!433b10bc",
+      "longName": "Nyan 0 🌈🐱",
+      "shortName": "NYA0",
+      "macaddr": "SMpDOxC8",
+      "hwModel": "HELTEC_V3",
+      "role": "ROUTER",
+      "publicKey": "CYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24="
+     }
+    }
+   },
+   "id": 2741463028,
+   "rxTime": 1794245706,
+   "rxSnr": 7.5,
+   "hopLimit": 3,
+   "rxRssi": -36,
+   "hopStart": 7,
+   "relayNode": 180,
+   "transportMechanism": "TRANSPORT_LORA",
+   "raw": {
+    "from": 1127944380,
+    "to": 4294967295,
+    "decoded": {
+     "portnum": "NODEINFO_APP",
+     "payload": "CgkhNDMzYjEwYmMSD055YW4gMCDwn4yI8J+QsRoETllBMCIGSMpDOxC8KCs4AkIgCYiDxj5lmtlU711QwUALOih6ZnnvSxXHb++jO6YXi24=",
+     "bitfield": 0
+    },
+    "id": 2741463028,
+    "rxTime": 1794245706,
+    "rxSnr": 7.5,
+    "hopLimit": 3,
+    "rxRssi": -36,
+    "hopStart": 7,
+    "relayNode": 180,
+    "transportMechanism": "TRANSPORT_LORA"
+   },
+   "fromId": "!433b10bc",
+   "toId": "^all"
+  },
+  "hopLimit": 3
+ },
+ "!b03ca6f8": {
+  "num": 2956764920,
+  "user": {
+   "id": "!b03ca6f8",
+   "longName": "Leith Link",
+   "shortName": "LLNK",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "Gs3WRB8KbAsT/rRdH4Z7TA31AAD8vKxWh0T1DYvFkkA=",
+   "isUnmessagable": false
+  },
+  "snr": 6.0,
+  "lastHeard": 1794246087,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true
+ },
+ "!a0ccd544": {
+  "num": 2697778500,
+  "user": {
+   "id": "!a0ccd544",
+   "longName": "Meshtastic d544",
+   "shortName": "d544",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "2HW6VRbGERe64NT0imaKI7VDuV4zIK3YWS1ozcuATxc=",
+   "isUnmessagable": false
+  },
+  "snr": 5.75,
+  "lastHeard": 1794246039,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -46000000,
+   "altitude": 62,
+   "locationSource": "LOC_EXTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -46000000,
+    "altitude": 62,
+    "locationSource": "LOC_EXTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -4.6
+  }
+ },
+ "!153e7062": {
+  "num": 356413538,
+  "user": {
+   "id": "!153e7062",
+   "longName": "Tomtain Hot Standby",
+   "shortName": "TOMS",
+   "macaddr": "wFEVPnBi",
+   "hwModel": "RAK4631",
+   "role": "CLIENT_MUTE",
+   "publicKey": "8GLK6yumkBC8Iw+OSkke8n0y8wUQ7Kkd+nbdT2T8bkw=",
+   "isUnmessagable": true,
+   "raw": {
+    "id": "!153e7062",
+    "longName": "Tomtain Hot Standby",
+    "shortName": "TOMS",
+    "macaddr": "wFEVPnBi",
+    "hwModel": "RAK4631",
+    "role": "CLIENT_MUTE",
+    "publicKey": "8GLK6yumkBC8Iw+OSkke8n0y8wUQ7Kkd+nbdT2T8bkw=",
+    "isUnmessagable": true
+   }
+  },
+  "snr": 6.0,
+  "lastHeard": 1794245784,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "lastReceived": {
+   "from": 356413538,
+   "to": 4294967295,
+   "decoded": {
+    "portnum": "NODEINFO_APP",
+    "payload": "CgkhMTUzZTcwNjISE1RvbXRhaW4gSG90IFN0YW5kYnkaBFRPTVMiBsBRFT5wYigJOAFCIPBiyusrppAQvCMPjkpJHvJ9MvMFEOypHfp23U9k/G5MSAE=",
+    "bitfield": 0,
+    "user": {
+     "id": "!153e7062",
+     "longName": "Tomtain Hot Standby",
+     "shortName": "TOMS",
+     "macaddr": "wFEVPnBi",
+     "hwModel": "RAK4631",
+     "role": "CLIENT_MUTE",
+     "publicKey": "8GLK6yumkBC8Iw+OSkke8n0y8wUQ7Kkd+nbdT2T8bkw=",
+     "isUnmessagable": true,
+     "raw": {
+      "id": "!153e7062",
+      "longName": "Tomtain Hot Standby",
+      "shortName": "TOMS",
+      "macaddr": "wFEVPnBi",
+      "hwModel": "RAK4631",
+      "role": "CLIENT_MUTE",
+      "publicKey": "8GLK6yumkBC8Iw+OSkke8n0y8wUQ7Kkd+nbdT2T8bkw=",
+      "isUnmessagable": true
+     }
+    }
+   },
+   "id": 593109192,
+   "rxTime": 1794245784,
+   "rxSnr": 6.0,
+   "hopLimit": 5,
+   "rxRssi": -37,
+   "hopStart": 7,
+   "relayNode": 180,
+   "transportMechanism": "TRANSPORT_LORA",
+   "raw": {
+    "from": 356413538,
+    "to": 4294967295,
+    "decoded": {
+     "portnum": "NODEINFO_APP",
+     "payload": "CgkhMTUzZTcwNjISE1RvbXRhaW4gSG90IFN0YW5kYnkaBFRPTVMiBsBRFT5wYigJOAFCIPBiyusrppAQvCMPjkpJHvJ9MvMFEOypHfp23U9k/G5MSAE=",
+     "bitfield": 0
+    },
+    "id": 593109192,
+    "rxTime": 1794245784,
+    "rxSnr": 6.0,
+    "hopLimit": 5,
+    "rxRssi": -37,
+    "hopStart": 7,
+    "relayNode": 180,
+    "transportMechanism": "TRANSPORT_LORA"
+   },
+   "fromId": "!153e7062",
+   "toId": "^all"
+  },
+  "hopLimit": 5,
+  "deviceMetrics": {
+   "batteryLevel": 94,
+   "voltage": 4.109,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.028944444,
+   "uptimeSeconds": 4727176
+  }
+ },
+ "!f66f65dc": {
+  "num": 4134495708,
+  "user": {
+   "id": "!f66f65dc",
+   "longName": "Meshtastic 65dc",
+   "shortName": "Bigg",
+   "macaddr": "RBv2b2Xc",
+   "hwModel": "HELTEC_V4",
+   "publicKey": "GHQxfqkDFbz06o8p5mzJoTA2+NCb3dgV+AC1eeMVuwY=",
+   "isUnmessagable": false,
+   "raw": {
+    "id": "!f66f65dc",
+    "longName": "Meshtastic 65dc",
+    "shortName": "Bigg",
+    "macaddr": "RBv2b2Xc",
+    "hwModel": "HELTEC_V4",
+    "publicKey": "GHQxfqkDFbz06o8p5mzJoTA2+NCb3dgV+AC1eeMVuwY=",
+    "isUnmessagable": false
+   }
+  },
+  "snr": 5.5,
+  "lastHeard": 1794245813,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "lastReceived": {
+   "from": 4134495708,
+   "to": 4294967295,
+   "decoded": {
+    "portnum": "NODEINFO_APP",
+    "payload": "CgkhZjY2ZjY1ZGMSD01lc2h0YXN0aWMgNjVkYxoEQmlnZyIGRBv2b2XcKG5CIBh0MX6pAxW89OqPKeZsyaEwNvjQm93YFfgAtXnjFbsGSAA=",
+    "bitfield": 0,
+    "user": {
+     "id": "!f66f65dc",
+     "longName": "Meshtastic 65dc",
+     "shortName": "Bigg",
+     "macaddr": "RBv2b2Xc",
+     "hwModel": "HELTEC_V4",
+     "publicKey": "GHQxfqkDFbz06o8p5mzJoTA2+NCb3dgV+AC1eeMVuwY=",
+     "isUnmessagable": false,
+     "raw": {
+      "id": "!f66f65dc",
+      "longName": "Meshtastic 65dc",
+      "shortName": "Bigg",
+      "macaddr": "RBv2b2Xc",
+      "hwModel": "HELTEC_V4",
+      "publicKey": "GHQxfqkDFbz06o8p5mzJoTA2+NCb3dgV+AC1eeMVuwY=",
+      "isUnmessagable": false
+     }
+    }
+   },
+   "id": 3213263127,
+   "rxTime": 1794245813,
+   "rxSnr": 5.5,
+   "hopLimit": 4,
+   "rxRssi": -36,
+   "hopStart": 6,
+   "relayNode": 180,
+   "transportMechanism": "TRANSPORT_LORA",
+   "raw": {
+    "from": 4134495708,
+    "to": 4294967295,
+    "decoded": {
+     "portnum": "NODEINFO_APP",
+     "payload": "CgkhZjY2ZjY1ZGMSD01lc2h0YXN0aWMgNjVkYxoEQmlnZyIGRBv2b2XcKG5CIBh0MX6pAxW89OqPKeZsyaEwNvjQm93YFfgAtXnjFbsGSAA=",
+     "bitfield": 0
+    },
+    "id": 3213263127,
+    "rxTime": 1794245813,
+    "rxSnr": 5.5,
+    "hopLimit": 4,
+    "rxRssi": -36,
+    "hopStart": 6,
+    "relayNode": 180,
+    "transportMechanism": "TRANSPORT_LORA"
+   },
+   "fromId": "!f66f65dc",
+   "toId": "^all"
+  },
+  "hopLimit": 4
+ },
+ "!8ec343c3": {
+  "num": 2395161539,
+  "user": {
+   "id": "!8ec343c3",
+   "longName": "Meshtastic 43c3",
+   "shortName": "43c3",
+   "hwModel": "UNSET"
+  },
+  "snr": -18.0,
+  "lastHeard": 1794245742,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true,
+  "environmentMetrics": {
+   "temperature": 21.736616,
+   "lux": 68.0
+  }
+ },
+ "!a44a73e4": {
+  "num": 2756342756,
+  "user": {
+   "id": "!a44a73e4",
+   "longName": "Meshtastic 73e4",
+   "shortName": "73e4",
+   "hwModel": "UNSET"
+  },
+  "snr": -15.0,
+  "lastHeard": 1794245720,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 5.0,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.92,
+   "uptimeSeconds": 709332
+  },
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -32000000,
+   "altitude": 76,
+   "precisionBits": 32,
+   "raw": {
+    "latitudeI": 561000000,
+    "longitudeI": -32000000,
+    "altitude": 76,
+    "precisionBits": 32
+   },
+   "latitude": 56.1,
+   "longitude": -3.2
+  }
+ },
+ "!2b6a77f6": {
+  "num": 728397814,
+  "user": {
+   "id": "!2b6a77f6",
+   "longName": "Meshtastic 77f6",
+   "shortName": "77f6",
+   "hwModel": "UNSET"
+  },
+  "snr": -14.0,
+  "lastHeard": 1794245455,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 63,
+   "voltage": 3.828,
+   "channelUtilization": 0.0,
+   "airUtilTx": 0.13030556,
+   "uptimeSeconds": 15322524
+  },
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -40000000,
+   "altitude": 100,
+   "time": 1781661286,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -40000000,
+    "altitude": 100,
+    "time": 1781661286,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -4.0
+  }
+ },
+ "!665e48d0": {
+  "num": 1717455056,
+  "user": {
+   "id": "!665e48d0",
+   "longName": "Ravencraig Router",
+   "shortName": "RAVN",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_MESH_NODE_T114",
+   "role": "ROUTER",
+   "publicKey": "FbpGsHE0iy1rt5MgYTKAuLZfz2d4GHSx6gr0qcK2JVk="
+  },
+  "snr": -18.75,
+  "lastHeard": 1794245375,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 65,
+   "voltage": 3.848,
+   "channelUtilization": 19.408333,
+   "airUtilTx": 2.63,
+   "uptimeSeconds": 442894
+  }
+ },
+ "!b2300c53": {
+  "num": 2989493331,
+  "user": {
+   "id": "!b2300c53",
+   "longName": "Meshtastic 0c53",
+   "shortName": "0c53",
+   "hwModel": "UNSET"
+  },
+  "snr": -17.75,
+  "lastHeard": 1794245339,
+  "hopsAway": 5,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 97,
+   "voltage": 4.156,
+   "channelUtilization": 6.16,
+   "airUtilTx": 0.20572221,
+   "uptimeSeconds": 18236656
+  }
+ },
+ "!e22b8164": {
+  "num": 3794501988,
+  "user": {
+   "id": "!e22b8164",
+   "longName": "Meshtastic 8164",
+   "shortName": "8164",
+   "hwModel": "UNSET"
+  },
+  "snr": 5.75,
+  "lastHeard": 1794245309,
+  "hopsAway": 1,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 556000000,
+   "longitudeI": -37000000,
+   "altitude": 483,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 556000000,
+    "longitudeI": -37000000,
+    "altitude": 483,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.6,
+   "longitude": -3.7
+  }
+ },
+ "!47f5befd": {
+  "num": 1207287549,
+  "user": {
+   "id": "!47f5befd",
+   "longName": "Meshtastic befd",
+   "shortName": "befd",
+   "hwModel": "UNSET"
+  },
+  "snr": -14.75,
+  "lastHeard": 1794245284,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -37000000,
+   "altitude": 13,
+   "time": 1794245278,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 561000000,
+    "longitudeI": -37000000,
+    "altitude": 13,
+    "time": 1794245278,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 56.1,
+   "longitude": -3.7
+  }
+ },
+ "!b2a6fd90": {
+  "num": 2997288336,
+  "user": {
+   "id": "!b2a6fd90",
+   "longName": "Meshtastic fd90",
+   "shortName": "fd90",
+   "hwModel": "UNSET"
+  },
+  "snr": -14.0,
+  "lastHeard": 1794245266,
+  "hopsAway": 1,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -43000000,
+   "altitude": 131,
+   "time": 1794245257,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 558000000,
+    "longitudeI": -43000000,
+    "altitude": 131,
+    "time": 1794245257,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.8,
+   "longitude": -4.3
+  }
+ },
+ "!905037eb": {
+  "num": 2421176299,
+  "user": {
+   "id": "!905037eb",
+   "longName": "Tomtain Router (unattend",
+   "shortName": "TOMX",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "NRF52_UNKNOWN",
+   "role": "ROUTER",
+   "publicKey": "tqH++OOdSN6Uae2fZah5+JnpgLeN5wSHi/HGL6D16So=",
+   "isUnmessagable": true
+  },
+  "snr": -16.25,
+  "lastHeard": 1794245252,
+  "hopsAway": 0,
+  "heardOnCurrentLora": true
+ },
+ "!09d48334": {
+  "num": 164922164,
+  "user": {
+   "id": "!09d48334",
+   "longName": "Meshtastic 8334",
+   "shortName": "8334",
+   "hwModel": "UNSET"
+  },
+  "snr": -18.25,
+  "lastHeard": 1794245202,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true
+ },
+ "!467d103f": {
+  "num": 1182601279,
+  "user": {
+   "id": "!467d103f",
+   "longName": "SORTURSELF ",
+   "shortName": "SPWK",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "TRACKER_T1000_E",
+   "role": "TRACKER",
+   "publicKey": "j/Jr+Fp8QmIQpirP6smU6DT6MQI8ErE3F7+VML5voyc=",
+   "isUnmessagable": false
+  },
+  "snr": 6.25,
+  "lastHeard": 1794245178,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -42000000,
+   "altitude": 107,
+   "time": 1794245175,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -42000000,
+    "altitude": 107,
+    "time": 1794245175,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -4.2
+  }
+ },
+ "!46220165": {
+  "num": 1176633701,
+  "user": {
+   "id": "!46220165",
+   "longName": "Meshtastic 0165",
+   "shortName": "0165",
+   "hwModel": "UNSET"
+  },
+  "snr": -17.5,
+  "lastHeard": 1794245160,
+  "hopsAway": 1,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -39000000,
+   "altitude": 301,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -39000000,
+    "altitude": 301,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -3.9
+  },
+  "deviceMetrics": {
+   "batteryLevel": 44,
+   "voltage": 3.671,
+   "channelUtilization": 23.246666,
+   "airUtilTx": 2.498222,
+   "uptimeSeconds": 172948
+  }
+ },
+ "!0409010c": {
+  "num": 67698956,
+  "user": {
+   "id": "!0409010c",
+   "longName": "Simon",
+   "shortName": "010c",
+   "macaddr": "rKcECQEM",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXo=",
+   "isUnmessagable": false,
+   "raw": {
+    "id": "!0409010c",
+    "longName": "Simon",
+    "shortName": "010c",
+    "macaddr": "rKcECQEM",
+    "hwModel": "HELTEC_V3",
+    "publicKey": "5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXo=",
+    "isUnmessagable": false
+   }
+  },
+  "snr": 7.5,
+  "lastHeard": 1794246435,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "lastReceived": {
+   "from": 67698956,
+   "to": 4294967295,
+   "decoded": {
+    "portnum": "NODEINFO_APP",
+    "payload": "CgkhMDQwOTAxMGMSBVNpbW9uGgQwMTBjIgaspwQJAQwoK0Ig5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXpIAA==",
+    "bitfield": 0,
+    "user": {
+     "id": "!0409010c",
+     "longName": "Simon",
+     "shortName": "010c",
+     "macaddr": "rKcECQEM",
+     "hwModel": "HELTEC_V3",
+     "publicKey": "5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXo=",
+     "isUnmessagable": false,
+     "raw": {
+      "id": "!0409010c",
+      "longName": "Simon",
+      "shortName": "010c",
+      "macaddr": "rKcECQEM",
+      "hwModel": "HELTEC_V3",
+      "publicKey": "5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXo=",
+      "isUnmessagable": false
+     }
+    }
+   },
+   "id": 3623636547,
+   "rxTime": 1794246435,
+   "rxSnr": 7.5,
+   "hopLimit": 5,
+   "rxRssi": -32,
+   "hopStart": 7,
+   "relayNode": 180,
+   "transportMechanism": "TRANSPORT_LORA",
+   "raw": {
+    "from": 67698956,
+    "to": 4294967295,
+    "decoded": {
+     "portnum": "NODEINFO_APP",
+     "payload": "CgkhMDQwOTAxMGMSBVNpbW9uGgQwMTBjIgaspwQJAQwoK0Ig5asiOZn5oJ8bFxM+Y6bQ2rduYfAlr3zuMcqP5GaGhXpIAA==",
+     "bitfield": 0
+    },
+    "id": 3623636547,
+    "rxTime": 1794246435,
+    "rxSnr": 7.5,
+    "hopLimit": 5,
+    "rxRssi": -32,
+    "hopStart": 7,
+    "relayNode": 180,
+    "transportMechanism": "TRANSPORT_LORA"
+   },
+   "fromId": "!0409010c",
+   "toId": "^all"
+  },
+  "hopLimit": 5,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -44000000,
+   "altitude": 66,
+   "time": 1794245114,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -44000000,
+    "altitude": 66,
+    "time": 1794245114,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -4.4
+  }
+ },
+ "!698239c8": {
+  "num": 1770142152,
+  "user": {
+   "id": "!698239c8",
+   "longName": "GM8ARV-8-MT-EDI-39c8",
+   "shortName": "ARV8",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V4",
+   "publicKey": "CGFS3uFKhtuMauDWbC7GZWD0U7fUEj0p9+TYu7EpYkU=",
+   "isUnmessagable": false
+  },
+  "snr": -14.5,
+  "lastHeard": 1794245086,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "altitude": 176,
+   "time": 1794245078,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 32,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -32000000,
+    "altitude": 176,
+    "time": 1794245078,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 32
+   },
+   "latitude": 55.9,
+   "longitude": -3.2
+  }
+ },
+ "!555c4694": {
+  "num": 1432110740,
+  "user": {
+   "id": "!555c4694",
+   "longName": "Meshtastic 4694",
+   "shortName": "4694",
+   "hwModel": "UNSET"
+  },
+  "snr": -19.75,
+  "lastHeard": 1794244986,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -39000000,
+   "altitude": 53,
+   "time": 1794244979,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 560000000,
+    "longitudeI": -39000000,
+    "altitude": 53,
+    "time": 1794244979,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 56.0,
+   "longitude": -3.9
+  }
+ },
+ "!d06370e9": {
+  "num": 3496177897,
+  "user": {
+   "id": "!d06370e9",
+   "longName": "Flyn forth crossing V2",
+   "shortName": "FLN2",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "THINKNODE_M6",
+   "role": "ROUTER",
+   "publicKey": "KGCUJ4rYQ3K1CHeUApTiu6HXWVDKQkejnO/CRl33vSw=",
+   "isUnmessagable": true
+  },
+  "snr": 5.5,
+  "lastHeard": 1794244948,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 222,
+   "time": 1790050902,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 560000000,
+    "longitudeI": -36000000,
+    "altitude": 222,
+    "time": 1790050902,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 56.0,
+   "longitude": -3.6
+  }
+ },
+ "!b7a532a8": {
+  "num": 3081056936,
+  "user": {
+   "id": "!b7a532a8",
+   "longName": "IB T1000-E",
+   "shortName": "IB02",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "TRACKER_T1000_E",
+   "publicKey": "ZusStmbtZmLtofr8QNCps5In2ICgUPjYA2eDbQtaZik=",
+   "isUnmessagable": false
+  },
+  "snr": -16.0,
+  "lastHeard": 1794244890,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true
+ },
+ "!9ea1a19c": {
+  "num": 2661392796,
+  "user": {
+   "id": "!9ea1a19c",
+   "longName": "Yagi a19c",
+   "shortName": "a19c",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V3",
+   "role": "CLIENT_BASE",
+   "publicKey": "CepIoKma3fwbwVtEWrqwhRNr1/c8AakR8IqBJkr9r24=",
+   "isUnmessagable": false
+  },
+  "snr": -17.0,
+  "lastHeard": 1794244885,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true
+ },
+ "!229a5f0a": {
+  "num": 580542218,
+  "user": {
+   "id": "!229a5f0a",
+   "longName": "EARL version 2 (replaced",
+   "shortName": "EARL",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "RAK4631",
+   "role": "ROUTER",
+   "publicKey": "phKIsrb+U/8bbehTnMqfcagH4QLvbdmwEUeNVBPmiAE=",
+   "isUnmessagable": true
+  },
+  "snr": 5.5,
+  "lastHeard": 1794244869,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true
+ },
+ "!1ba601fc": {
+  "num": 463864316,
+  "user": {
+   "id": "!1ba601fc",
+   "longName": "Paisley Hoose 1 🏠",
+   "shortName": "PH1",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V4",
+   "publicKey": "LDSgfhxiZ08WDaefUgs9P7Scun+LtDJ1H/w7HOLI5V8=",
+   "isUnmessagable": false
+  },
+  "snr": 6.0,
+  "lastHeard": 1794244845,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true
+ },
+ "!a35ae558": {
+  "num": 2740643160,
+  "user": {
+   "id": "!a35ae558",
+   "longName": "Meshtastic e558",
+   "shortName": "e558",
+   "hwModel": "UNSET"
+  },
+  "snr": -17.75,
+  "lastHeard": 1794244771,
+  "hopsAway": 5,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.361,
+   "channelUtilization": 0.0,
+   "airUtilTx": 1.2883888,
+   "uptimeSeconds": 4770019
+  }
+ },
+ "!f101391a": {
+  "num": 4043389210,
+  "user": {
+   "id": "!f101391a",
+   "longName": "Meshtastic 391a",
+   "shortName": "391a",
+   "hwModel": "UNSET"
+  },
+  "snr": -18.75,
+  "lastHeard": 1794244770,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -32000000,
+   "altitude": 116,
+   "time": 1794244758,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 561000000,
+    "longitudeI": -32000000,
+    "altitude": 116,
+    "time": 1794244758,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 56.1,
+   "longitude": -3.2
+  }
+ },
+ "!a35a862c": {
+  "num": 2740618796,
+  "user": {
+   "id": "!a35a862c",
+   "longName": "Meshtastic 862c",
+   "shortName": "862c",
+   "hwModel": "UNSET"
+  },
+  "snr": -17.0,
+  "lastHeard": 1794244661,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -34000000,
+   "altitude": 104,
+   "time": 1794244650,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -34000000,
+    "altitude": 104,
+    "time": 1794244650,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -3.4
+  }
+ },
+ "!ae6142dc": {
+  "num": 2925609692,
+  "user": {
+   "id": "!ae6142dc",
+   "longName": "r101🌚",
+   "shortName": "OG04",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "SEEED_XIAO_S3",
+   "publicKey": "N0LvUzgXPsYdR4b009AArAlabfxMvxHqFcCbDjtWcx0=",
+   "isUnmessagable": false
+  },
+  "snr": -16.75,
+  "lastHeard": 1794244572,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -32000000,
+   "altitude": 160,
+   "time": 1794243161,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -32000000,
+    "altitude": 160,
+    "time": 1794243161,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -3.2
+  }
+ },
+ "!09d3f680": {
+  "num": 164886144,
+  "user": {
+   "id": "!09d3f680",
+   "longName": "NORTH GLASGOW",
+   "shortName": "SPBN",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V3",
+   "publicKey": "nSnDyut88QQ5zy0Hy4DZRrvGq9nTOpZT3S7j+Qe4KnA=",
+   "isUnmessagable": false
+  },
+  "snr": 5.75,
+  "lastHeard": 1794244497,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true
+ },
+ "!3a6484af": {
+  "num": 979666095,
+  "user": {
+   "id": "!3a6484af",
+   "longName": "Meshtastic 84af",
+   "shortName": "84af",
+   "hwModel": "UNSET"
+  },
+  "snr": -19.25,
+  "lastHeard": 1794244376,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -43000000,
+   "time": 1794244369,
+   "locationSource": "LOC_EXTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 558000000,
+    "longitudeI": -43000000,
+    "time": 1794244369,
+    "locationSource": "LOC_EXTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.8,
+   "longitude": -4.3
+  }
+ },
+ "!b29f433c": {
+  "num": 2996781884,
+  "user": {
+   "id": "!b29f433c",
+   "longName": "MFB92",
+   "shortName": "BRIG",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V4",
+   "publicKey": "7mcgBVeG7MG9jk6VsN0Gl5fB9eMU+zJGZ69bCw7KNmY=",
+   "isUnmessagable": false
+  },
+  "snr": -14.75,
+  "lastHeard": 1794244309,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true
+ },
+ "!da56b090": {
+  "num": 3663114384,
+  "user": {
+   "id": "!da56b090",
+   "longName": "Meshtastic b090",
+   "shortName": "b090",
+   "hwModel": "UNSET"
+  },
+  "snr": -15.5,
+  "lastHeard": 1794244281,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -31000000,
+   "altitude": 75,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -31000000,
+    "altitude": 75,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -3.1
+  }
+ },
+ "!9e77e4c4": {
+  "num": 2658657476,
+  "user": {
+   "id": "!9e77e4c4",
+   "longName": "Meshtastic e4c4",
+   "shortName": "e4c4",
+   "hwModel": "UNSET"
+  },
+  "snr": -17.0,
+  "lastHeard": 1794243888,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -35000000,
+   "altitude": 154,
+   "time": 1794243868,
+   "locationSource": "LOC_INTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -35000000,
+    "altitude": 154,
+    "time": 1794243868,
+    "locationSource": "LOC_INTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -3.5
+  }
+ },
+ "!9d96bdf8": {
+  "num": 2643901944,
+  "user": {
+   "id": "!9d96bdf8",
+   "longName": "Meshtastic bdf8",
+   "shortName": "bdf8",
+   "hwModel": "UNSET"
+  },
+  "snr": 7.0,
+  "lastHeard": 1794243880,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 560000000,
+   "longitudeI": -36000000,
+   "altitude": 51,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 15,
+   "raw": {
+    "latitudeI": 560000000,
+    "longitudeI": -36000000,
+    "altitude": 51,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 15
+   },
+   "latitude": 56.0,
+   "longitude": -3.6
+  }
+ },
+ "!9e757970": {
+  "num": 2658498928,
+  "user": {
+   "id": "!9e757970",
+   "longName": "Meshtastic 7970",
+   "shortName": "7970",
+   "hwModel": "UNSET"
+  },
+  "snr": 5.5,
+  "lastHeard": 1794243876,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -42000000,
+   "altitude": 65,
+   "time": 1785653967,
+   "locationSource": "LOC_EXTERNAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 558000000,
+    "longitudeI": -42000000,
+    "altitude": 65,
+    "time": 1785653967,
+    "locationSource": "LOC_EXTERNAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.8,
+   "longitude": -4.2
+  }
+ },
+ "!da5ed89c": {
+  "num": 3663648924,
+  "user": {
+   "id": "!da5ed89c",
+   "longName": "Meshtastic d89c",
+   "shortName": "d89c",
+   "hwModel": "UNSET"
+  },
+  "snr": -18.25,
+  "lastHeard": 1794243771,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 559000000,
+   "longitudeI": -47000000,
+   "time": 1794243700,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 13,
+   "raw": {
+    "latitudeI": 559000000,
+    "longitudeI": -47000000,
+    "time": 1794243700,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 13
+   },
+   "latitude": 55.9,
+   "longitude": -4.7
+  }
+ },
+ "!a35a5678": {
+  "num": 2740606584,
+  "user": {
+   "id": "!a35a5678",
+   "longName": "eightyHD",
+   "shortName": "ADHD",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "HELTEC_V4",
+   "publicKey": "08Cw0UorWsK/1a1XzryFKWINFc+iZjnC2s09r5KVUDI=",
+   "isUnmessagable": false
+  },
+  "snr": 6.0,
+  "lastHeard": 1794243508,
+  "hopsAway": 4,
+  "heardOnCurrentLora": true
+ },
+ "!f8185202": {
+  "num": 4162343426,
+  "user": {
+   "id": "!f8185202",
+   "longName": "Meshtastic 5202",
+   "shortName": "5202",
+   "hwModel": "UNSET"
+  },
+  "snr": 6.25,
+  "lastHeard": 1794243451,
+  "hopsAway": 1,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 558000000,
+   "longitudeI": -42000000,
+   "altitude": 10,
+   "time": 1794344134,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 32,
+   "raw": {
+    "latitudeI": 558000000,
+    "longitudeI": -42000000,
+    "altitude": 10,
+    "time": 1794344134,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 32
+   },
+   "latitude": 55.8,
+   "longitude": -4.2
+  }
+ },
+ "!20e4cc6f": {
+  "num": 551865455,
+  "user": {
+   "id": "!20e4cc6f",
+   "longName": "Meshtastic cc6f",
+   "shortName": "cc6f",
+   "hwModel": "UNSET"
+  },
+  "snr": 6.75,
+  "lastHeard": 1794243394,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 561000000,
+   "longitudeI": -32000000,
+   "altitude": 93,
+   "time": 1794243359,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 32,
+   "raw": {
+    "latitudeI": 561000000,
+    "longitudeI": -32000000,
+    "altitude": 93,
+    "time": 1794243359,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 32
+   },
+   "latitude": 56.1,
+   "longitude": -3.2
+  }
+ },
+ "!8fa77ffc": {
+  "num": 2410119164,
+  "user": {
+   "id": "!8fa77ffc",
+   "longName": "Meshtastic 7ffc",
+   "shortName": "7ffc",
+   "hwModel": "UNSET"
+  },
+  "snr": 6.0,
+  "lastHeard": 1794243105,
+  "hopsAway": 3,
+  "heardOnCurrentLora": true,
+  "position": {
+   "latitudeI": 557000000,
+   "longitudeI": -40000000,
+   "altitude": 145,
+   "time": 1794243090,
+   "locationSource": "LOC_MANUAL",
+   "precisionBits": 15,
+   "raw": {
+    "latitudeI": 557000000,
+    "longitudeI": -40000000,
+    "altitude": 145,
+    "time": 1794243090,
+    "locationSource": "LOC_MANUAL",
+    "precisionBits": 15
+   },
+   "latitude": 55.7,
+   "longitude": -4.0
+  }
+ },
+ "!433c4ab4": {
+  "num": 1128024756,
+  "user": {
+   "id": "!433c4ab4",
+   "longName": "Meshtastic 4ab4",
+   "shortName": "4ab4",
+   "hwModel": "UNSET"
+  },
+  "snr": 6.5,
+  "lastHeard": 1794243098,
+  "hopsAway": 2,
+  "heardOnCurrentLora": true,
+  "deviceMetrics": {
+   "batteryLevel": 101,
+   "voltage": 4.211,
+   "channelUtilization": 7.4533334,
+   "airUtilTx": 0.5278889,
+   "uptimeSeconds": 242702
+  }
+ },
+ "!2a83b265": {
+  "num": 713273957,
+  "user": {
+   "id": "!2a83b265",
+   "longName": "Meshtastic b265",
+   "shortName": "b265",
+   "macaddr": "AAAAAAAA",
+   "hwModel": "RAK4631",
+   "role": "CLIENT_MUTE",
+   "publicKey": "CGuFiaidikP0j2WT0cvU4cEo8mAZqPIZIbzTuiABe2M="
+  }
+ }
+}

@@ -92,6 +92,52 @@ def walk_dicts(obj: Any) -> Iterator[dict]:
             yield from walk_dicts(item)
 
 
+TEXT_PORT = "TEXT_MESSAGE_APP"
+
+
+def _is_text_data(d: dict) -> bool:
+    return d.get("portnum") == TEXT_PORT
+
+
+def _packet_text_data(d: dict) -> Optional[dict]:
+    """The text ``Data`` dict if *d* is a packet whose ``decoded`` is a text message."""
+    decoded = d.get("decoded")
+    if isinstance(decoded, dict) and (_is_text_data(decoded) or "text" in decoded):
+        return decoded
+    return None
+
+
+def foreign_text_keys(obj: Any, own: set[int], _sender: Any = None) -> list[tuple[dict, str]]:
+    """``(parent, key)`` of every text packet under *obj* whose sender is not in *own*.
+
+    Finds a packet dict (one with a text ``decoded``) wherever it is nested, for
+    example a NodeDB entry's ``lastReceived`` and its ``raw`` copy. A text ``Data``
+    dict with no sender above it counts as foreign.
+    """
+    found: list[tuple[dict, str]] = []
+    if isinstance(obj, list):
+        for item in obj:
+            found.extend(foreign_text_keys(item, own, _sender))
+        return found
+    if not isinstance(obj, dict):
+        return found
+    sender = obj["from"] if isinstance(obj.get("from"), int) else _sender
+    for key, value in obj.items():
+        if not isinstance(value, (dict, list)):
+            continue
+        if isinstance(value, dict):
+            data = _packet_text_data(value)
+            value_sender = value["from"] if isinstance(value.get("from"), int) else sender
+            if data is not None and value_sender not in own:
+                found.append((obj, key))
+                continue
+            if key == "decoded" and (_is_text_data(value) or "text" in value) and sender not in own:
+                found.append((obj, key))
+                continue
+        found.extend(foreign_text_keys(value, own, sender))
+    return found
+
+
 def secret_keys(obj: Any) -> list[str]:
     """Names of keys that look like key material, config secrets or a device id."""
     return sorted(
@@ -325,14 +371,27 @@ def replay_ids(records: list[dict]) -> set[int]:
 # --- labels --------------------------------------------------------------
 
 
+_TRANSPORT_LABELS = {"TRANSPORT_MULTICAST_UDP": "udp-multicast"}
+
+
 def labels_for(
     record: dict,
     *,
     feeder_fw: str,
     scheme: str,
     stable_replay: bool = False,
+    pki_label: bool = True,
+    transport_label: bool = True,
 ) -> list[str]:
-    """Subset labels for one scrubbed record (see the README for the list)."""
+    """Subset labels for one scrubbed record (see the README for the list).
+
+    ``pki_label`` is False for the Xiao captures' rows, whose labels are frozen
+    (the api goldens read them): ``x28h4-L1`` is pkiEncrypted and never had it.
+    ``transport_label`` is False for them too. Elsewhere a record that did not arrive
+    over LoRa (``transportMechanism`` present and not ``TRANSPORT_LORA``, e.g. wifi UDP
+    multicast on the 2.7 PDYt capture) gets ``transport:udp-multicast`` and the like:
+    such a row has no RSSI/SNR and is not a radio reference.
+    """
     packet = record["packet"]
     kind = record["kind"]
     port = port_of(packet)
@@ -364,6 +423,16 @@ def labels_for(
         labels.append(f"bitfield:{bitfield}")
     if packet.get("channel"):
         labels.append(f"channel:{packet['channel']}")
+    if packet.get("xeddsaSigned"):
+        labels.append("signed")
+    if pki_label and packet.get("pkiEncrypted"):
+        labels.append("pki-encrypted")
     if stable_replay:
         labels.append("stable-replay-id")
+    transport = packet.get("transportMechanism")
+    if transport_label and transport and transport != "TRANSPORT_LORA":
+        labels.append(
+            "transport:"
+            + _TRANSPORT_LABELS.get(transport, transport.removeprefix("TRANSPORT_").lower().replace("_", "-"))
+        )
     return labels

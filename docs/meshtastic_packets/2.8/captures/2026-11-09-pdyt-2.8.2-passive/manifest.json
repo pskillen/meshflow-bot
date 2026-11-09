@@ -1,0 +1,98 @@
+{
+  "capture_id": "2026-11-09-pdyt-2.8.2-passive",
+  "short": "p28",
+  "source": "fx1_capture",
+  "feeder": {
+    "num": 2304338203,
+    "id": "!8959691b",
+    "firmware": "2.8.2.d5f1619",
+    "hw_model": "HELTEC_WIRELESS_PAPER",
+    "device_state_version": 25,
+    "hop_limit": 7,
+    "role": "CLIENT",
+    "signature_policy": "COMPATIBLE"
+  },
+  "lib": {
+    "name": "meshtastic-python",
+    "note": "python master 0a18357 (2.8 protos), reports 2.7.11; version not in the capture metadata"
+  },
+  "start": "2026-11-09T19:31:03Z",
+  "end": "2026-11-09T20:30:57Z",
+  "duration_s": 3594,
+  "counts": {
+    "total": 156,
+    "by_kind": {
+      "live": 59,
+      "replay": 32,
+      "self": 65
+    },
+    "by_port": {
+      "NODEINFO_APP": 24,
+      "POSITION_APP": 42,
+      "ROUTING_APP": 1,
+      "TELEMETRY_APP": 88,
+      "TRACEROUTE_APP": 1
+    },
+    "by_port_and_kind": {
+      "NODEINFO_APP": {
+        "live": 24
+      },
+      "POSITION_APP": {
+        "live": 19,
+        "replay": 23
+      },
+      "ROUTING_APP": {
+        "live": 1
+      },
+      "TELEMETRY_APP": {
+        "live": 14,
+        "replay": 9,
+        "self": 65
+      },
+      "TRACEROUTE_APP": {
+        "live": 1
+      }
+    }
+  },
+  "senders": {
+    "count": 52,
+    "by_id_scheme": {
+      "mac": 21,
+      "crc32": 3,
+      "neither": 15,
+      "no_user": 13
+    },
+    "mac_zeroed": 15
+  },
+  "self_telemetry": {
+    "deviceMetrics": {
+      "count": 61,
+      "median_interval_s": 60.0
+    },
+    "localStats": {
+      "count": 4
+    }
+  },
+  "replay_burst": {
+    "count": 32,
+    "within_s_of_start": 0.4,
+    "hop_start_values": [
+      7
+    ],
+    "stable_ids_shared_with": [
+      "2026-11-09-pdyt-2.8.2-dm",
+      "2026-11-09-pdyt-2.8.2-signed",
+      "2026-11-09-pdyt-2.8.2-traceroute"
+    ]
+  },
+  "scrub": {
+    "rule": "lat/lon rounded to 0.1 deg",
+    "positions_rounded": 41,
+    "nodedb_positions_rounded": 22
+  },
+  "notes": "PDYt on 2.8.2, 60 min passive over USB serial, bot off: 2.8 feeder x live 2.7 and 2.8 senders, plus a 32-packet connect replay burst on a 61-node NodeDB. Three texts from third parties were dropped by the builder. hop_limit 7 read from the feeder's own packets.",
+  "own_nodes": [
+    "!8959691b",
+    "!faec6f41"
+  ]
+}

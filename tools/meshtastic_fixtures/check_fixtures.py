@@ -146,6 +146,7 @@ def check_capture(
     if manifest is None or records is None or nodedb is None:
         return None
     feeder = manifest["feeder"]["num"]
+    own = {int(v[1:], 16) for v in manifest.get("own_nodes", [])} | {feeder}
     log = cdir / "capture.jsonl"
 
     for n, rec in enumerate(records, 1):
@@ -171,9 +172,15 @@ def check_capture(
             problems.add(where, f"secret-looking keys {leaked}")
         if (
             (rec["packet"].get("decoded") or {}).get("portnum") == "TEXT_MESSAGE_APP"
-            and rec["packet"].get("from") != feeder
+            and rec["packet"].get("from") not in own
         ):
-            problems.add(where, "text message from a node that is not the feeder")
+            problems.add(where, "text message from a node that is not the feeder or a listed own node")
+
+    for _parent, key in rules.foreign_text_keys(nodedb, own):
+        problems.add(
+            str(cdir / "nodedb.json"),
+            f"text message from a node that is not the feeder or a listed own node (under {key!r})",
+        )
 
     bad = rules.grid_violations(nodedb)
     if bad:
