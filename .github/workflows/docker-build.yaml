@@ -117,19 +117,3 @@ jobs:
               -t ${LEGACY_IMAGE}:latest \
               ${DIGEST_REFS}
           fi
-
-  cleanup:
-    runs-on: ubuntu-latest
-    needs:
-      - build
-      - merge
-    if: always() && !cancelled() && needs.merge.result == 'success'
-    steps:
-      - name: Delete untagged images
-        uses: Chizkiyahu/delete-untagged-ghcr-action@v6.1.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository_owner: ${{ github.repository_owner }}
-          package_name: meshflow-bot
-          owner_type: user
-          untagged_only: true

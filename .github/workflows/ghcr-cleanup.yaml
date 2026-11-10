@@ -1,0 +1,30 @@
+name: ghcr-cleanup
+
+on:
+  schedule:
+    - cron: "53 4 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ghcr-cleanup-meshflow-bot
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Delete untagged images
+        uses: Chizkiyahu/delete-untagged-ghcr-action@v6.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository_owner: ${{ github.repository_owner }}
+          package_name: meshflow-bot
+          owner_type: user
+          untagged_only: true
+          # except_untagged_multiplatform left at default (true): images are
+          # multi-arch, and untagged platform manifests belong to tagged images.
